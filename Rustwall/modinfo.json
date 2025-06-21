@@ -3,11 +3,12 @@
     "modid": "rustwall",
     "name": "Rustwall",
     "authors": [
-        "Unknown"
+      "DessertOverlord",
+      "Vykax"
     ],
-    "description": "To be added",
-    "version": "1.0.0",
+    "description": "Custom mod for the spin-off mode of Mudwall",
+    "version": "1.0.1",
     "dependencies": {
-        "game": ""
+        "game": "1.20.12"
     }
 }
