@@ -8,6 +8,7 @@ using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.API.Config;
 using Vintagestory.ServerMods.NoObf;
+using Vintagestory.API.Util;
 
 namespace Rustwall.ModSystems.RingedGenerator
 {
@@ -17,7 +18,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         // ringsize must be an even number (? haven't tried an odd number yet) and determines how wide each ring is.
         private static int ringSize = 2;
         // each dictionary holds the parameters for one ring's worldgen. organized into a list for scalability
-        private List<Dictionary<string, double>> ringDictList = new List<Dictionary<string, double>>();
+        private List<Dictionary<string, double>> ringDictList;
         // seedlist performs the same thing as above, just holding all of the seeds.
         private List<int> seedList = new List<int>();
         // this list is all of the settings we want to mess with. Can be added to easily.
@@ -29,33 +30,17 @@ namespace Rustwall.ModSystems.RingedGenerator
         private readonly List<double> WorldgenDefaultParams = new List<double> { 1, 1, 1, 0, 1, 1, 0.3, 0.05 };
         public static int curRing { get; private set; } = 0;
         public static int desiredRing { get; private set; } = 0;
+        private static int ringMapSize;
 
         protected override void RustwallStartServerSide(ICoreServerAPI api)
         {
             sapi = api;
             RegisterChatCommands();
+            // This calculates map size relative to the resolution of the rings
+            ringMapSize = sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ ? (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2 : -500;
+            ringDictList = new List<Dictionary<string, double>>(ringMapSize); 
 
-            // First, we need to store the current seed, for generating the "ring 0" safe zone.
-            int seed;
-            // This calculates down to the resolution of rings.
-            int ringMapSize = sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ ? (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2 : -500;
-            // Add the first, initial seed to the seedList.
-            seedList.Add(sapi.WorldManager.SaveGame.Seed);
-            //If the ringdictionary is empty, add the initial worldgen params, and then add the randomized ones.
-            if (ringDictList.Count == 0)
-            {
-                ringDictList.Add(new Dictionary<string, double>());
-                for (int i = 0; i < WorldgenParamsToScramble.Count(); i++)
-                {
-                    ringDictList[0].Add(WorldgenParamsToScramble[i], WorldgenDefaultParams[i]);
-                }
-                for (int i = 0; i < ringMapSize - 1; i++)
-                {
-                    RandomizeParams(sapi, out Dictionary<string, double> newParams, out seed, EnumDistribution.NARROWINVERSEGAUSSIAN);
-                    seedList.Add(seed);
-                    ringDictList.Add(newParams);
-                }
-            }
+            InitRingedWorldGenerator();
 
             double regionMidPoint = ((ringMapSize + ringMapSize - 1) / 2.0);
             void HandleRegionLoading(IMapRegion region, int regionX, int regionZ, ITreeAttribute chunkGenParams = null)
@@ -88,18 +73,67 @@ namespace Rustwall.ModSystems.RingedGenerator
             sapi.Event.MapChunkGeneration(chunkHandler, "standard");
         }
 
+        //Initialize and load the worldgen parameters
+        private void InitRingedWorldGenerator()
+        {
+            //If this is the first world load, we need some fresh params
+            if (sapi.WorldManager.SaveGame.IsNew)
+            {
+                CreateWorldgenValues();
+            }
+            // if it isn't, just load what's already there (hopefully...)
+            else
+            {
+                byte[] seedData = sapi.WorldManager.SaveGame.GetData("rustwallRingSeeds");
+                seedList = SerializerUtil.Deserialize<List<int>>(seedData);
+
+                for (int i = 0; i < ringMapSize - 1; i++)
+                {
+                    byte[] data = sapi.WorldManager.SaveGame.GetData("rustwallRingData_" + i);
+                    ringDictList.Add(SerializerUtil.Deserialize<Dictionary<string, double>>(data));
+                }
+            }
+        }
+
+        //Initialize first-time world generator values
+        private void CreateWorldgenValues()
+        {
+            //Initialize seedList and ringDictList, and loop through them to populate values
+            seedList.Add(sapi.WorldManager.SaveGame.Seed);
+            ringDictList.Add(new Dictionary<string, double>());
+            //This adds the default worldgen params to spawn (ring 0)
+            for (int i = 0; i < WorldgenParamsToScramble.Count(); i++)
+            {
+                ringDictList[0].Add(WorldgenParamsToScramble[i], WorldgenDefaultParams[i]);
+            }
+            // and this adds the rest of them -- note -1 because we already added 1 with the previous loop
+            for (int i = 0; i < ringMapSize - 1; i++)
+            {
+                RandomizeParams(sapi, out Dictionary<string, double> newParams, out int seed, EnumDistribution.NARROWINVERSEGAUSSIAN);
+                seedList.Add(seed);
+                ringDictList.Add(newParams);
+            }
+            // this stores the generated seeds and params into the savegame, making them persistent
+            sapi.WorldManager.SaveGame.StoreData("rustwallRingSeeds", SerializerUtil.Serialize(seedList));
+            for (int i = 0; i < ringDictList.Count - 1; i++)
+            {
+                //note that each array must be saved separately -- nested arrays of different sizes are not supported for serialization
+                sapi.WorldManager.SaveGame.StoreData("rustwallRingData_" + i, SerializerUtil.Serialize(ringDictList[i]));
+            }
+        }
+
         //RandomDoubleInRange does what it says, giving a random double between minVal and maxVal.
         // TODO: maybe add distributions to weight the results?
         // DONE: Can now supply RandomizeParams with a distribution type to mess with how it chooses values.
         // I can probably eliminate this function entirely at some point but I can't be assed.
-        public double RandomDoubleInRange(ICoreServerAPI api, double minVal, double maxVal)
+        private double RandomDoubleInRange(ICoreServerAPI api, double minVal, double maxVal)
         {
             return sapi.World.Rand.NextDouble() * (maxVal - minVal) + minVal;
         }
 
         //RandomizeParams takes WorldgenParamsToScramble and loops through every world generator parameter, creating a dictionary
         // of randomized values by calling RandomDoubleInRange. The dictionary is passed out via "out" params. The seed is also randomized.
-        public void RandomizeParams(ICoreServerAPI api, out Dictionary<string, double> newParams, out int newSeed, EnumDistribution dist = EnumDistribution.UNIFORM)
+        private void RandomizeParams(ICoreServerAPI api, out Dictionary<string, double> newParams, out int newSeed, EnumDistribution dist = EnumDistribution.UNIFORM)
         {
             newParams = new Dictionary<string, double>();
             // These are the hardcoded min and max values for the attributes we want to scramble.
@@ -128,12 +162,10 @@ namespace Rustwall.ModSystems.RingedGenerator
                     break;
             }
             newSeed = sapi.World.Seed + sapi.World.Rand.Next(100000);
-            // TODO: Remove all WriteLines when worldgen is complete
-            //Debug.WriteLine("New Seed:" + newSeed);
         }
 
         //SetWorldParams takes the parameters and seed provided and updates the world generator with them.
-        public void SetWorldParams(ICoreServerAPI api, Dictionary<string, double> keyValuePairs, int seed)
+        private void SetWorldParams(ICoreServerAPI api, Dictionary<string, double> keyValuePairs, int seed)
         {
             foreach (var item in keyValuePairs)
             {
@@ -146,7 +178,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         //Turns off chunk generation and sending to clients, reloads all of the worldgen parameters (seed, multipliers), and then re-enables everything.
         // Necessary any time we change what ring we're generating.
-        public void RestartChunkGenerator()
+        private void RestartChunkGenerator()
         {
             // This was built using the logic for /wgen regen as a template. The command paused the chunkdbthread before doing any of this type of stuff,
             // but this mod seems to function fine without doing that... hopefully it wasn't important :^)
@@ -161,7 +193,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             sapi.WorldManager.SendChunks = true;
         }
 
-        void RegisterChatCommands()
+        private void RegisterChatCommands()
         {
             sapi.ChatCommands.Create("regreg")
                 .WithDescription("I UNNO")
