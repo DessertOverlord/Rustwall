@@ -88,10 +88,9 @@ namespace Rustwall.ModSystems.TemporalStormHandler
                 currentStormOffset = 0;
             }
         }
-
-
     }
 
+    //We also need to patch the prepareNextStorm function so that we can intercept the configuration of the next temporal storm as it is made
     [HarmonyPatch(typeof(SystemTemporalStability), "prepareNextStorm")]
     internal static class Patch_prepareNextStorm
     {
