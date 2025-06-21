@@ -31,46 +31,48 @@ namespace Rustwall.ModSystems.RingedGenerator
         public static int curRing { get; private set; } = 0;
         public static int desiredRing { get; private set; } = 0;
         private static int ringMapSize;
+        private double regionMidPoint;
 
         protected override void RustwallStartServerSide(ICoreServerAPI api)
         {
             sapi = api;
             RegisterChatCommands();
             // This calculates map size relative to the resolution of the rings
+            // It also checks to make sure the world is a square; if it is rectangular, the ring generator doesn't initialize
             ringMapSize = sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ ? (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2 : -500;
             ringDictList = new List<Dictionary<string, double>>(ringMapSize); 
 
             InitRingedWorldGenerator();
 
-            double regionMidPoint = ((ringMapSize + ringMapSize - 1) / 2.0);
-            void HandleRegionLoading(IMapRegion region, int regionX, int regionZ, ITreeAttribute chunkGenParams = null)
-            {
-                if (ringMapSize == -500) { return; }
-                desiredRing = (int)(double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5);
-                if (curRing != desiredRing)
-                {
-                    curRing = desiredRing;
-                    SetWorldParams(sapi, ringDictList[curRing], seedList[curRing]);
-                    RestartChunkGenerator();
-                }
-            }
-
-            void HandleChunkLoading(IMapChunk mapChunk, int chunkX, int chunkZ)
-            {
-                if (ringMapSize == -500) { return; }
-                int regionX = chunkX / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
-                int regionZ = chunkZ / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
-                //HandleChunkLoading would perform the same math... so we just figure out what region the chunk is in and call HandleRegionLoading!
-                HandleRegionLoading(null, regionX, regionZ);
-            }
-
-            //Add our method to the MapRegionGeneration event, causing it to be called any time the engine wants to generate a new region
+            //Add the region method to the MapRegionGeneration event, causing it to be called any time the engine wants to generate a new region
             MapRegionGeneratorDelegate regionHandler = HandleRegionLoading;
             sapi.Event.MapRegionGeneration(regionHandler, "standard");
 
             //Add the chunk method to MapChunkGeneration; this is triggered any time a new chunk column is requested.
             MapChunkGeneratorDelegate chunkHandler = HandleChunkLoading;
             sapi.Event.MapChunkGeneration(chunkHandler, "standard");
+        }
+
+        private void HandleChunkLoading(IMapChunk mapChunk, int chunkX, int chunkZ)
+        {
+            if (ringMapSize == -500) { return; }
+            int regionX = chunkX / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
+            int regionZ = chunkZ / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
+            //HandleChunkLoading would perform the same math... so we just figure out what region the chunk is in and call HandleRegionLoading!
+            HandleRegionLoading(null, regionX, regionZ);
+        }
+
+        private void HandleRegionLoading(IMapRegion region, int regionX, int regionZ, ITreeAttribute chunkGenParams = null)
+        {
+            regionMidPoint = ((ringMapSize + ringMapSize - 1) / 2.0);
+            if (ringMapSize == -500) { return; }
+            desiredRing = (int)(double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5);
+            if (curRing != desiredRing)
+            {
+                curRing = desiredRing;
+                SetWorldParams(sapi, ringDictList[curRing], seedList[curRing]);
+                RestartChunkGenerator();
+            }
         }
 
         //Initialize and load the worldgen parameters
