@@ -14,7 +14,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 {
     internal class RingedGeneratorSystem : RustwallModSystem
     {
-        ICoreServerAPI sapi;
+        //ICoreServerAPI sapi;
         // ringsize must be an even number (? haven't tried an odd number yet) and determines how wide each ring is.
         private static int ringSize = 2;
         // each dictionary holds the parameters for one ring's worldgen. organized into a list for scalability
@@ -33,9 +33,9 @@ namespace Rustwall.ModSystems.RingedGenerator
         private static int ringMapSize;
         private double regionMidPoint;
 
-        protected override void RustwallStartServerSide(ICoreServerAPI api)
+        protected override void RustwallStartServerSide()
         {
-            sapi = api;
+            //sapi = api;
             RegisterChatCommands();
             // This calculates map size relative to the resolution of the rings
             // It also checks to make sure the world is a square; if it is rectangular, the ring generator doesn't initialize
@@ -87,7 +87,16 @@ namespace Rustwall.ModSystems.RingedGenerator
             else
             {
                 byte[] seedData = sapi.WorldManager.SaveGame.GetData("rustwallRingSeeds");
-                seedList = SerializerUtil.Deserialize<List<int>>(seedData);
+                //this happens if the world is improperly saved after the initial world load.
+                //HOPEfully this should never arise.
+                if (seedData != null)
+                { 
+                    seedList = SerializerUtil.Deserialize<List<int>>(seedData); 
+                } 
+                else 
+                { 
+                    CreateWorldgenValues(); 
+                }
 
                 for (int i = 0; i < ringMapSize - 1; i++)
                 {

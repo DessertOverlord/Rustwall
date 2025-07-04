@@ -9,12 +9,14 @@ using System;
 using Vintagestory.API.Util;
 using System.ComponentModel.Design;
 using ProtoBuf;
+using Rustwall.Configs;
 
 namespace Rustwall.ModSystems.TemporalStormHandler
 {
     internal class TemporalStormHandlerSystem : RustwallModSystem
     {
-        ICoreServerAPI sapi;
+        //ICoreServerAPI sapi;
+        //TemporalStormConfig config;
 
         internal enum EnumStormClimate
         {
@@ -32,9 +34,9 @@ namespace Rustwall.ModSystems.TemporalStormHandler
 
         internal static StormClimateRuntimeData runtimeData { get; set; } = new StormClimateRuntimeData();
 
-        protected override void RustwallStartServerSide(ICoreServerAPI api)
+        protected override void RustwallStartServerSide()
         {
-            sapi = api;
+            //sapi = api;
             RegisterChatCommands();
 
             // Initialize Harmony for our postfix
@@ -45,6 +47,10 @@ namespace Rustwall.ModSystems.TemporalStormHandler
             sapi.Event.OnEntityDeath += Event_OnEntityDeath;
             sapi.Event.SaveGameLoaded += Event_SaveGameLoaded;
             sapi.Event.GameWorldSave += Event_GameWorldSave;
+
+            //config = sapi.LoadModConfig<TemporalStormConfig>("rustwall_temporalstormconfig.json");
+            var testvar = config.daysPerKill;
+
         }
 
         //These two handle saving the current state of the stormClimate for when the server is restarted
@@ -59,9 +65,10 @@ namespace Rustwall.ModSystems.TemporalStormHandler
             {
                 runtimeData = SerializerUtil.Deserialize<StormClimateRuntimeData>(sapi.WorldManager.SaveGame.GetData("stormClimate"));
             } 
-            catch
+            catch (Exception)
             {
-                
+                sapi.Logger.Error("Storm climate data unable to be loaded");
+                runtimeData = new StormClimateRuntimeData();
             }
         }
 
@@ -74,7 +81,7 @@ namespace Rustwall.ModSystems.TemporalStormHandler
         {
             //These vars represent minutes and hours in units of days as a double
             //double tempStormTimeRemovalMin = 0.000694;
-            double tempStormTimeRemovalHour = 0.0417;
+            //double tempStormTimeRemovalHour = 0.0417;
             //Check if damage originated from a player -- no, you can't kill shit with fall damage
             if (damageSource.Source == EnumDamageSource.Player &&
                 Patch_onTempStormTick.tStormData.stormActiveTotalDays - sapi.World.Calendar.TotalDays > 0 &&
@@ -83,7 +90,7 @@ namespace Rustwall.ModSystems.TemporalStormHandler
                   entity.GetName().Contains("bowtorn")))
             {
                 //Add the offset; onTempStormTick only runs every 2 seconds, so we need a buffer in case players kill multiple mobs inside of the 2 second window
-                Patch_onTempStormTick.currentStormOffset += tempStormTimeRemovalHour;
+                Patch_onTempStormTick.currentStormOffset += config.daysPerKill;
                 Patch_onTempStormTick.writeData = true;
                 Debug.WriteLine("Time subtracted");
             }

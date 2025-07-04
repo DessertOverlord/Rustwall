@@ -1,0 +1,35 @@
+{
+  "code": "testrebuildableblock",
+  "creativeinventory": {
+    "general": [ "*" ],
+    "rustwall": [ "*" ]
+  },
+  "shape": { "base": "game:block/basic/cube" },
+  "drawtype": "cube",
+  "replaceable": 90,
+  "resistance": 8,
+  "requiredMiningTier": 2,
+  "fertility": 0,
+  "texture": { "base" : "game:block/stone/rock/andesite1" },
+  "entityClass": "BlockEntityRebuildable",
+  "behaviors": [
+    {
+      "name": "BehaviorRebuildable",
+      "properties": {
+        "numStages": 3,
+        "stage0": {
+          "item": "gear-temporal",
+          "quantity": 1
+        },
+        "stage1": {
+          "item": "metal-parts",
+          "quantity": 6
+        },
+        "stage2": {
+          "item": "wrench-copper",
+          "quantity": 50
+        }
+      }
+    }
+  ]
+}
