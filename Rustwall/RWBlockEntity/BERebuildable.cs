@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Rustwall.ModSystems.RebuildableBlock;
 using Rustwall.RWBehaviorRebuildable;
-using Rustwall.RWBlock;
 //using Rustwall.RWBlockBehavior;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
