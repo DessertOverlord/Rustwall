@@ -83,7 +83,7 @@ namespace Rustwall.ModSystems.TemporalStormHandler
             //double tempStormTimeRemovalMin = 0.000694;
             //double tempStormTimeRemovalHour = 0.0417;
             //Check if damage originated from a player -- no, you can't kill shit with fall damage
-            if (damageSource.Source == EnumDamageSource.Player &&
+            if (damageSource?.Source == EnumDamageSource.Player &&
                 Patch_onTempStormTick.tStormData.stormActiveTotalDays - sapi.World.Calendar.TotalDays > 0 &&
                   (entity.GetName().Contains("drifter") ||
                   entity.GetName().Contains("shiver") ||
