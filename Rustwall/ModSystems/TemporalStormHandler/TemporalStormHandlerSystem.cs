@@ -6,54 +6,104 @@ using HarmonyLib;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System;
+using Vintagestory.API.Util;
+using System.ComponentModel.Design;
+using ProtoBuf;
+using Rustwall.Configs;
 
 namespace Rustwall.ModSystems.TemporalStormHandler
 {
     internal class TemporalStormHandlerSystem : RustwallModSystem
     {
-        ICoreServerAPI sapi;
-        protected override void RustwallStartServerSide(ICoreServerAPI api)
+        //ICoreServerAPI sapi;
+        //TemporalStormConfig config;
+
+        internal enum EnumStormClimate
         {
-            sapi = api;
+            Relaxed,
+            Sporadic,
+            Aggressive,
+        }
+
+        [ProtoContract(ImplicitFields = ImplicitFields.AllPublic)]
+        public class StormClimateRuntimeData
+        {
+            public EnumStormClimate currentStormClimate { get; internal set; } = EnumStormClimate.Sporadic;
+            public int stormsUntilClimateShift { get; internal set; } = 2;
+        }
+
+        internal static StormClimateRuntimeData runtimeData { get; set; } = new StormClimateRuntimeData();
+
+        protected override void RustwallStartServerSide()
+        {
+            //sapi = api;
             RegisterChatCommands();
-            //These vars represent minutes and hours in units of days as a double
-            //double tempStormTimeRemovalMin = 0.000694;
-            double tempStormTimeRemovalHour = 0.0417;
-            // Initialize Harmony for our postfix above
+
+            // Initialize Harmony for our postfix
             var harmony = new Harmony(Mod.Info.ModID);
             harmony.PatchAll();
-            
-            //This runs after any entity dies
-            // TODO: Check if entity is a valid rust mob (drifter, shiver, bowtorn) before subtracting any time
-            // DONE
-            // TODO: Check to see if a storm is actually active before doing anything
-            // DONE
-            void HandleEntityDeath(Entity entity, DamageSource damageSource)
+
+            // Add our listeners to their events so they get triggered
+            sapi.Event.OnEntityDeath += Event_OnEntityDeath;
+            sapi.Event.SaveGameLoaded += Event_SaveGameLoaded;
+            sapi.Event.GameWorldSave += Event_GameWorldSave;
+
+            //config = sapi.LoadModConfig<TemporalStormConfig>("rustwall_temporalstormconfig.json");
+            var testvar = config.daysPerKill;
+
+        }
+
+        //These two handle saving the current state of the stormClimate for when the server is restarted
+        private void Event_GameWorldSave()
+        {
+            sapi.WorldManager.SaveGame.StoreData("stormClimate", SerializerUtil.Serialize(runtimeData));
+        }
+
+        private void Event_SaveGameLoaded()
+        {
+            try
             {
-                //Check if damage originated from a player -- no, you can't kill shit with fall damage
-                if (damageSource.Source == EnumDamageSource.Player &&
-                    Patch_onTempStormTick.tStormData.stormActiveTotalDays - sapi.World.Calendar.TotalDays > 0 &&
-                      (entity.GetName().Contains("drifter") ||
-                      entity.GetName().Contains("shiver") ||
-                      entity.GetName().Contains("bowtorn")))
-                {
-                    //Add the offset; onTempStormTick only runs every 2 seconds, so we need a buffer in case players kill multiple mobs inside of the 2 second window
-                    Patch_onTempStormTick.currentStormOffset += tempStormTimeRemovalHour;
-                    Patch_onTempStormTick.writeData = true;
-                    Debug.WriteLine("Time subtracted");
-                }
+                runtimeData = SerializerUtil.Deserialize<StormClimateRuntimeData>(sapi.WorldManager.SaveGame.GetData("stormClimate"));
+            } 
+            catch (Exception)
+            {
+                sapi.Logger.Error("Storm climate data unable to be loaded");
+                runtimeData = new StormClimateRuntimeData();
             }
-            // Add HandleEntityDeath to the event so it gets triggered
-            sapi.Event.OnEntityDeath += HandleEntityDeath;
+        }
+
+        //This runs after any entity dies
+        // TODO: Check if entity is a valid rust mob (drifter, shiver, bowtorn) before subtracting any time
+        // DONE
+        // TODO: Check to see if a storm is actually active before doing anything
+        // DONE
+        private void Event_OnEntityDeath(Entity entity, DamageSource damageSource)
+        {
+            //These vars represent minutes and hours in units of days as a double
+            //double tempStormTimeRemovalMin = 0.000694;
+            //double tempStormTimeRemovalHour = 0.0417;
+            //Check if damage originated from a player -- no, you can't kill shit with fall damage
+            if (damageSource.Source == EnumDamageSource.Player &&
+                Patch_onTempStormTick.tStormData.stormActiveTotalDays - sapi.World.Calendar.TotalDays > 0 &&
+                  (entity.GetName().Contains("drifter") ||
+                  entity.GetName().Contains("shiver") ||
+                  entity.GetName().Contains("bowtorn")))
+            {
+                //Add the offset; onTempStormTick only runs every 2 seconds, so we need a buffer in case players kill multiple mobs inside of the 2 second window
+                Patch_onTempStormTick.currentStormOffset += config.daysPerKill;
+                Patch_onTempStormTick.writeData = true;
+                Debug.WriteLine("Time subtracted");
+            }
         }
 
         private void RegisterChatCommands()
         {
-            sapi.ChatCommands.Create("moon")
+            //Used to research moon phase info. Leaving unimplemented for normal deployment
+            /*sapi.ChatCommands.Create("moon")
                 .WithDescription("Retrieves current rough & exact moon phase")
                 .RequiresPrivilege(Privilege.chat)
                 .RequiresPlayer()
-                .HandleWith(handler => TextCommandResult.Success("Current Moon Phase: " + sapi.World.Calendar.MoonPhase + ", Exact: " + sapi.World.Calendar.MoonPhaseExact));
+                .HandleWith(handler => TextCommandResult.Success("Current Moon Phase: " + sapi.World.Calendar.MoonPhase + ", Exact: " + sapi.World.Calendar.MoonPhaseExact));*/
         }
 
     }
@@ -96,14 +146,47 @@ namespace Rustwall.ModSystems.TemporalStormHandler
     {
         static void Postfix(SystemTemporalStability __instance, ref TemporalStormRunTimeData ___data, ICoreServerAPI ___sapi)
         {
-            double curExactMoonPhase = ___sapi.World.Calendar.MoonPhaseExact;
-            double totalDaysUntilNextFullMoon = ___sapi.World.Calendar.TotalDays + ((8 - curExactMoonPhase) * 2) % 16;
+            //TemporalStormHandlerSystem.EnumStormClimate climate = TemporalStormHandlerSystem.runtimeData.currentStormClimate;
+            
+            //We use this to decide what the next storm climate will be.
+            var rnd = ___sapi.World.Rand.Next(3);
+
+            //onTempStormTick uses the formula (0.1f + data.nextStormStrDouble * 0.1f) * tempstormDurationMul to compute the duration of the storm.
+            //This method takes a duration and days and does the inverse of that math so that we can get our exact desired duration.
+            double computeStormStrDouble(double desiredDuration)
+            { 
+                return (desiredDuration - 0.1) / 0.1;
+            }
+            //Relaxed storms are infrequent (once every two days) but last half a day (24 minutes)
+            //Sporadic storms are half as long, but happen twice as often
+            //Aggressive storms are much shorter, lasting only one tenth of a day (only 5 minutes), but there are 4 per irl day
+            if (TemporalStormHandlerSystem.runtimeData.stormsUntilClimateShift <= 0)
+            {
+                TemporalStormHandlerSystem.runtimeData.currentStormClimate = (TemporalStormHandlerSystem.EnumStormClimate)rnd;
+                TemporalStormHandlerSystem.runtimeData.stormsUntilClimateShift = (int)TemporalStormHandlerSystem.runtimeData.currentStormClimate * 2;
+            }
 
             ___data.nextStormStrength = EnumTempStormStrength.Heavy;
-            ___data.nextStormStrDouble = 2;
-            ___data.nextStormTotalDays = totalDaysUntilNextFullMoon;
-            ___data.stormActiveTotalDays = 0;
+
+            switch (TemporalStormHandlerSystem.runtimeData.currentStormClimate)
+            {
+                case TemporalStormHandlerSystem.EnumStormClimate.Relaxed:
+                    ___data.nextStormStrDouble = computeStormStrDouble(0.5);
+                    ___data.nextStormTotalDays = ___sapi.World.Calendar.TotalDays + 60;
+                    break;
+                case TemporalStormHandlerSystem.EnumStormClimate.Sporadic:
+                    ___data.nextStormStrDouble = computeStormStrDouble(0.25);
+                    ___data.nextStormTotalDays = ___sapi.World.Calendar.TotalDays + 30;
+                    break;
+                case TemporalStormHandlerSystem.EnumStormClimate.Aggressive:
+                    ___data.nextStormStrDouble = computeStormStrDouble(0.1);
+                    ___data.nextStormTotalDays = ___sapi.World.Calendar.TotalDays + 15;
+                    break;
+                default:
+                    throw new Exception("EnumStormClimate shit the bed");
+                    //break;
+            }
+            TemporalStormHandlerSystem.runtimeData.stormsUntilClimateShift--;
         }
     }
-
 }

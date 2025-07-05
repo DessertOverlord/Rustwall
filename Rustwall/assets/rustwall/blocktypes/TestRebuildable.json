@@ -1,0 +1,35 @@
+{
+  "code": "testrebuildableblock",
+  "creativeinventory": {
+    "general": [ "*" ],
+    "rustwall": [ "*" ]
+  },
+  "shape": { "base": "game:block/basic/cube" },
+  "drawtype": "cube",
+  "replaceable": 90,
+  "resistance": 8,
+  "requiredMiningTier": 2,
+  "fertility": 0,
+  "texture": { "base" : "game:block/stone/rock/andesite1" },
+  "entityClass": "BlockEntityRebuildable",
+  "entityBehaviors": [
+    {
+      "name": "BehaviorGloballyStable",
+      "properties": {
+        "value": 10
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "name": "BehaviorRebuildable",
+      "properties": {
+        "numStages": 1,
+        "stage0": {
+          "item": "wrench-copper",
+          "quantity": 50
+        }
+      }
+    }
+  ]
+}
