@@ -19,7 +19,7 @@ namespace Rustwall.ModSystems.GlobalStability
         private List<BlockEntity> previousStableBlockEntities { get; set; } = new List<BlockEntity>();
         public override void Start(ICoreAPI api)
         {
-            //api.RegisterBlockBehaviorClass("BehaviorGloballyStable", typeof(BehaviorGloballyStable));
+            //register our junk
             api.RegisterBlockEntityBehaviorClass("BehaviorGloballyStable", typeof(BEBehaviorGloballyStable));
             api.Event.RegisterGameTickListener(EvaluateGlobalStability, 10000);
         }
@@ -46,14 +46,17 @@ namespace Rustwall.ModSystems.GlobalStability
 
         private void EvaluateGlobalStability(float dt)
         {
+            //Checks if there have actually been any changes since last time -- if not we don't care
             if (!allStableBlockEntities.SequenceEqual(previousStableBlockEntities)) {
+                //reset our amount
                 possibleGlobalStability = 0;
+                //for everything in the list, add its maximum stability to the global pool
                 foreach (var be in allStableBlockEntities)
                 {
                     var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
                     possibleGlobalStability += beb.maxStability;
                 }
-
+                //add our current working list to the previous list, for future checking
                 previousStableBlockEntities = new List<BlockEntity> { };
                 previousStableBlockEntities.AddRange(allStableBlockEntities);
             }
