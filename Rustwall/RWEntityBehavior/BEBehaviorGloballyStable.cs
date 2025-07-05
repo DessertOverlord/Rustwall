@@ -11,7 +11,7 @@ namespace Rustwall.RWEntityBehavior
         public GlobalStabilitySystem modsys { get; set; }
         BlockEntityRebuildable ber;
         public int curStability { get; private set; } = 0;
-        int maxStability;
+        public int maxStability { get; private set; } = 0;
         //bool isContributing;
         public BEBehaviorGloballyStable(BlockEntity blockent) : base(blockent)
         {
@@ -27,6 +27,7 @@ namespace Rustwall.RWEntityBehavior
             Blockentity.RegisterGameTickListener(QueryAndUpdateCurrentStability, 5000);
             modsys = api.ModLoader.GetModSystem("Rustwall.ModSystems.GlobalStability.GlobalStabilitySystem") as GlobalStabilitySystem;
             ber = Blockentity as BlockEntityRebuildable;
+            modsys.allStableBlockEntities.Add(ber);
         }
 
         public void QueryAndUpdateCurrentStability(float dt)
@@ -50,7 +51,6 @@ namespace Rustwall.RWEntityBehavior
             }
             else
             {
-                //isContributing = true;
                 curStability = maxStability;
                 modsys.stabilityContributors.Add(ber);
             }
@@ -60,6 +60,7 @@ namespace Rustwall.RWEntityBehavior
         {
             base.OnBlockRemoved();
             modsys.stabilityContributors.Remove(ber);
+            modsys.allStableBlockEntities.Remove(ber);
         }
     }
 }
