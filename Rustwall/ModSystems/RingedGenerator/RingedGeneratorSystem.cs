@@ -9,6 +9,8 @@ using Vintagestory.API.Server;
 using Vintagestory.API.Config;
 using Vintagestory.ServerMods.NoObf;
 using Vintagestory.API.Util;
+using Vintagestory.API.Client;
+using Vintagestory.Server;
 
 namespace Rustwall.ModSystems.RingedGenerator
 {
@@ -40,6 +42,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             // This calculates map size relative to the resolution of the rings
             // It also checks to make sure the world is a square; if it is rectangular, the ring generator doesn't initialize
             ringMapSize = sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ ? (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2 : -500;
+            regionMidPoint = ((ringMapSize + ringMapSize - 1) / 2.0);
             ringDictList = new List<Dictionary<string, double>>(ringMapSize); 
 
             InitRingedWorldGenerator();
@@ -64,7 +67,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         private void HandleRegionLoading(IMapRegion region, int regionX, int regionZ, ITreeAttribute chunkGenParams = null)
         {
-            regionMidPoint = ((ringMapSize + ringMapSize - 1) / 2.0);
+            
             if (ringMapSize == -500) { return; }
             desiredRing = (int)(double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5);
             if (curRing != desiredRing)
@@ -204,6 +207,44 @@ namespace Rustwall.ModSystems.RingedGenerator
             sapi.WorldManager.AutoGenerateChunks = true;
             sapi.WorldManager.SendChunks = true;
         }
+        //Given a range of rings, erase them and mangle the worldgen params
+        private void DeleteRingRange(int fromRing, int toRing) 
+        {
+            List<Vec2i> regionCoordsToDelete = new List<Vec2i>();
+            int chSize = sapi.WorldManager.ChunkSize;
+            int chunksInRegion = (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
+
+            for (int i = fromRing; i <= toRing; i++)
+            {
+                int toRegionX = (int)(fromRing + regionMidPoint + 0.5);
+                var toRegionZ = (int)(fromRing + regionMidPoint + 0.5);
+                var fromRegionX = (int)(regionMidPoint - fromRing - 0.5);
+                var fromRegionZ = (int)(regionMidPoint - fromRing - 0.5);
+                for (int j = fromRegionX; j < toRegionX; j++)
+                {
+                    regionCoordsToDelete.Add(new Vec2i(j, fromRegionZ));
+                    regionCoordsToDelete.Add(new Vec2i(j, toRegionZ));
+                }
+                for (int j = fromRegionZ; j < toRegionZ; j++)
+                {
+                    regionCoordsToDelete.Add(new Vec2i(fromRegionX, j));
+                    regionCoordsToDelete.Add(new Vec2i(toRegionX, j));
+                }
+            }
+
+            foreach (var i in regionCoordsToDelete)
+            {
+                sapi.WorldManager.DeleteMapRegion(i.X, i.Y);
+                for (int j = i.X * chunksInRegion; j < i.X * chunksInRegion + chunksInRegion; j++)
+                {
+                    for (int k = i.Y * chunksInRegion; j < i.Y * chunksInRegion + chunksInRegion; j++)
+                    {
+                        sapi.WorldManager.DeleteChunkColumn(j, k);
+                    }
+                }
+                //Debug.WriteLine("I would like to delete the region at: " + i.X + ", " + i.Y);
+            }
+        }
 
         private void RegisterChatCommands()
         {
@@ -288,6 +329,19 @@ namespace Rustwall.ModSystems.RingedGenerator
 
                     return TextCommandResult.Success("deleted some stuff?");
                 });
+
+            sapi.ChatCommands.Create("drr")
+                .WithDescription("I UNNO")
+                .RequiresPrivilege(Privilege.chat)
+                .RequiresPlayer()
+                .WithArgs()
+                .HandleWith((args) =>
+                {
+                    DeleteRingRange(1, 1);
+
+                    return TextCommandResult.Success("deleted some shit prolly");
+                });
+
         }
     }
 }
