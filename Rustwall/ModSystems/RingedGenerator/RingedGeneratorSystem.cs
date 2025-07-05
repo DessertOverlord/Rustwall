@@ -98,7 +98,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                     CreateWorldgenValues(); 
                 }
 
-                for (int i = 0; i < ringMapSize - 1; i++)
+                for (int i = 0; i < ringMapSize; i++)
                 {
                     byte[] data = sapi.WorldManager.SaveGame.GetData("rustwallRingData_" + i);
                     ringDictList.Add(SerializerUtil.Deserialize<Dictionary<string, double>>(data));
@@ -118,7 +118,8 @@ namespace Rustwall.ModSystems.RingedGenerator
                 ringDictList[0].Add(WorldgenParamsToScramble[i], WorldgenDefaultParams[i]);
             }
             // and this adds the rest of them -- note -1 because we already added 1 with the previous loop
-            for (int i = 0; i < ringMapSize - 1; i++)
+            // it needs to be less than or equal to because I want exactly 25 (minus the first one already added), not 24. Otherwise shit goes sideways!
+            for (int i = 0; i <= ringMapSize - 1; i++)
             {
                 RandomizeParams(sapi, out Dictionary<string, double> newParams, out int seed, EnumDistribution.NARROWINVERSEGAUSSIAN);
                 seedList.Add(seed);
@@ -126,7 +127,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
             // this stores the generated seeds and params into the savegame, making them persistent
             sapi.WorldManager.SaveGame.StoreData("rustwallRingSeeds", SerializerUtil.Serialize(seedList));
-            for (int i = 0; i < ringDictList.Count - 1; i++)
+            for (int i = 0; i < ringDictList.Count; i++)
             {
                 //note that each array must be saved separately -- nested arrays of different sizes are not supported for serialization
                 sapi.WorldManager.SaveGame.StoreData("rustwallRingData_" + i, SerializerUtil.Serialize(ringDictList[i]));
