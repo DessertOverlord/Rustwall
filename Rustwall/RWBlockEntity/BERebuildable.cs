@@ -12,7 +12,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 
 
-namespace Rustwall.RWBlockEntity.BETestRebuildable
+namespace Rustwall.RWBlockEntity.BERebuildable
 {
     public class BlockEntityRebuildable : BlockEntity
     {

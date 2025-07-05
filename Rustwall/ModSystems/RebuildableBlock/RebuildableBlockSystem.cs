@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using Vintagestory.API.Server;
 using Vintagestory.API.Common;
 using Rustwall.RWBlockEntity;
-using Rustwall.RWBlockEntity.BETestRebuildable;
+using Rustwall.RWBlockEntity.BERebuildable;
 using Rustwall.RWBlock;
 using Rustwall.RWBehaviorRebuildable;
 using Rustwall.RWEntityBehavior;
