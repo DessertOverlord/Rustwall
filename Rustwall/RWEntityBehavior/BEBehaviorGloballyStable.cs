@@ -1,0 +1,73 @@
+﻿using Rustwall.RWBlockEntity.BETestRebuildable;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
+using Rustwall.ModSystems.GlobalStability;
+using Vintagestory.API.Server;
+using System.Runtime.ConstrainedExecution;
+using System.Diagnostics;
+
+namespace Rustwall.RWEntityBehavior
+{
+    internal class BEBehaviorGloballyStable : BlockEntityBehavior
+    {
+        public GlobalStabilitySystem modsys { get; set; }
+        BlockEntityRebuildable ber;
+        public int curStability { get; private set; } = 0;
+        int maxStability;
+        //bool isContributing;
+        public BEBehaviorGloballyStable(BlockEntity blockent) : base(blockent)
+        {
+        }
+
+        //public int maxStability { get; private set; }
+
+        public override void Initialize(ICoreAPI api, JsonObject properties)
+        {
+            base.Initialize(api, properties);
+            maxStability = properties["value"].AsInt();
+
+            Blockentity.RegisterGameTickListener(QueryAndUpdateCurrentStability, 5000);
+            modsys = api.ModLoader.GetModSystem("Rustwall.ModSystems.GlobalStability.GlobalStabilitySystem") as GlobalStabilitySystem;
+            ber = Blockentity as BlockEntityRebuildable;
+        }
+
+        public void QueryAndUpdateCurrentStability(float dt)
+        {
+            if (ber != null)
+            {
+                if (ber.rebuildStage == ber.maxStage && curStability == maxStability) { return; }
+
+                if (ber.rebuildStage == ber.maxStage && curStability == 0)
+                {
+                    curStability = maxStability;
+                    modsys.stabilityContributors.Add(ber);
+                    Debug.WriteLine("Added contributor");
+                }
+                else if (ber.rebuildStage != ber.maxStage && curStability != 0)
+                {
+                    curStability = 0;
+                    modsys.stabilityContributors.Remove(ber);
+                    Debug.WriteLine("Removed contributor");
+                }
+            }
+            else
+            {
+                //isContributing = true;
+                curStability = maxStability;
+                modsys.stabilityContributors.Add(ber);
+            }
+        }
+
+        public override void OnBlockRemoved()
+        {
+            base.OnBlockRemoved();
+            modsys.stabilityContributors.Remove(ber);
+        }
+    }
+}

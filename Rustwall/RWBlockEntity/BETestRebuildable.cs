@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Rustwall.ModSystems.RebuildableBlock;
+using Rustwall.RWBehaviorRebuildable;
 using Rustwall.RWBlock;
+//using Rustwall.RWBlockBehavior;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 
@@ -13,45 +16,29 @@ namespace Rustwall.RWBlockEntity.BETestRebuildable
 {
     public class BlockEntityRebuildable : BlockEntity
     {
-        //public EnumRebuildState rebuildState = EnumRebuildState.Broken;
+        public int maxStage { get; private set; }
         public int rebuildStage;
         public int itemsUsedThisStage;
-        public BlockTestRebuildable ownBlock;
-
+        BehaviorRebuildable ownBehavior;
+        public bool contributing = false;
         public override void Initialize(ICoreAPI api)
         {
             base.Initialize(api);
 
-            ownBlock = Block as BlockTestRebuildable;
-
+            ownBehavior = Block.BlockBehaviors.ToList().Find(x => x.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable;
+            maxStage = ownBehavior.numStages;
         }
 
-        public void DealDamage()
+        public void DealDamage(int amt)
         {
             if (rebuildStage == 0) { return; }
+
+            rebuildStage = rebuildStage - amt < 0 ? 0 : rebuildStage - amt;
         }
 
-        public void RepairOneStage()
+        public void BreakFully()
         {
-
-
-            rebuildStage++;
-            itemsUsedThisStage = 0;
-            MarkDirty(true);
-        }
-
-        public void RepairOneItem()
-        {
-            /*itemsUsedThisStage++;
-            if (itemsUsedThisStage >=   .quantityPerStage[be.rebuildStage])
-            {
-                be.rebuildStage++;
-                be.itemsUsedThisStage = 0;
-                be.MarkDirty(true);
-            }*/
-
-
-
+            rebuildStage = 0;
         }
 
         public override void ToTreeAttributes(ITreeAttribute tree)

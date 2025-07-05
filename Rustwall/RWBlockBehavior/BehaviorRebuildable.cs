@@ -19,7 +19,7 @@ namespace Rustwall.RWBehaviorRebuildable
 {
     internal class BehaviorRebuildable : BlockBehavior
     {
-        int numStages;
+        public int numStages;
         List<string> itemPerStage = new List<string>();
         List<int> quantityPerStage = new List<int>();
 
@@ -45,7 +45,7 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ref EnumHandling handling)
         {
-            handling = EnumHandling.PreventDefault;
+            handling = EnumHandling.PreventSubsequent;
             ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
             if (slot.Empty) return false;
             BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityRebuildable;
@@ -82,16 +82,10 @@ namespace Rustwall.RWBehaviorRebuildable
                         }
                     }
 
-
-
-                    int chunkSize = 32;
-
-                    var pos = blockSel.Position;
-                    //world.ChunkProvider.GetChunk(pos.X / chunkSize, pos.Y / chunkSize, pos.Z / chunkSize).MapChunk.MarkDirty();
-
                     Debug.WriteLine("BE Rebuild state is currently: " + be.rebuildStage);
                 }
             }
+
             return true;//base.OnBlockInteractStart(world, byPlayer, blockSel, ref handling);
         }
 

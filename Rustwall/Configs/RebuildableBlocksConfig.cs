@@ -10,6 +10,6 @@ namespace Rustwall.Configs
 {
     internal class RebuildableBlocksConfig
     {
-        public Dictionary<string, List<Item>> ItemsPerStage;
+        //public Dictionary<string, List<Item>> ItemsPerStage;
     }
 }

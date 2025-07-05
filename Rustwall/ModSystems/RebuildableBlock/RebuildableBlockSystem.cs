@@ -24,10 +24,8 @@ namespace Rustwall.ModSystems.RebuildableBlock
     {
         public override void Start(ICoreAPI api)
         {
-            //api.RegisterBlockClass("BlockTestRebuildable", typeof(BlockTestRebuildable));
             api.RegisterBlockEntityClass("BlockEntityRebuildable", typeof(BlockEntityRebuildable));
             api.RegisterBlockBehaviorClass("BehaviorRebuildable", typeof(BehaviorRebuildable));
-            //api.RegisterEntityBehaviorClass("BEBehaviorRebuildable", typeof(BEBehaviorRebuildable));
         }
 
         protected override void RustwallStartServerSide()

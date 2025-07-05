@@ -1,5 +1,5 @@
 {
-  "code": "testrebuildableblock",
+  "code": "testrebuildableblock2",
   "creativeinventory": {
     "general": [ "*" ],
     "rustwall": [ "*" ]
@@ -10,13 +10,13 @@
   "resistance": 8,
   "requiredMiningTier": 2,
   "fertility": 0,
-  "texture": { "base" : "game:block/stone/rock/andesite1" },
+  "texture": { "base" : "game:block/stone/rock/bauxite1" },
   "entityClass": "BlockEntityRebuildable",
   "entityBehaviors": [
     {
       "name": "BehaviorGloballyStable",
       "properties": {
-        "value": 10
+        "value": 200
       }
     }
   ],
