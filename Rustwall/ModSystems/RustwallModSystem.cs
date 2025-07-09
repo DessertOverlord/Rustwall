@@ -10,28 +10,18 @@ namespace Rustwall.ModSystems
     {
         protected ICoreServerAPI sapi;
         public RustwallConfig config;
-        //protected readonly string baseDir = "rustwall/";
         private readonly string configName = "rustwall.json";
-        //public abstract string confi = " adwa";
         public override void StartServerSide(ICoreServerAPI api)
         {
             sapi = api;
             LoadConfig();
-            Debug.WriteLine("Rustwall base modsystem init server side. Hello world!");
             RustwallStartServerSide();
         }
-
-        /*public override void Start(ICoreAPI api)
-        {
-            Debug.WriteLine("Rustwall base modsystem init. Hello world!");
-        }*/
 
         protected abstract void RustwallStartServerSide();
 
         protected void LoadConfig()
         {
-            //sapi.GetOrCreateDataPath("ModConfig/Rustwall");
-            Debug.WriteLine("LoadConfig hit");
             try
             {
                 config = sapi.LoadModConfig<RustwallConfig>(configName);
