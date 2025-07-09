@@ -20,9 +20,9 @@ namespace Rustwall.ModSystems.RingedGenerator
         // ringsize must be an even number (? haven't tried an odd number yet) and determines how wide each ring is.
         private static int ringSize = 2;
         // each dictionary holds the parameters for one ring's worldgen. organized into a list for scalability
-        private List<Dictionary<string, double>> ringDictList;
+        private List<Dictionary<string, double>> ringDictList { get; set; }
         // seedlist performs the same thing as above, just holding all of the seeds.
-        private List<int> seedList = new List<int>();
+        private List<int> seedList { get; set; } = new List<int>() ;
         // this list is all of the settings we want to mess with. Can be added to easily.
         private readonly List<string> WorldgenParamsToScramble = new List<string> { "landformScale", "globalTemperature", "globalPrecipitation", "globalForestation", "landcover", "oceanscale", "upheavelCommonness", "geologicActivity" };
         // The default parameters for each of the associated parameters to scramble. ORDER MATTERS!
@@ -30,20 +30,19 @@ namespace Rustwall.ModSystems.RingedGenerator
         // after the game is saved for the first time.
         // TODO: programmatically gather the selected worldgen params on first launch.
         private readonly List<double> WorldgenDefaultParams = new List<double> { 1, 1, 1, 0, 1, 1, 0.3, 0.05 };
-        public static int curRing { get; private set; } = 0;
-        public static int desiredRing { get; private set; } = 0;
+        private static int curRing = 0;
+        private static int desiredRing = 0;
         private static int ringMapSize;
         private double regionMidPoint;
 
         protected override void RustwallStartServerSide()
         {
-            //sapi = api;
             RegisterChatCommands();
             // This calculates map size relative to the resolution of the rings
             // It also checks to make sure the world is a square; if it is rectangular, the ring generator doesn't initialize
             ringMapSize = sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ ? (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2 : -500;
             regionMidPoint = ((ringMapSize + ringMapSize - 1) / 2.0);
-            ringDictList = new List<Dictionary<string, double>>(ringMapSize); 
+            ringDictList = new List<Dictionary<string, double>>(ringMapSize);
 
             InitRingedWorldGenerator();
 
@@ -124,10 +123,16 @@ namespace Rustwall.ModSystems.RingedGenerator
             // it needs to be less than or equal to because I want exactly 25 (minus the first one already added), not 24. Otherwise shit goes sideways!
             for (int i = 0; i <= ringMapSize - 1; i++)
             {
-                RandomizeParams(sapi, out Dictionary<string, double> newParams, out int seed, EnumDistribution.NARROWINVERSEGAUSSIAN);
+                RandomizeParams(out Dictionary<string, double> newParams, out int seed, EnumDistribution.NARROWINVERSEGAUSSIAN);
                 seedList.Add(seed);
                 ringDictList.Add(newParams);
             }
+
+            StoreWorldgenData();
+        }
+
+        private void StoreWorldgenData()
+        {
             // this stores the generated seeds and params into the savegame, making them persistent
             sapi.WorldManager.SaveGame.StoreData("rustwallRingSeeds", SerializerUtil.Serialize(seedList));
             for (int i = 0; i < ringDictList.Count; i++)
@@ -148,7 +153,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         //RandomizeParams takes WorldgenParamsToScramble and loops through every world generator parameter, creating a dictionary
         // of randomized values by calling RandomDoubleInRange. The dictionary is passed out via "out" params. The seed is also randomized.
-        private void RandomizeParams(ICoreServerAPI api, out Dictionary<string, double> newParams, out int newSeed, EnumDistribution dist = EnumDistribution.UNIFORM)
+        private void RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
         {
             newParams = new Dictionary<string, double>();
             // These are the hardcoded min and max values for the attributes we want to scramble.
@@ -179,6 +184,25 @@ namespace Rustwall.ModSystems.RingedGenerator
             newSeed = sapi.World.Seed + sapi.World.Rand.Next(100000);
         }
 
+        private void RandomizeRing(int ringNumber, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
+        {
+            RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, dist);
+
+            ringDictList[ringNumber].Clear();
+            ringDictList[ringNumber].AddRange(newParams);
+
+            seedList[ringNumber] = newSeed;
+
+        }
+
+        private void RandomizeRingRange(int fromRing, int toRing, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
+        {
+            for (int i = fromRing; i < toRing; i++)
+            {
+                RandomizeRing(i, dist);
+            }
+        }
+
         //SetWorldParams takes the parameters and seed provided and updates the world generator with them.
         private void SetWorldParams(ICoreServerAPI api, Dictionary<string, double> keyValuePairs, int seed)
         {
@@ -186,7 +210,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             {
                 sapi.World.Config.SetDouble(item.Key, item.Value);
                 sapi.World.Config.TryGetAttribute(item.Key, out IAttribute curAttr);
-                //Debug.WriteLine(item.Key + "=" + curAttr);
             }
             sapi.WorldManager.SaveGame.Seed = seed;
         }
@@ -198,12 +221,38 @@ namespace Rustwall.ModSystems.RingedGenerator
             // This was built using the logic for /wgen regen as a template. The command paused the chunkdbthread before doing any of this type of stuff,
             // but this mod seems to function fine without doing that... hopefully it wasn't important :^)
 
+            StopChunkGeneration();
+            
+            //sapi.WorldManager.AutoGenerateChunks = false;
+            //sapi.WorldManager.SendChunks = false;
+
+            ReloadWorldgenAssets();
+            //sapi.Assets.Reload(new AssetLocation("worldgen/"));
+            //var patchLoader = sapi.ModLoader.GetModSystem<ModJsonPatchLoader>();
+            //patchLoader.ApplyPatches("worldgen/");
+            //sapi.Event.TriggerInitWorldGen();
+
+            StartChunkGeneration();
+            //sapi.WorldManager.AutoGenerateChunks = true;
+            //sapi.WorldManager.SendChunks = true;
+        }
+
+        private void StopChunkGeneration()
+        {
             sapi.WorldManager.AutoGenerateChunks = false;
             sapi.WorldManager.SendChunks = false;
+        }
+
+        private void ReloadWorldgenAssets()
+        {
             sapi.Assets.Reload(new AssetLocation("worldgen/"));
             var patchLoader = sapi.ModLoader.GetModSystem<ModJsonPatchLoader>();
             patchLoader.ApplyPatches("worldgen/");
             sapi.Event.TriggerInitWorldGen();
+        }
+
+        private void StartChunkGeneration()
+        {
             sapi.WorldManager.AutoGenerateChunks = true;
             sapi.WorldManager.SendChunks = true;
         }
@@ -216,10 +265,10 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             for (int i = fromRing; i <= toRing; i++)
             {
-                int toRegionX = (int)(fromRing + regionMidPoint + 0.5);
-                var toRegionZ = (int)(fromRing + regionMidPoint + 0.5);
-                var fromRegionX = (int)(regionMidPoint - fromRing - 0.5);
-                var fromRegionZ = (int)(regionMidPoint - fromRing - 0.5);
+                int toRegionX = (int)(i + regionMidPoint + 0.5);
+                var toRegionZ = (int)(i + regionMidPoint + 0.5);
+                var fromRegionX = (int)(regionMidPoint - i - 0.5);
+                var fromRegionZ = (int)(regionMidPoint - i - 0.5);
                 for (int j = fromRegionX; j < toRegionX; j++)
                 {
                     regionCoordsToDelete.Add(new Vec2i(j, fromRegionZ));
@@ -235,15 +284,33 @@ namespace Rustwall.ModSystems.RingedGenerator
             foreach (var i in regionCoordsToDelete)
             {
                 sapi.WorldManager.DeleteMapRegion(i.X, i.Y);
-                for (int j = i.X * chunksInRegion; j < i.X * chunksInRegion + chunksInRegion; j++)
+                for (int j = i.X * chunksInRegion; j < (i.X * chunksInRegion) + chunksInRegion; j++)
                 {
-                    for (int k = i.Y * chunksInRegion; j < i.Y * chunksInRegion + chunksInRegion; j++)
+                    for (int k = i.Y * chunksInRegion; k < (i.Y * chunksInRegion) + chunksInRegion; k++)
                     {
+                        //Debug.WriteLine("I would like to delete the chunk at: " + j + ", " + k);
                         sapi.WorldManager.DeleteChunkColumn(j, k);
                     }
                 }
                 //Debug.WriteLine("I would like to delete the region at: " + i.X + ", " + i.Y);
             }
+        }
+
+        public void Apocalypse(float stabRatio)
+        {
+            int ringsToDelete = (int)(ringMapSize - (ringMapSize * stabRatio));
+            int fromRing = ringsToDelete;
+            int toRing = ringMapSize;
+
+            //We are not allowed to regen ring 0 (the innermost safe zone). This hardcodes that in even if players let the stability get to 0
+            if (fromRing == 0) { fromRing = 1; }
+
+            StopChunkGeneration();
+            RandomizeRingRange(fromRing, toRing);
+            StoreWorldgenData();
+            DeleteRingRange(fromRing, toRing);
+            ReloadWorldgenAssets();
+            StartChunkGeneration();
         }
 
         private void RegisterChatCommands()
@@ -337,7 +404,9 @@ namespace Rustwall.ModSystems.RingedGenerator
                 .WithArgs()
                 .HandleWith((args) =>
                 {
-                    DeleteRingRange(1, 1);
+                    //RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, EnumDistribution.NARROWINVERSEGAUSSIAN);
+                    Apocalypse(1.0f);
+                   
 
                     return TextCommandResult.Success("deleted some shit prolly");
                 });
