@@ -1,19 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Vintagestory.API.Common;
-using Vintagestory.GameContent;
-//using Rustwall.Block;
-using Rustwall.ModSystems.RebuildableBlock;
-using Microsoft.Win32.SafeHandles;
-using Rustwall.RWBlockEntity.BETestRebuildable;
+using Rustwall.RWBlockEntity.BERebuildable;
 using System.Diagnostics;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Common.Entities;
-using Vintagestory.API.Server;
 
 namespace Rustwall.RWBehaviorRebuildable
 {
