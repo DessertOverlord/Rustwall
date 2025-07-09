@@ -10,8 +10,9 @@ namespace Rustwall.ModSystems
     {
         protected ICoreServerAPI sapi;
         public RustwallConfig config;
-        protected string baseDir = "rustwall/";
-        string configName = "rustwall.json";
+        //protected readonly string baseDir = "rustwall/";
+        private readonly string configName = "rustwall.json";
+        //public abstract string confi = " adwa";
         public override void StartServerSide(ICoreServerAPI api)
         {
             sapi = api;
@@ -20,24 +21,24 @@ namespace Rustwall.ModSystems
             RustwallStartServerSide();
         }
 
-        public override void Start(ICoreAPI api)
+        /*public override void Start(ICoreAPI api)
         {
             Debug.WriteLine("Rustwall base modsystem init. Hello world!");
-        }
+        }*/
 
         protected abstract void RustwallStartServerSide();
 
-        private void LoadConfig()
+        protected void LoadConfig()
         {
             //sapi.GetOrCreateDataPath("ModConfig/Rustwall");
             Debug.WriteLine("LoadConfig hit");
             try
             {
-                config = sapi.LoadModConfig<RustwallConfig>(baseDir + configName);
+                config = sapi.LoadModConfig<RustwallConfig>(configName);
             }
             catch (Exception)
             {
-                sapi.Server.LogError("Exception loading Rustwall config");
+                sapi.Server.LogError("Exception loading Rustwall config at " + configName);
             }
 
             if (config == null)
@@ -45,7 +46,7 @@ namespace Rustwall.ModSystems
                 sapi.Server.LogError("Rustwall config not loaded correctly, initializing default.");
 
                 config = new RustwallConfig();
-                sapi.StoreModConfig(config, baseDir + configName);
+                sapi.StoreModConfig(config, configName);
             }
         }
     }

@@ -10,6 +10,10 @@ namespace Rustwall.ModSystems.GlobalStability
 {
     internal class GlobalStabilitySystem : RustwallModSystem
     {
+        public class globalStabilityRuntimeData
+        {
+
+        }
         public int globalStability { get; private set; } = 0;
         public int possibleGlobalStability { get; private set; } = 0;
         public float globalStabilityRatio { get; private set; } = 0;
@@ -17,6 +21,11 @@ namespace Rustwall.ModSystems.GlobalStability
         private List<BlockEntity> previousStabilityContributors { get; set; } = new List<BlockEntity>();
         public List<BlockEntity> allStableBlockEntities { get; set; } = new List<BlockEntity> { };
         private List<BlockEntity> previousStableBlockEntities { get; set; } = new List<BlockEntity>();
+        private int daysPerStabilityTally;
+
+        private readonly string configName = "globalStability.json";
+
+        //private int ;
         public override void Start(ICoreAPI api)
         {
             //register our junk
@@ -79,7 +88,7 @@ namespace Rustwall.ModSystems.GlobalStability
 
             globalStabilityRatio = ((float)globalStability / possibleGlobalStability);
 
-            Debug.WriteLine("EvalGlobalStab Ran.");
+            //Debug.WriteLine("EvalGlobalStab Ran.");
         }
     }
 }

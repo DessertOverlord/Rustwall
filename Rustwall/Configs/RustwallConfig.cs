@@ -6,7 +6,12 @@ using System.Threading.Tasks;
 
 namespace Rustwall.Configs
 {
-    internal class RingedGeneratorConfig
+    public class RustwallConfig
     {
+
+        public double TemporalStormDaysRemovedPerKill = 0.0417;
+
+
+
     }
 }
