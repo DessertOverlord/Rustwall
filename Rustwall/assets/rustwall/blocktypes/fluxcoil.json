@@ -1,16 +1,24 @@
 {
-  "code": "testrebuildableblock",
+  "code": "fluxcoil",
   "creativeinventory": {
     "general": [ "*" ],
     "rustwall": [ "*" ]
   },
-  "shape": { "base": "game:block/basic/cube" },
-  "drawtype": "cube",
+  "shapebytype": [
+    { "*-broken" : "block/fluxcoil/broken" },
+    { "*-repaired": "block/fluxcoil/repaired" }
+  ],
+  "variantgroups": [
+    {
+      "code": "repairstate",
+      "states": [ "repaired", "broken" ]
+    }
+  ],
+  "drawtype": "json",
   "replaceable": 90,
   "resistance": 8,
-  "requiredMiningTier": 2,
-  "fertility": 0,
-  "texture": { "base": "game:block/stone/rock/andesite1" },
+  "sidesolid": { "all": false },
+  "sideopaque": { "all": false },
   "entityClass": "BlockEntityRebuildable",
   "entityBehaviors": [
     {
@@ -20,6 +28,7 @@
       }
     }
   ],
+
   "behaviors": [
     {
       "name": "BehaviorRebuildable",

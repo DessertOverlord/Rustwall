@@ -4,6 +4,9 @@ using Rustwall.RWBlockEntity.BERebuildable;
 using System.Diagnostics;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Common.Entities;
+using Vintagestory.API.Config;
+using Vintagestory.API.MathTools;
+
 
 namespace Rustwall.RWBehaviorRebuildable
 {
@@ -72,9 +75,13 @@ namespace Rustwall.RWBehaviorRebuildable
                         }
                     }
 
+                    //Block block = world.GetBlock(CodeWithVariant("repairstate", "repaired"));
+
                     Debug.WriteLine("BE Rebuild state is currently: " + be.rebuildStage);
                 }
             }
+
+
 
             return true;//base.OnBlockInteractStart(world, byPlayer, blockSel, ref handling);
         }

@@ -23,13 +23,18 @@ namespace Rustwall.RWEntityBehavior
         {
             base.Initialize(api, properties);
             maxStability = properties["value"].AsInt();
-
             //We need to poll the current stability every so often
             Blockentity.RegisterGameTickListener(QueryAndUpdateCurrentStability, 5000);
             modsys = api.ModLoader.GetModSystem("Rustwall.ModSystems.GlobalStability.GlobalStabilitySystem") as GlobalStabilitySystem;
             //will return null if the BlockEntity is not BlockEntityRebuildable!
             ber = Blockentity as BlockEntityRebuildable;
             modsys.allStableBlockEntities.Add(ber);
+
+            //Call it immediately to prevent a case where GlobalStabilitySystem tries to reference anything before the 5 seconds timer occurs
+            // dt is of no consequence to the function (and technically 0 is correct I think)
+            // no idea if this will ever be a problem
+            // turns out this breaks shit idiot
+            QueryAndUpdateCurrentStability(0);
         }
 
         public void QueryAndUpdateCurrentStability(float dt)
