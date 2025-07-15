@@ -1,4 +1,4 @@
 {
   "block-testrebuildableblock": "Rebuildable Block Test (you shouldn't find this!)", 
-  "block-fluxcoil": "Flux Coil"
+  "block-fluxcoil-*": "Flux Coil"
 }

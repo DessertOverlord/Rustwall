@@ -4,10 +4,10 @@
     "general": [ "*" ],
     "rustwall": [ "*" ]
   },
-  "shapebytype": [
-    { "*-broken" : "block/fluxcoil/broken" },
-    { "*-repaired": "block/fluxcoil/repaired" }
-  ],
+  "shapebytype": {
+    "*-broken": { "base" : "block/rustwall-machinery/fluxcoil/broken" },
+    "*-repaired": { "base": "block/rustwall-machinery/fluxcoil/repaired" }
+  },
   "variantgroups": [
     {
       "code": "repairstate",

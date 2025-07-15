@@ -9,8 +9,8 @@
 	"textureSizes": {
 	},
 	"textures": {
-		"electrum": "block/metal/plate/electrum",
-		"lead": "block/metal/plate/lead"
+		"electrum": "game:block/metal/plate/electrum",
+		"lead": "game:block/metal/plate/lead"
 	},
 	"elements": [
 		{
