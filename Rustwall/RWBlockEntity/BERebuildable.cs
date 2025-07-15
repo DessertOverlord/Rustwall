@@ -26,6 +26,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             ownBehavior = Block.BlockBehaviors.ToList().Find(x => x.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable;
             maxStage = ownBehavior.numStages;
+            Debug.WriteLine("Init BE Rebuildable: " + rebuildStage);
         }
 
         public void DealDamage(int amt)
@@ -35,10 +36,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             rebuildStage = rebuildStage - amt < 0 ? 0 : rebuildStage - amt;
         }
 
-        public void BreakFully()
-        {
-            rebuildStage = 0;
-        }
+
 
         public override void ToTreeAttributes(ITreeAttribute tree)
         {
