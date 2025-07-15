@@ -8,7 +8,11 @@ namespace Rustwall.Configs
 {
     public class RustwallConfig
     {
-        public double daysPerKill = 0.0417;
+        public double TemporalStormDaysRemovedPerKill = 0.0417;
+        public double DaysBetweenStormScoring = 30.0;
+        public double DaysBeforeTheGreatDecay = 180.0;
+
+
 
     }
 }

@@ -296,7 +296,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
         }
 
-        public void Apocalypse(float stabRatio)
+        public void TriggerGreatDecay(float stabRatio)
         {
             int ringsToDelete = (int)(ringMapSize - (ringMapSize * stabRatio));
             int fromRing = ringsToDelete;
@@ -398,14 +398,14 @@ namespace Rustwall.ModSystems.RingedGenerator
                 });
 
             sapi.ChatCommands.Create("drr")
-                .WithDescription("I UNNO")
+                .WithDescription("Destroys all generated terrain except for the safe zone and scrambles worldgen parameters.")
                 .RequiresPrivilege(Privilege.chat)
                 .RequiresPlayer()
                 .WithArgs()
                 .HandleWith((args) =>
                 {
                     //RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, EnumDistribution.NARROWINVERSEGAUSSIAN);
-                    Apocalypse(1.0f);
+                    TriggerGreatDecay(1.0f);
                    
 
                     return TextCommandResult.Success("deleted some shit prolly");
