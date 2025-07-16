@@ -9,6 +9,7 @@ using Vintagestory.API.MathTools;
 using System.Runtime.CompilerServices;
 using System.Reflection.Metadata.Ecma335;
 using Vintagestory.GameContent;
+using Vintagestory.API.Server;
 
 
 namespace Rustwall.RWBehaviorRebuildable
@@ -46,29 +47,33 @@ namespace Rustwall.RWBehaviorRebuildable
             handling = EnumHandling.Handled;
             ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
             BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityRebuildable;
+
             if (slot.Empty || slot.Itemstack == null || be == null) return false;
 
-            if (be.rebuildStage < numStages)
-            {
-                if (slot.Itemstack.Collectible.Code.Path == itemPerStage[be.rebuildStage])
+
+
+                if (be.rebuildStage < numStages)
                 {
-                    if (slot.Itemstack.Collectible.Code.PathStartsWith("wrench"))
+                    if (slot.Itemstack?.Collectible.Code.Path == itemPerStage[be.rebuildStage])
                     {
-                        return RepairByOneStage(world, slot, be, blockSel, byPlayer);
-                    }
-                    else
-                    {
-                        return RepairByOneItem(world, slot, be, blockSel, byPlayer);
+                        if (slot.Itemstack.Collectible.Code.PathStartsWith("wrench"))
+                        {
+                            return RepairByOneStage(world, slot, be, blockSel, byPlayer);
+                        }
+                        else
+                        {
+                            return RepairByOneItem(world, slot, be, blockSel, byPlayer);
+                        }
                     }
                 }
-            }
 
-            if (slot.Itemstack.Collectible.Code.Path == "gear-rusty")
-            {
-                DoBreakFully(world, byPlayer, be, blockSel);
-            }
+                if (slot.Itemstack.Collectible.Code.Path == "gear-rusty")
+                {
+                    DoBreakFully(world, byPlayer, be, blockSel);
+                }
+            
 
-            return true;//base.OnBlockInteractStart(world, byPlayer, blockSel, ref handling);
+            return base.OnBlockInteractStart(world, byPlayer, blockSel, ref handling);
         }
         public void DoBreakFully(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
         {
@@ -111,10 +116,13 @@ namespace Rustwall.RWBehaviorRebuildable
 
         private bool RepairByOneStage(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
         {
-            if (slot.Itemstack.Item.Durability < quantityPerStage[be.rebuildStage]) { return false; }
+            if (slot.Itemstack?.Item.Durability < quantityPerStage[be.rebuildStage]) { return false; }
 
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
-            slot?.Itemstack?.Item?.DamageItem(world, byPlayer as Entity, slot, quantityPerStage[be.rebuildStage]);
+
+
+                slot.Itemstack.Item.DamageItem(world, byPlayer.Entity, slot, quantityPerStage[be.rebuildStage]);
+            
 
             slot.MarkDirty();
             be.itemsUsedThisStage = 0;
