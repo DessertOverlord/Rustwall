@@ -10,7 +10,7 @@
   "resistance": 8,
   "requiredMiningTier": 2,
   "fertility": 0,
-  "texture": { "base" : "game:block/stone/rock/bauxite1" },
+  "texture": { "base": "game:block/stone/rock/bauxite1" },
   "entityClass": "BlockEntityRebuildable",
   "entityBehaviors": [
     {
@@ -24,11 +24,13 @@
     {
       "name": "BehaviorRebuildable",
       "properties": {
-        "numStages": 1,
-        "stage0": {
-          "item": "wrench-copper",
-          "quantity": 50
-        }
+        "canRepairBeforeBroken": false,
+        "stages": [
+          {
+            "item": "wrench-copper",
+            "quantity": 50
+          }
+        ]
       }
     }
   ]

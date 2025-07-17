@@ -5,8 +5,8 @@
     "rustwall": [ "*" ]
   },
   "shapebytype": {
-    "*-broken": { "base" : "block/rustwall-machinery/fluxcoil/broken" },
-    "*-repaired": { "base": "block/rustwall-machinery/fluxcoil/repaired" }
+    "*-broken": { "base": "block/rustwallmachinery/fluxcoil/fluxcoil-broken" },
+    "*-repaired": { "base": "block/rustwallmachinery/fluxcoil/fluxcoil-repaired" }
   },
   "variantgroups": [
     {
@@ -28,16 +28,21 @@
       }
     }
   ],
-
   "behaviors": [
     {
       "name": "BehaviorRebuildable",
       "properties": {
-        "numStages": 1,
-        "stage0": {
-          "item": "wrench-copper",
-          "quantity": 50
-        }
+        "canRepairBeforeBroken" : false,
+        "stages": [
+          {
+            "item": "wrench-copper",
+            "quantity": 50
+          },
+          {
+            "item": "metal-parts",
+            "quantity": 2
+          }
+        ]
       }
     }
   ]

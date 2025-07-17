@@ -8,12 +8,12 @@
 	"textureSizes": {
 	},
 	"textures": {
-		"command02-corner": "block/meta/command02-corner",
-		"electrum": "block/metal/plate/electrum",
-		"iron": "block/metal/plate/iron",
-		"lead": "block/metal/plate/lead",
-		"cupronickel": "block/metal/tarnished/cupronickel",
-		"tarnished-gold": "block/metal/tarnished/tarnished-gold"
+		"command02-corner": "game:block/meta/command02-corner",
+		"electrum": "game:block/metal/plate/electrum",
+		"iron": "game:block/metal/plate/iron",
+		"lead": "game:block/metal/plate/lead",
+		"cupronickel": "game:block/metal/tarnished/cupronickel",
+		"tarnished-gold": "game:block/metal/tarnished/tarnished-gold"
 	},
 	"elements": [
 		{

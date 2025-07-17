@@ -18,6 +18,9 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         public int maxStage { get; private set; }
         public int rebuildStage;
         public int itemsUsedThisStage;
+        public bool repairLock;
+
+        public bool isFullyRepaired { get { return rebuildStage >= maxStage; } }
         BehaviorRebuildable ownBehavior;
         public bool contributing = false;
         public override void Initialize(ICoreAPI api)
@@ -26,17 +29,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             ownBehavior = Block.BlockBehaviors.ToList().Find(x => x.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable;
             maxStage = ownBehavior.numStages;
-            Debug.WriteLine("Init BE Rebuildable: " + rebuildStage);
         }
-
-        public void DealDamage(int amt)
-        {
-            if (rebuildStage == 0) { return; }
-
-            rebuildStage = rebuildStage - amt < 0 ? 0 : rebuildStage - amt;
-        }
-
-
 
         public override void ToTreeAttributes(ITreeAttribute tree)
         {
@@ -44,6 +37,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             tree.SetInt("rebuildStage", rebuildStage);
             tree.SetInt("itemsUsedThisStage", itemsUsedThisStage);
+            tree.SetBool("repairLock", repairLock);
         }
 
         public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
@@ -53,9 +47,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             rebuildStage = tree.GetAsInt("rebuildStage");
             itemsUsedThisStage = tree.GetAsInt("itemsUsedThisStage");
+            repairLock = tree.GetAsBool("repairLock") || false;
         }
-
-
-
     }
 }
