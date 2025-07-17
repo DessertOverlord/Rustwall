@@ -1,0 +1,54 @@
+{
+  "code": "pumpunit",
+  "creativeinventory": {
+    "general": [ "*" ],
+    "rustwall": [ "*" ]
+  },
+  "shape": {
+    "base": "block/rustwall-machinery/pump-unit"
+  },
+  "variantgroups": [
+    {
+      "code": "repairstate",
+      "states": [ "repaired", "broken" ]
+    }
+  ],
+  "drawtype": "json",
+  "replaceable": 90,
+  "resistance": 8,
+  "sidesolid": { "all": false },
+  "sideopaque": { "all": false },
+  "entityClass": "BlockEntityRebuildable",
+  "entityBehaviors": [
+    {
+      "name": "BehaviorGloballyStable",
+      "properties": {
+        "value": 10
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "name": "BehaviorRebuildable",
+      "properties": {
+        "numStages": 4,
+        "stage0": {
+          "item": "wrench-copper",
+          "quantity": 50
+        },
+        "stage1": {
+          "item": "wrench-copper",
+          "quantity": 50
+        },
+        "stage2": {
+          "item": "wrench-copper",
+          "quantity": 50
+        },
+        "stage3": {
+          "item": "wrench-copper",
+          "quantity": 50
+        }
+      }
+    }
+  ]
+}

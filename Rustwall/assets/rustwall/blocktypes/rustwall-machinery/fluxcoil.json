@@ -5,8 +5,8 @@
     "rustwall": [ "*" ]
   },
   "shapebytype": {
-    "*-broken": { "base" : "block/rustwall-machinery/fluxcoil/broken" },
-    "*-repaired": { "base": "block/rustwall-machinery/fluxcoil/repaired" }
+    "*-broken": { "base": "block/rustwall-machinery/fluxcoil/fluxcoil-broken" },
+    "*-repaired": { "base": "block/rustwall-machinery/fluxcoil/fluxcoil-repaired" }
   },
   "variantgroups": [
     {
@@ -28,7 +28,6 @@
       }
     }
   ],
-
   "behaviors": [
     {
       "name": "BehaviorRebuildable",
