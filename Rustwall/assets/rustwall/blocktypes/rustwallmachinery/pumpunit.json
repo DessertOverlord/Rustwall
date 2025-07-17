@@ -29,6 +29,9 @@
   ],
   "behaviors": [
     {
+      "name" : "HorizontalOrientable"
+    },
+    {
       "name": "BehaviorRebuildable",
       "properties": {
         "canRepairBeforeBroken": true,
