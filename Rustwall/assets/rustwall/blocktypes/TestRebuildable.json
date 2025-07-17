@@ -24,11 +24,13 @@
     {
       "name": "BehaviorRebuildable",
       "properties": {
-        "numStages": 1,
-        "stage0": {
-          "item": "wrench-copper",
-          "quantity": 50
-        }
+        "canRepairBeforeBroken": false,
+        "stages": [
+          {
+            "item": "wrench-copper",
+            "quantity": 50
+          }
+        ]
       }
     }
   ]

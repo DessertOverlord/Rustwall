@@ -8,11 +8,11 @@
 	"textureSizes": {
 	},
 	"textures": {
-		"command02-corner": "block/meta/command02-corner",
-		"command03-inside": "block/meta/command03-inside",
-		"electrum": "block/metal/plate/electrum",
-		"iron": "block/metal/plate/iron",
-		"lead": "block/metal/plate/lead"
+		"command02-corner": "game:block/meta/command02-corner",
+		"command03-inside": "game:block/meta/command03-inside",
+		"electrum": "game:block/metal/plate/electrum",
+		"iron": "game:block/metal/plate/iron",
+		"lead": "game:block/metal/plate/lead"
 	},
 	"elements": [
 		{

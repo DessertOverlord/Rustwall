@@ -8,8 +8,8 @@
 	"textureSizes": {
 	},
 	"textures": {
-		"rusty-iron": "block/metal/tarnished/rusty-iron",
-		"tinbronze": "block/metal/tarnished/tinbronze"
+		"rusty-iron": "game:block/metal/tarnished/rusty-iron",
+		"tinbronze": "game:block/metal/tarnished/tinbronze"
 	},
 	"elements": [
 		{

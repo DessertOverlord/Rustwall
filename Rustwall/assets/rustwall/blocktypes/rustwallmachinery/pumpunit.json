@@ -5,7 +5,7 @@
     "rustwall": [ "*" ]
   },
   "shape": {
-    "base": "block/rustwall-machinery/pump-unit"
+    "base": "block/rustwallmachinery/pumpunit"
   },
   "variantgroups": [
     {
@@ -31,23 +31,25 @@
     {
       "name": "BehaviorRebuildable",
       "properties": {
-        "numStages": 4,
-        "stage0": {
-          "item": "wrench-copper",
-          "quantity": 50
-        },
-        "stage1": {
-          "item": "wrench-copper",
-          "quantity": 50
-        },
-        "stage2": {
-          "item": "wrench-copper",
-          "quantity": 50
-        },
-        "stage3": {
-          "item": "wrench-copper",
-          "quantity": 50
-        }
+        "canRepairBeforeBroken": true,
+        "stages": [
+            {
+              "item": "wrench-copper",
+              "quantity": 50
+            },
+            {
+              "item": "wrench-copper",
+              "quantity": 50
+            },
+            {
+              "item": "wrench-copper",
+              "quantity": 50
+            },
+            {
+              "item": "wrench-copper",
+              "quantity": 50
+            }
+        ]
       }
     }
   ]
