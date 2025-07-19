@@ -1,0 +1,70 @@
+{
+  "code": "phaseconfluence",
+  "creativeinventory": {
+    "general": [ "*" ],
+    "rustwall": [ "*-broken-south", "*-repaired-south" ]
+  },
+  "shapeByType": {
+    "*-north": {
+      "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-{repairstate}",
+      "rotateY": 0
+    },
+    "*-east": {
+      "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-{repairstate}",
+      "rotateY": 90
+    },
+    "*-south": {
+      "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-{repairstate}",
+      "rotateY": 180
+    },
+    "*-west": {
+      "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-{repairstate}",
+      "rotateY": 270
+    }
+  },
+  "variantgroups": [
+    {
+      "code": "repairstate",
+      "states": [ "repaired", "broken" ]
+    },
+    {
+      "code": "side",
+      "loadFromProperties": "abstract/horizontalorientation"
+    }
+  ],
+  "drawtype": "json",
+  "replaceable": 90,
+  "resistance": 8,
+  "sidesolid": { "all": false },
+  "sideopaque": { "all": false },
+  "entityClass": "BlockEntityRebuildable",
+  "entityBehaviors": [
+    {
+      "name": "BehaviorGloballyStable",
+      "properties": {
+        "value": 10
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "name": "HorizontalOrientable"
+    },
+    {
+      "name": "BehaviorRebuildable",
+      "properties": {
+        "canRepairBeforeBroken": false,
+        "stages": [
+          {
+            "item": "wrench-copper",
+            "quantity": 50
+          },
+          {
+            "item": "metal-parts",
+            "quantity": 2
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -34,6 +34,7 @@ namespace Rustwall.RWBehaviorRebuildable
 
             var stages = properties["stages"].AsArray();
             
+            //loop through all of the available stages
             foreach (var item in stages)
             {
                 itemPerStage.Add(item["item"].AsString());
@@ -48,18 +49,24 @@ namespace Rustwall.RWBehaviorRebuildable
             ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
             BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityRebuildable;
 
+            //there is no case where the block should do something when a player's hand is empty
             if (slot.Empty || slot.Itemstack == null || be == null) return false;
 
+            //if the block is not able to be partially repaired, this resets the repair lock on the block on the next interaction
             if (be.repairLock && be.rebuildStage == 0 && be.itemsUsedThisStage == 0) { be.repairLock = false; }
 
+            //checks if the block needs to be repaired or is repair locked
             if (be.rebuildStage < numStages && !be.repairLock)
             {
+                //TODO: add flexibility for item checking -- all kinds of wrenches, for instance
                 if (slot.Itemstack?.Collectible.Code.Path == itemPerStage[be.rebuildStage])
                 {
+                    //if the item is a wrench, repair by a whole stage and subtract durability
                     if (slot.Itemstack.Collectible.Code.PathStartsWith("wrench"))
                     {
                         return RepairByOneStage(world, slot, be, blockSel, byPlayer);
                     }
+                    //otherwise, subtract just one item
                     else
                     {
                         return RepairByOneItem(world, slot, be, blockSel, byPlayer);
@@ -67,6 +74,8 @@ namespace Rustwall.RWBehaviorRebuildable
                 }
             }
 
+            //allows rusty gears to be used to damage blocks for testing
+            //REMOVE IN LIVE!
             if (slot.Itemstack.Collectible.Code.Path == "gear-rusty" && be.rebuildStage != 0)
             {
                 //DoBreakFully(world, byPlayer, be, blockSel);
@@ -166,13 +175,16 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public void DoFullRepair(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
         {
+            //We need to initialize a new block that is the repaired version of the old block
             Block newBlock = world.GetBlock(block.CodeWithVariant("repairstate", "repaired"));
             world.BlockAccessor.SetBlock(newBlock.Id, blockSel.Position);
 
+            //when we do this, the block entity of the new block will be different from the old one, so we want to acquire it and...
             var newBE = world.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(blockSel.Position);
 
             if (newBE != null )
             {
+                //set the fields of the new block entity to the ones used in the old.
                 newBE.rebuildStage = be.rebuildStage;
                 if (!canRepairBeforeBroken) { newBE.repairLock = true; }
             }

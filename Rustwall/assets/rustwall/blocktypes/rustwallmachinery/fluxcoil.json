@@ -2,7 +2,7 @@
   "code": "fluxcoil",
   "creativeinventory": {
     "general": [ "*" ],
-    "rustwall": [ "*" ]
+    "rustwall": [ "*-broken", "*-repaired" ]
   },
   "shapebytype": {
     "*-broken": { "base": "block/rustwallmachinery/fluxcoil/fluxcoil-broken" },
