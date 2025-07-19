@@ -2,15 +2,34 @@
   "code": "pumpunit",
   "creativeinventory": {
     "general": [ "*" ],
-    "rustwall": [ "*" ]
+    "rustwall": [ "*-broken-south", "*-repaired-south" ]
   },
-  "shape": {
-    "base": "block/rustwallmachinery/pumpunit"
+  "shapeByType": {
+    "*-north": {
+      "base": "block/rustwallmachinery/pumpunit",
+      "rotateY": 0
+    },
+    "*-east": {
+      "base": "block/rustwallmachinery/pumpunit",
+      "rotateY": 90
+    },
+    "*-south": {
+      "base": "block/rustwallmachinery/pumpunit",
+      "rotateY": 180
+    },
+    "*-west": {
+      "base": "block/rustwallmachinery/pumpunit",
+      "rotateY": 270
+    }
   },
   "variantgroups": [
     {
       "code": "repairstate",
       "states": [ "repaired", "broken" ]
+    },
+    {
+      "code": "side",
+      "loadFromProperties": "abstract/horizontalorientation"
     }
   ],
   "drawtype": "json",

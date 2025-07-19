@@ -2,15 +2,34 @@
   "code": "blowofftank",
   "creativeinventory": {
     "general": [ "*" ],
-    "rustwall": [ "*" ]
+    "rustwall": [ "*-broken-south", "*-repaired-south" ]
   },
-  "shape": {
-    "base": "block/rustwallmachinery/blowofftank"
+  "shapeByType": {
+    "*-north": {
+      "base": "block/rustwallmachinery/blowofftank",
+      "rotateY": 0
+    },
+    "*-east": {
+      "base": "block/rustwallmachinery/blowofftank",
+      "rotateY": 90
+    },
+    "*-south": {
+      "base": "block/rustwallmachinery/blowofftank",
+      "rotateY": 180
+    },
+    "*-west": {
+      "base": "block/rustwallmachinery/blowofftank",
+      "rotateY": 270
+    }
   },
   "variantgroups": [
     {
       "code": "repairstate",
       "states": [ "repaired", "broken" ]
+    },
+    {
+      "code": "side",
+      "loadFromProperties": "abstract/horizontalorientation"
     }
   ],
   "drawtype": "json",
@@ -29,29 +48,29 @@
   ],
   "behaviors": [
     {
-      "name" : "HorizontalOrientable"
+      "name": "HorizontalOrientable"
     },
     {
       "name": "BehaviorRebuildable",
       "properties": {
         "canRepairBeforeBroken": true,
         "stages": [
-            {
-              "item": "wrench-copper",
-              "quantity": 50
-            },
-            {
-              "item": "wrench-copper",
-              "quantity": 50
-            },
-            {
-              "item": "wrench-copper",
-              "quantity": 50
-            },
-            {
-              "item": "wrench-copper",
-              "quantity": 50
-            }
+          {
+            "item": "wrench-copper",
+            "quantity": 50
+          },
+          {
+            "item": "wrench-copper",
+            "quantity": 50
+          },
+          {
+            "item": "wrench-copper",
+            "quantity": 50
+          },
+          {
+            "item": "wrench-copper",
+            "quantity": 50
+          }
         ]
       }
     }

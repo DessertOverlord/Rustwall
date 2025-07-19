@@ -2,16 +2,34 @@
   "code": "phaseconfluence",
   "creativeinventory": {
     "general": [ "*" ],
-    "rustwall": [ "*" ]
+    "rustwall": [ "*-broken-south", "*-repaired-south" ]
   },
-  "shapebytype": {
-    "*-broken": { "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-broken" },
-    "*-repaired": { "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-repaired" }
+  "shapeByType": {
+    "*-north": {
+      "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-{repairstate}",
+      "rotateY": 0
+    },
+    "*-east": {
+      "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-{repairstate}",
+      "rotateY": 90
+    },
+    "*-south": {
+      "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-{repairstate}",
+      "rotateY": 180
+    },
+    "*-west": {
+      "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-{repairstate}",
+      "rotateY": 270
+    }
   },
   "variantgroups": [
     {
       "code": "repairstate",
       "states": [ "repaired", "broken" ]
+    },
+    {
+      "code": "side",
+      "loadFromProperties": "abstract/horizontalorientation"
     }
   ],
   "drawtype": "json",
@@ -30,12 +48,12 @@
   ],
   "behaviors": [
     {
-      "name" : "HorizontalOrientable"
+      "name": "HorizontalOrientable"
     },
     {
       "name": "BehaviorRebuildable",
       "properties": {
-        "canRepairBeforeBroken" : false,
+        "canRepairBeforeBroken": false,
         "stages": [
           {
             "item": "wrench-copper",

@@ -2,15 +2,34 @@
   "code": "valveassembly",
   "creativeinventory": {
     "general": [ "*" ],
-    "rustwall": [ "*" ]
+    "rustwall": [ "*-broken-south", "*-repaired-south" ]
   },
-  "shape": {
-    "base": "block/rustwallmachinery/valveassembly"
+  "shapeByType": {
+    "*-north": {
+      "base": "block/rustwallmachinery/valveassembly",
+      "rotateY": 0
+    },
+    "*-east": {
+      "base": "block/rustwallmachinery/valveassembly",
+      "rotateY": 90
+    },
+    "*-south": {
+      "base": "block/rustwallmachinery/valveassembly",
+      "rotateY": 180
+    },
+    "*-west": {
+      "base": "block/rustwallmachinery/valveassembly",
+      "rotateY": 270
+    }
   },
   "variantgroups": [
     {
       "code": "repairstate",
       "states": [ "repaired", "broken" ]
+    },
+    {
+      "code": "side",
+      "loadFromProperties": "abstract/horizontalorientation"
     }
   ],
   "drawtype": "json",
@@ -29,7 +48,7 @@
   ],
   "behaviors": [
     {
-      "name" : "HorizontalOrientable"
+      "name": "HorizontalOrientable"
     },
     {
       "name": "BehaviorRebuildable",
