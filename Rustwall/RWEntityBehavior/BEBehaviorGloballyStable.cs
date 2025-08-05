@@ -30,6 +30,9 @@ namespace Rustwall.RWEntityBehavior
             ber = Blockentity as BlockEntityRebuildable;
             modsys.allStableBlockEntities.Add(ber);
 
+            
+
+
             //Call it immediately to prevent a case where GlobalStabilitySystem tries to reference anything before the 5 seconds timer occurs
             // dt is of no consequence to the function (and technically 0 is correct I think)
             // no idea if this will ever be a problem

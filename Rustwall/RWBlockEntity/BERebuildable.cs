@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.ConstrainedExecution;
 using System.Text;
 using System.Threading.Tasks;
 using Rustwall.ModSystems.RebuildableBlock;
@@ -29,6 +30,8 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             ownBehavior = Block.BlockBehaviors.ToList().Find(x => x.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable;
             maxStage = ownBehavior.numStages;
+
+            if (Block.Variant["repairstate"] == "repaired") { rebuildStage = maxStage; }
         }
 
         public override void ToTreeAttributes(ITreeAttribute tree)

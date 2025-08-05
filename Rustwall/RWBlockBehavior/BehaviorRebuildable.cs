@@ -41,6 +41,7 @@ namespace Rustwall.RWBehaviorRebuildable
                 quantityPerStage.Add(item["quantity"].AsInt());
                 numStages++;
             }
+
         }
 
         public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ref EnumHandling handling)
