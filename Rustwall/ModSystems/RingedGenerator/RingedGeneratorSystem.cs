@@ -439,7 +439,6 @@ namespace Rustwall.ModSystems.RingedGenerator
                         result += worldconfig.GetDouble(item) != null ? item + ": " + worldconfig.GetDouble(item) + "\n" : item + "null value\n";
                     }
 
-
                     return TextCommandResult.Success("Values: " + result);
                 });
 

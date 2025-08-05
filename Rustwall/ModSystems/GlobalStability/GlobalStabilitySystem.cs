@@ -131,19 +131,27 @@ namespace Rustwall.ModSystems.GlobalStability
                 previousStabilityContributors.AddRange(stabilityContributors);
             }
 
-            if (possibleGlobalStability <= 0) { return; }
+            if (possibleGlobalStability <= 0) { globalStabilityRatio = 0; return; }
 
             globalStabilityRatio = ((float)globalStability / possibleGlobalStability);
 
-            //double nextScoring = sapi.World.Calendar.TotalDays + config.DaysBetweenStormScoring;
-
             if (data.nextScoringDays - sapi.World.Calendar.TotalDays < 0)
             {
-                data.nextScoringDays = sapi.World.Calendar.TotalDays + config.DaysBetweenStormScoring;
-                data.scores.Add(globalStabilityRatio);
+                int numSamples = 1;
+                if (sapi.World.Calendar.TotalDays - data.nextScoringDays > config.DaysBetweenStormScoring)
+                {
+                    numSamples = (int)(data.nextScoringDays - sapi.World.Calendar.TotalDays / config.DaysBetweenStormScoring);
+                }
 
-                Debug.WriteLine("Score of " + globalStabilityRatio + "Added to score list");
+                if (numSamples > config.DaysBeforeTheGreatDecay / config.DaysBetweenStormScoring ) { numSamples = (int)(config.DaysBeforeTheGreatDecay / config.DaysBetweenStormScoring); }
 
+                for (int i = 0; i < numSamples; i++)
+                {
+                    data.nextScoringDays = data.nextScoringDays + config.DaysBetweenStormScoring;
+                    data.scores.Add(globalStabilityRatio);
+                    Debug.WriteLine("Score of " + globalStabilityRatio + " Added to score list");
+                }
+                //data.nextScoringDays = sapi.World.Calendar.TotalDays + config.DaysBetweenStormScoring;
             }
 
             if (data.nextGreatDecayDays - sapi.World.Calendar.TotalDays < 0)
@@ -151,13 +159,13 @@ namespace Rustwall.ModSystems.GlobalStability
                 float totalScore = 0;
                 foreach (var item in data.scores) { totalScore += item; }
                 float averageScore = totalScore / data.scores.Count;
+                data.scores.Clear();
 
                 data.nextGreatDecayDays = sapi.World.Calendar.TotalDays + config.DaysBeforeTheGreatDecay;
                 var ringedGenModSys = sapi.ModLoader.GetModSystem<RingedGeneratorSystem>();
-                ringedGenModSys.TriggerGreatDecay(averageScore);
+                ringedGenModSys.TriggerGreatDecay(1.0f - averageScore);
                 Debug.WriteLine("Great decay triggered with average score of: " + averageScore);
             }
-
         }
     }
 }
