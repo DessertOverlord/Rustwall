@@ -29,7 +29,8 @@ namespace Rustwall.ModSystems.RingedGenerator
         // Some day I won't have to do this, but I haven't figured out how to gather the currently selected params until
         // after the game is saved for the first time.
         // TODO: programmatically gather the selected worldgen params on first launch.
-        private readonly List<double> WorldgenDefaultParams = new List<double> { 1, 1, 1, 0, 1, 1, 0.3, 0.05 };
+        //private readonly List<double> WorldgenDefaultParams = new List<double> { 1, 1, 1, 0, 1, 1, 0.3, 0.05 };
+        private readonly List<double> WorldgenDefaultParams = new List<double> { 1, 1, 1, 0, 0, 1, 0.3, 0.05 };
         private static int curRing = 0;
         private static int desiredRing = 0;
         private static int ringMapSize;
@@ -37,12 +38,17 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         protected override void RustwallStartServerSide()
         {
+            //if (sapi.WorldManager.SaveGame.IsNew == true) { sapi.Server.ShutDown(); }
+            
+
             RegisterChatCommands();
             // This calculates map size relative to the resolution of the rings
             // It also checks to make sure the world is a square; if it is rectangular, the ring generator doesn't initialize
             ringMapSize = sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ ? (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2 : -500;
             regionMidPoint = ((ringMapSize + ringMapSize - 1) / 2.0);
             ringDictList = new List<Dictionary<string, double>>(ringMapSize);
+
+            //sapi.Event.SaveGameLoaded += InitRingedWorldGenerator;
 
             InitRingedWorldGenerator();
 
@@ -66,7 +72,6 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         private void HandleRegionLoading(IMapRegion region, int regionX, int regionZ, ITreeAttribute chunkGenParams = null)
         {
-            
             if (ringMapSize == -500) { return; }
             desiredRing = (int)(double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5);
             if (curRing != desiredRing)
@@ -75,6 +80,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 SetWorldParams(sapi, ringDictList[curRing], seedList[curRing]);
                 RestartChunkGenerator();
             }
+            //Debug.WriteLine("Region at " + regionX + ", " + regionZ + "is generating with landcover set to " + ringDictList[curRing]["landcover"]);
         }
 
         //Initialize and load the worldgen parameters
@@ -118,6 +124,11 @@ namespace Rustwall.ModSystems.RingedGenerator
             for (int i = 0; i < WorldgenParamsToScramble.Count(); i++)
             {
                 ringDictList[0].Add(WorldgenParamsToScramble[i], WorldgenDefaultParams[i]);
+
+
+                //ringDictList[0].Add(WorldgenParamsToScramble[i], sapi.WorldManager.SaveGame.WorldConfiguration.GetDecimal(WorldgenParamsToScramble[i]));
+
+
             }
             // and this adds the rest of them -- note -1 because we already added 1 with the previous loop
             // it needs to be less than or equal to because I want exactly 25 (minus the first one already added), not 24. Otherwise shit goes sideways!
@@ -163,6 +174,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             var WorldgenAverageParams = new List<double> { 1, 2.5, 2.5, 0, 0.55, 2.05, 0.5, 0.2 };
             var WorldgenVarianceParams = new List<double> { .5, 2.5, 2.5, 1, 0.45, 1.95, 0.5, 0.2 };
 
+            
             switch (dist)
             {
                 case EnumDistribution.UNIFORM:
@@ -410,6 +422,27 @@ namespace Rustwall.ModSystems.RingedGenerator
 
                     return TextCommandResult.Success("deleted some shit prolly");
                 });
+
+            sapi.ChatCommands.Create("PrintWorldConfig")
+                .WithDescription("Does what it says on the tin.")
+                .RequiresPrivilege(Privilege.chat)
+                .RequiresPlayer()
+                .WithArgs()
+                .HandleWith((args) =>
+                {
+
+                    var worldconfig = sapi.WorldManager.SaveGame.WorldConfiguration;
+                    //var worldconfig = sapi.World.Config;
+                    string result = "";
+                    foreach (var item in WorldgenParamsToScramble)
+                    {
+                        result += worldconfig.GetDouble(item) != null ? item + ": " + worldconfig.GetDouble(item) + "\n" : item + "null value\n";
+                    }
+
+
+                    return TextCommandResult.Success("Values: " + result);
+                });
+
 
         }
     }
