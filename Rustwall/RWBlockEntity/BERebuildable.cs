@@ -22,8 +22,8 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         public bool repairLock;
 
         public bool isFullyRepaired { get { return rebuildStage >= maxStage; } }
-        BehaviorRebuildable ownBehavior;
-        public bool contributing = false;
+        public BehaviorRebuildable ownBehavior;
+        //public bool contributing = false;
         public override void Initialize(ICoreAPI api)
         {
             base.Initialize(api);

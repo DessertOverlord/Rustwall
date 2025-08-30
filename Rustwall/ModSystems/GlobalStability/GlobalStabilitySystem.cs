@@ -2,14 +2,17 @@
 using Rustwall.ModSystems.RingedGenerator;
 using Rustwall.ModSystems.TemporalStormHandler;
 using Rustwall.RWBehaviorRebuildable;
+using Rustwall.RWBlockEntity.BERebuildable;
 using Rustwall.RWEntityBehavior;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Vintagestory.API.Common;
+using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
+using Vintagestory.GameContent;
 
 namespace Rustwall.ModSystems.GlobalStability
 {
@@ -28,11 +31,10 @@ namespace Rustwall.ModSystems.GlobalStability
         public int globalStability { get; private set; } = 0;
         public int possibleGlobalStability { get; private set; } = 0;
         public float globalStabilityRatio { get; private set; } = 0;
-        public List<BlockEntity> stabilityContributors { get; set; } = new List<BlockEntity>();
-        private List<BlockEntity> previousStabilityContributors { get; set; } = new List<BlockEntity>();
-        public List<BlockEntity> allStableBlockEntities { get; set; } = new List<BlockEntity> { };
-        private List<BlockEntity> previousStableBlockEntities { get; set; } = new List<BlockEntity>();
-
+        public List<BlockPos> stabilityContributors { get; set; } = new List<BlockPos>();
+        private List<BlockPos> previousStabilityContributors { get; set; } = new List<BlockPos>();
+        public List<BlockPos> allStableBlockEntities { get; set; } = new List<BlockPos> { };
+        private List<BlockPos> previousStableBlockEntities { get; set; } = new List<BlockPos>();
 
         //private int ;
         public override void Start(ICoreAPI api)
@@ -105,13 +107,14 @@ namespace Rustwall.ModSystems.GlobalStability
                 //reset our amount
                 possibleGlobalStability = 0;
                 //for everything in the list, add its maximum stability to the global pool
-                foreach (var be in allStableBlockEntities)
+                foreach (var bePos in allStableBlockEntities)
                 {
-                    var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                    //var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                    var beb = sapi.World.BlockAccessor.GetBlockEntity(bePos).Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
                     possibleGlobalStability += beb.maxStability;
                 }
                 //add our current working list to the previous list, for future checking
-                previousStableBlockEntities = new List<BlockEntity> { };
+                previousStableBlockEntities = new List<BlockPos> { };
                 previousStableBlockEntities.AddRange(allStableBlockEntities);
             }
 
@@ -119,22 +122,24 @@ namespace Rustwall.ModSystems.GlobalStability
             {
                 globalStability = 0;
             
-                foreach (var be in stabilityContributors)
+                foreach (var bePos in stabilityContributors)
                 {
-                    var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                    //var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                    var beb = sapi.World.BlockAccessor.GetBlockEntity(bePos).Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
                     if (beb != null )
                     {
                         globalStability += beb.curStability;
                     }
                 }
-                previousStabilityContributors = new List<BlockEntity> { };
+                previousStabilityContributors = new List<BlockPos> { };
                 previousStabilityContributors.AddRange(stabilityContributors);
             }
 
             if (possibleGlobalStability <= 0) { globalStabilityRatio = 0; return; }
 
             globalStabilityRatio = ((float)globalStability / possibleGlobalStability);
-
+            
+            //Assess scoring of the global stability and store the result
             if (data.nextScoringDays - sapi.World.Calendar.TotalDays < 0)
             {
                 int numSamples = 1;
@@ -154,6 +159,7 @@ namespace Rustwall.ModSystems.GlobalStability
                 //data.nextScoringDays = sapi.World.Calendar.TotalDays + config.DaysBetweenStormScoring;
             }
 
+            //Assess great decay
             if (data.nextGreatDecayDays - sapi.World.Calendar.TotalDays < 0)
             {
                 float totalScore = 0;
@@ -166,6 +172,43 @@ namespace Rustwall.ModSystems.GlobalStability
                 ringedGenModSys.TriggerGreatDecay(1.0f - averageScore);
                 Debug.WriteLine("Great decay triggered with average score of: " + averageScore);
             }
+
+            //For all contributing blocks, we need to roll the dice on damaging them a bit.
+
+            /*foreach (var item in stabilityContributors.ToList())
+            {
+                //Check if the contributor is actually a rebuildable block. Adds functionality for the future for unbreakable stability contributors
+                if (item.GetType() != typeof(BlockEntityRebuildable)) { continue; }
+
+                BlockEntityRebuildable RBitem = item as BlockEntityRebuildable;
+
+                int damageChanceMultiplier;
+                if (sapi.ModLoader.GetModSystem<TemporalStormHandlerSystem>().IsStormActive())
+                {
+                    damageChanceMultiplier = 5;
+                }
+                else
+                {
+                    damageChanceMultiplier = 0;
+                }
+
+                //If this item is a simple machine (can be repaired at any time), we need to use a different range of random values
+                if (RBitem != null && RBitem.ownBehavior.canRepairBeforeBroken) 
+                {
+                    
+
+                    Random rand = new Random();
+                    //This gives us a 1/288 chance every 10 seconds to damage the block. In theory, this should mean a block gets damage ~once every in-game day.
+                    //Diving by damageChanceMultiplier means that it is 5x more likely to hit the random chance.
+                    //if (rand.Next(288 / damageChanceMultiplier) == 0)
+                    if (false)
+                    {
+                        Debug.WriteLine("Damaged shit by one stage. Multiplier is: " + damageChanceMultiplier);
+                        //Feeding nulls into this function is okay because IPlayer and BlockSel are only used to create sounds; for our purposes, they are not needed.
+                        RBitem.ownBehavior.DamageOneStage(sapi.World, null, RBitem, null);
+                    }
+                }
+            }*/
         }
     }
 }
