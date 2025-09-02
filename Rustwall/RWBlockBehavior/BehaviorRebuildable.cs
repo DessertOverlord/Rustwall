@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Config;
@@ -81,7 +82,7 @@ namespace Rustwall.RWBehaviorRebuildable
             if (slot.Itemstack.Collectible.Code.Path == "gear-rusty" && be.rebuildStage != 0)
             {
                 //DoBreakFully(world, byPlayer, be, blockSel);
-                DamageOneStage(world, byPlayer, be, blockSel);
+                return DamageOneStage(world, byPlayer, be, blockSel);
             }
 
 
@@ -103,6 +104,11 @@ namespace Rustwall.RWBehaviorRebuildable
                 return text + "rebuildStage: " + be.rebuildStage + "\nitemsUsedThisStage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock;
 
             }
+        }
+
+        public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection selection, IPlayer forPlayer, ref EnumHandling handling)
+        {
+            return base.GetPlacedBlockInteractionHelp(world, selection, forPlayer, ref handling);
         }
 
         public void DoBreakFully(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
@@ -128,18 +134,9 @@ namespace Rustwall.RWBehaviorRebuildable
             be.itemsUsedThisStage = 0;
         }
 
-        public void DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
+        public bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
         {
-            if (be.rebuildStage <= 0) { return; }
-
-            /*if (blockSel != null && byPlayer != null)
-            {
-                world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
-            } 
-            else
-            {
-                world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), be.Pos, -0.25, null, true, 16);
-            }*/
+            if (be.rebuildStage <= 0) { return false; ; }
 
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), be.Pos, -0.25, null, true, 16);
             be.MarkDirty(true);
@@ -170,15 +167,27 @@ namespace Rustwall.RWBehaviorRebuildable
                 int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "broken")).Id;
                 world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
 
+                /*var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                if (beb != null)
+                {
+                    beb.RemoveContributor();
+                }*/
+                
+            }
+            be.rebuildStage--;
+            be.itemsUsedThisStage = 0;
+
+            //Move this logic -- we want to remove a contributor only if it is fully destroyed.
+            if (be.rebuildStage == 0)
+            {
                 var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
                 if (beb != null)
                 {
                     beb.RemoveContributor();
                 }
-                
             }
-            be.rebuildStage--;
-            be.itemsUsedThisStage = 0;
+
+            return true;
         }
 
         private bool RepairByOneItem(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)

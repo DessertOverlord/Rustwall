@@ -2,11 +2,13 @@
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Util;
+using Vintagestory.API.MathTools;
 using Rustwall.ModSystems.GlobalStability;
 using System.Diagnostics;
 using System.Linq;
 using System.Collections.Generic;
 using Vintagestory.GameContent;
+using Vintagestory.API.Server;
 
 namespace Rustwall.RWEntityBehavior
 {
@@ -16,6 +18,7 @@ namespace Rustwall.RWEntityBehavior
         BlockEntityRebuildable ber;
         public int curStability { get; private set; } = 0;
         public int maxStability { get; private set; } = 0;
+        private ICoreAPI coreAPI;
         //bool isContributing;
         public BEBehaviorGloballyStable(BlockEntity blockent) : base(blockent)
         {
@@ -24,13 +27,35 @@ namespace Rustwall.RWEntityBehavior
         public override void Initialize(ICoreAPI api, JsonObject properties)
         {
             base.Initialize(api, properties);
-            maxStability = properties["value"].AsInt();
+
+            coreAPI = api;
+
+            if (api.Side == EnumAppSide.Server)
+            {
+                maxStability = properties["value"].AsInt();
+                ber = Blockentity as BlockEntityRebuildable;
+
+                modsys = (api as ICoreServerAPI).ModLoader.GetModSystem<GlobalStabilitySystem>();
+                modsys.allStableBlockEntities.Add(ber.Pos);
+
+
+                int berRepairedBlockID = api.World.GetBlock(Blockentity.Block.CodeWithVariant("repairstate", "repaired")).Id;
+
+                if (ber != null && Blockentity.Block.Id == berRepairedBlockID)
+                {
+                    curStability = maxStability;
+                    modsys.stabilityContributors.Add(ber.Pos);
+                }
+                /*else
+                {
+                    Debug.WriteLine("It's NOT repaired!");
+                }*/
+            }
+
             //We need to poll the current stability every so often
             //Blockentity.RegisterGameTickListener(QueryAndUpdateCurrentStability, 5000);
-            modsys = api.ModLoader.GetModSystem<GlobalStabilitySystem>();
+            // ((api as ICoreServerAPI).ModLoader.GetModSystem<GlobalStabilitySystem>())
             //will return null if the BlockEntity is not BlockEntityRebuildable!
-            ber = Blockentity as BlockEntityRebuildable;
-            modsys.allStableBlockEntities.Add(ber.Pos);
 
             //Call it immediately to prevent a case where GlobalStabilitySystem tries to reference anything before the 5 seconds timer occurs
             // dt is of no consequence to the function (and technically 0 is correct I think)
@@ -44,17 +69,7 @@ namespace Rustwall.RWEntityBehavior
                 Debug.WriteLine("It's repaired!");
             }*/
 
-            int berRepairedBlockID = api.World.GetBlock(Blockentity.Block.CodeWithVariant("repairstate", "repaired")).Id;
 
-            if (ber != null && Blockentity.Block.Id == berRepairedBlockID)
-            {
-                curStability = maxStability;
-                modsys.stabilityContributors.Add(ber.Pos);
-            }
-            else
-            {
-                Debug.WriteLine("It's NOT repaired!");
-            }
         }
 
         /*public void QueryAndUpdateCurrentStability(float dt)
@@ -96,19 +111,22 @@ namespace Rustwall.RWEntityBehavior
 
         public void RemoveContributor()
         {
-            if (ber != null)
+            if (coreAPI.Side == EnumAppSide.Server && ber != null)
             {
                 curStability = 0;
-                modsys.stabilityContributors.Remove(ber.Pos);
-                
+                bool x = modsys.stabilityContributors.Remove(ber.Pos);
 
-
+                if (modsys.stabilityContributors.Count >= 1)
+                {
+                    BlockPos efjs = modsys.stabilityContributors[0];
+                        bool y = efjs == ber.Pos;
+                }
             }
         }
 
         public void AddContributor()
         {
-            if (ber != null)
+            if (coreAPI.Side == EnumAppSide.Server && ber != null)
             {
                 curStability = maxStability;
                 modsys.stabilityContributors.Add(ber.Pos);
@@ -119,8 +137,11 @@ namespace Rustwall.RWEntityBehavior
         public override void OnBlockRemoved()
         {
             base.OnBlockRemoved();
-            modsys.stabilityContributors.Remove(ber.Pos);
-            modsys.allStableBlockEntities.Remove(ber.Pos);
+            if (coreAPI.Side == EnumAppSide.Server)
+            {
+                modsys.stabilityContributors.Remove(ber.Pos);
+                modsys.allStableBlockEntities.Remove(ber.Pos);
+            }
         }
     }
 }
