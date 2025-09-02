@@ -2,14 +2,17 @@
 using Rustwall.ModSystems.RingedGenerator;
 using Rustwall.ModSystems.TemporalStormHandler;
 using Rustwall.RWBehaviorRebuildable;
+using Rustwall.RWBlockEntity.BERebuildable;
 using Rustwall.RWEntityBehavior;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Vintagestory.API.Common;
+using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
+using Vintagestory.GameContent;
 
 namespace Rustwall.ModSystems.GlobalStability
 {
@@ -28,11 +31,10 @@ namespace Rustwall.ModSystems.GlobalStability
         public int globalStability { get; private set; } = 0;
         public int possibleGlobalStability { get; private set; } = 0;
         public float globalStabilityRatio { get; private set; } = 0;
-        public List<BlockEntity> stabilityContributors { get; set; } = new List<BlockEntity>();
-        private List<BlockEntity> previousStabilityContributors { get; set; } = new List<BlockEntity>();
-        public List<BlockEntity> allStableBlockEntities { get; set; } = new List<BlockEntity> { };
-        private List<BlockEntity> previousStableBlockEntities { get; set; } = new List<BlockEntity>();
-
+        public List<BlockPos> stabilityContributors { get; set; } = new List<BlockPos>();
+        private List<BlockPos> previousStabilityContributors { get; set; } = new List<BlockPos>();
+        public List<BlockPos> allStableBlockEntities { get; set; } = new List<BlockPos> { };
+        private List<BlockPos> previousStableBlockEntities { get; set; } = new List<BlockPos>();
 
         //private int ;
         public override void Start(ICoreAPI api)
@@ -53,7 +55,8 @@ namespace Rustwall.ModSystems.GlobalStability
         {
             RegisterChatCommands();
 
-            sapi.Event.RegisterGameTickListener(onGlobalStabilityTick, 10000);
+            //Changed to 1 second for testing, move back to 10 seconds in prod
+            //sapi.Event.RegisterGameTickListener(onGlobalStabilityTick, 10000);
 
             try
             {
@@ -79,6 +82,8 @@ namespace Rustwall.ModSystems.GlobalStability
                         nextGreatDecayDays = config.DaysBeforeTheGreatDecay + sapi.World.Calendar.TotalDays,
                     };
                 }
+
+                sapi.Event.RegisterGameTickListener(onGlobalStabilityTick, 2000);
             };
         }
 
@@ -99,19 +104,19 @@ namespace Rustwall.ModSystems.GlobalStability
 
         private void onGlobalStabilityTick(float dt)
         {
-            
             //Checks if there have actually been any changes since last time -- if not we don't care
             if (!allStableBlockEntities.SequenceEqual(previousStableBlockEntities)) {
                 //reset our amount
                 possibleGlobalStability = 0;
                 //for everything in the list, add its maximum stability to the global pool
-                foreach (var be in allStableBlockEntities)
+                foreach (var bePos in allStableBlockEntities)
                 {
-                    var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-                    possibleGlobalStability += beb.maxStability;
+                    //var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                    var beb = sapi.World.BlockAccessor.GetBlockEntity(bePos)?.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                    possibleGlobalStability += beb?.maxStability != null ? beb.maxStability : 0;
                 }
                 //add our current working list to the previous list, for future checking
-                previousStableBlockEntities = new List<BlockEntity> { };
+                previousStableBlockEntities = new List<BlockPos> { };
                 previousStableBlockEntities.AddRange(allStableBlockEntities);
             }
 
@@ -119,22 +124,21 @@ namespace Rustwall.ModSystems.GlobalStability
             {
                 globalStability = 0;
             
-                foreach (var be in stabilityContributors)
+                foreach (var bePos in stabilityContributors)
                 {
-                    var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-                    if (beb != null )
-                    {
-                        globalStability += beb.curStability;
-                    }
+                    //var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                    var beb = sapi.World.BlockAccessor.GetBlockEntity(bePos)?.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                    globalStability += beb?.curStability != null ? beb.curStability : 0;
                 }
-                previousStabilityContributors = new List<BlockEntity> { };
+                previousStabilityContributors = new List<BlockPos> { };
                 previousStabilityContributors.AddRange(stabilityContributors);
             }
 
             if (possibleGlobalStability <= 0) { globalStabilityRatio = 0; return; }
 
             globalStabilityRatio = ((float)globalStability / possibleGlobalStability);
-
+            
+            //Assess scoring of the global stability and store the result
             if (data.nextScoringDays - sapi.World.Calendar.TotalDays < 0)
             {
                 int numSamples = 1;
@@ -154,6 +158,7 @@ namespace Rustwall.ModSystems.GlobalStability
                 //data.nextScoringDays = sapi.World.Calendar.TotalDays + config.DaysBetweenStormScoring;
             }
 
+            //Assess great decay
             if (data.nextGreatDecayDays - sapi.World.Calendar.TotalDays < 0)
             {
                 float totalScore = 0;
@@ -165,6 +170,47 @@ namespace Rustwall.ModSystems.GlobalStability
                 var ringedGenModSys = sapi.ModLoader.GetModSystem<RingedGeneratorSystem>();
                 ringedGenModSys.TriggerGreatDecay(1.0f - averageScore);
                 Debug.WriteLine("Great decay triggered with average score of: " + averageScore);
+            }
+
+            //For all contributing blocks, we need to roll the dice on damaging them by a stage.
+            foreach (var item in stabilityContributors.ToList())
+            {
+                //Check if the contributor is actually a rebuildable block. Adds functionality for the future for unbreakable stability contributors.
+                // Also check if it's already destroyed -- no reason to run all of this code if it's already broken.
+                BlockEntityRebuildable RBitem = sapi.World.BlockAccessor.GetBlockEntity(item) as BlockEntityRebuildable;
+                if (RBitem == null || RBitem.rebuildStage == 0) { continue; }
+
+                double damageChanceMultiplier;
+                if (sapi.ModLoader.GetModSystem<TemporalStormHandlerSystem>().IsStormActive())
+                {
+                    damageChanceMultiplier = config.TemporalStormDamageMultiplier;
+                }
+                else
+                {
+                    damageChanceMultiplier = 1;
+                }
+
+                Random rand = new Random();
+                //If this item is a simple machine (can be repaired at any time), we need to use a different range of random values
+                if (RBitem.ownBehavior.canRepairBeforeBroken)
+                {
+                    //This gives us a 1/288 chance every 10 seconds to damage the block. In theory, this should mean a block gets damage ~once every in-game day.
+                    //Diving by damageChanceMultiplier means that it is 5x more likely to hit the random chance.
+                    //if (rand.Next(288 / damageChanceMultiplier) == 0)
+                    if (rand.Next((int)(config.ChanceToBreakSimple / damageChanceMultiplier)) == 0)
+                    {
+                        //Debug.WriteLine("Damaged shit by one stage. Multiplier is: " + damageChanceMultiplier);
+                        //Feeding nulls into this function is okay because IPlayer and BlockSel are only used to create sounds; for our purposes, they are not needed.
+                        RBitem.ownBehavior.DamageOneStage(sapi.World, null, RBitem, null);
+                    }
+                }
+                else
+                {
+                    if (rand.Next((int)(config.ChanceToBreakComplex / damageChanceMultiplier)) == 0)
+                    {
+                        RBitem.ownBehavior.DamageOneStage(sapi.World, null, RBitem, null);
+                    }
+                }
             }
         }
     }

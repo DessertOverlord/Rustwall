@@ -11,7 +11,7 @@
     },
     "*-east": {
       "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-{repairstate}",
-      "rotateY": 90
+      "rotateY": 270
     },
     "*-south": {
       "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-{repairstate}",
@@ -19,7 +19,7 @@
     },
     "*-west": {
       "base": "block/rustwallmachinery/phaseconfluence/phaseconfluence-{repairstate}",
-      "rotateY": 270
+      "rotateY": 90
     }
   },
   "variantgroups": [

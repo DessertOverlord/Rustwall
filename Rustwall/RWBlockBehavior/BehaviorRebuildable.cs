@@ -1,20 +1,22 @@
-﻿using System.Collections.Generic;
-using Vintagestory.API.Common;
-using Rustwall.RWBlockEntity.BERebuildable;
+﻿using Rustwall.RWBlockEntity.BERebuildable;
+using Rustwall.RWEntityBehavior;
+using System.Collections.Generic;
 using System.Diagnostics;
-using Vintagestory.API.Datastructures;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
+using Vintagestory.API.Client;
+using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
 using Vintagestory.API.Config;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using System.Runtime.CompilerServices;
-using System.Reflection.Metadata.Ecma335;
-using Vintagestory.GameContent;
 using Vintagestory.API.Server;
+using Vintagestory.GameContent;
 
 
 namespace Rustwall.RWBehaviorRebuildable
 {
-    internal class BehaviorRebuildable : BlockBehavior
+    public class BehaviorRebuildable : BlockBehavior
     {
         public int numStages = 0;
         public bool canRepairBeforeBroken;
@@ -80,12 +82,35 @@ namespace Rustwall.RWBehaviorRebuildable
             if (slot.Itemstack.Collectible.Code.Path == "gear-rusty" && be.rebuildStage != 0)
             {
                 //DoBreakFully(world, byPlayer, be, blockSel);
-                DamageOneStage(world, byPlayer, be, blockSel);
+                return DamageOneStage(world, byPlayer, be, blockSel);
             }
 
 
             return base.OnBlockInteractStart(world, byPlayer, blockSel, ref handling);
         }
+
+        public override string GetPlacedBlockInfo(IWorldAccessor world, BlockPos pos, IPlayer forPlayer)
+        {
+            string text = base.GetPlacedBlockInfo(world, pos, forPlayer).Trim();
+
+            BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityRebuildable;
+
+            if (be is null)
+            {
+                return text;
+            }
+            else
+            {
+                return text + "rebuildStage: " + be.rebuildStage + "\nitemsUsedThisStage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock;
+
+            }
+        }
+
+        public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection selection, IPlayer forPlayer, ref EnumHandling handling)
+        {
+            return base.GetPlacedBlockInteractionHelp(world, selection, forPlayer, ref handling);
+        }
+
         public void DoBreakFully(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
         {
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
@@ -109,17 +134,20 @@ namespace Rustwall.RWBehaviorRebuildable
             be.itemsUsedThisStage = 0;
         }
 
-        public void DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
+        public bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
         {
+            if (be.rebuildStage <= 0) { return false; ; }
 
-            world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
+            world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), be.Pos, -0.25, null, true, 16);
+            be.MarkDirty(true);
 
-            if (be.isFullyRepaired)
+            //Old implementation - ExchangeBlock fixes the need to grab the new BE
+            /*if (be.isFullyRepaired)
             {
                 Block newBlock = world.GetBlock(block.CodeWithVariant("repairstate", "broken"));
-                world.BlockAccessor.SetBlock(newBlock.Id, blockSel.Position);
+                world.BlockAccessor.SetBlock(newBlock.Id, be.Pos);
 
-                var newBE = world.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(blockSel.Position);
+                var newBE = world.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(be.Pos);
                 
                 if (newBE != null)
                 {
@@ -128,9 +156,38 @@ namespace Rustwall.RWBehaviorRebuildable
                     newBE.repairLock = be.repairLock;
                 }
             }
+            else
+            {
+                be.rebuildStage--;
+                be.itemsUsedThisStage = 0;
+            }*/
 
+            if (be.isFullyRepaired)
+            {
+                int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "broken")).Id;
+                world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
+
+                /*var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                if (beb != null)
+                {
+                    beb.RemoveContributor();
+                }*/
+                
+            }
             be.rebuildStage--;
             be.itemsUsedThisStage = 0;
+
+            //Move this logic -- we want to remove a contributor only if it is fully destroyed.
+            if (be.rebuildStage == 0)
+            {
+                var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                if (beb != null)
+                {
+                    beb.RemoveContributor();
+                }
+            }
+
+            return true;
         }
 
         private bool RepairByOneItem(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
@@ -176,6 +233,7 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public void DoFullRepair(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
         {
+            /*
             //We need to initialize a new block that is the repaired version of the old block
             Block newBlock = world.GetBlock(block.CodeWithVariant("repairstate", "repaired"));
             world.BlockAccessor.SetBlock(newBlock.Id, blockSel.Position);
@@ -188,7 +246,20 @@ namespace Rustwall.RWBehaviorRebuildable
                 //set the fields of the new block entity to the ones used in the old.
                 newBE.rebuildStage = be.rebuildStage;
                 if (!canRepairBeforeBroken) { newBE.repairLock = true; }
+            }*/
+
+            //The old implementation required carrying over the fields and params from the old BE to the new one
+            // ExchangeBlock does not delete the old BE, so this removes that need.
+
+            int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "repaired")).Id;
+            world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
+
+            var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+            if (beb != null)
+            {
+                beb.AddContributor();
             }
+
         }
     }
 }

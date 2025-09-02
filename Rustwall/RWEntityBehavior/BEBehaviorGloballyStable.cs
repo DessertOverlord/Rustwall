@@ -1,8 +1,14 @@
 ﻿using Rustwall.RWBlockEntity.BERebuildable;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
+using Vintagestory.API.Util;
+using Vintagestory.API.MathTools;
 using Rustwall.ModSystems.GlobalStability;
 using System.Diagnostics;
+using System.Linq;
+using System.Collections.Generic;
+using Vintagestory.GameContent;
+using Vintagestory.API.Server;
 
 namespace Rustwall.RWEntityBehavior
 {
@@ -12,35 +18,61 @@ namespace Rustwall.RWEntityBehavior
         BlockEntityRebuildable ber;
         public int curStability { get; private set; } = 0;
         public int maxStability { get; private set; } = 0;
+        private ICoreAPI coreAPI;
         //bool isContributing;
         public BEBehaviorGloballyStable(BlockEntity blockent) : base(blockent)
         {
         }
 
-        //public int maxStability { get; private set; }
-
         public override void Initialize(ICoreAPI api, JsonObject properties)
         {
             base.Initialize(api, properties);
-            maxStability = properties["value"].AsInt();
+
+            coreAPI = api;
+
+            if (api.Side == EnumAppSide.Server)
+            {
+                maxStability = properties["value"].AsInt();
+                ber = Blockentity as BlockEntityRebuildable;
+
+                modsys = (api as ICoreServerAPI).ModLoader.GetModSystem<GlobalStabilitySystem>();
+                modsys.allStableBlockEntities.Add(ber.Pos);
+
+
+                int berRepairedBlockID = api.World.GetBlock(Blockentity.Block.CodeWithVariant("repairstate", "repaired")).Id;
+
+                if (ber != null && Blockentity.Block.Id == berRepairedBlockID)
+                {
+                    curStability = maxStability;
+                    modsys.stabilityContributors.Add(ber.Pos);
+                }
+                /*else
+                {
+                    Debug.WriteLine("It's NOT repaired!");
+                }*/
+            }
+
             //We need to poll the current stability every so often
-            Blockentity.RegisterGameTickListener(QueryAndUpdateCurrentStability, 5000);
-            modsys = api.ModLoader.GetModSystem("Rustwall.ModSystems.GlobalStability.GlobalStabilitySystem") as GlobalStabilitySystem;
+            //Blockentity.RegisterGameTickListener(QueryAndUpdateCurrentStability, 5000);
+            // ((api as ICoreServerAPI).ModLoader.GetModSystem<GlobalStabilitySystem>())
             //will return null if the BlockEntity is not BlockEntityRebuildable!
-            ber = Blockentity as BlockEntityRebuildable;
-            modsys.allStableBlockEntities.Add(ber);
-
-            
-
 
             //Call it immediately to prevent a case where GlobalStabilitySystem tries to reference anything before the 5 seconds timer occurs
             // dt is of no consequence to the function (and technically 0 is correct I think)
             // no idea if this will ever be a problem
             // turns out this breaks shit idiot
-            QueryAndUpdateCurrentStability(0);
+            //QueryAndUpdateCurrentStability(0);
+
+            /*if (Blockentity.Block.Variant.Contains(new KeyValuePair<string, string>("repairstate", "repaired")))  
+            {
+                
+                Debug.WriteLine("It's repaired!");
+            }*/
+
+
         }
 
-        public void QueryAndUpdateCurrentStability(float dt)
+        /*public void QueryAndUpdateCurrentStability(float dt)
         {
             //check that this is actually a rebuildable block
             if (ber != null)
@@ -52,29 +84,64 @@ namespace Rustwall.RWEntityBehavior
                 if (ber.rebuildStage == ber.maxStage && curStability == 0)
                 {
                     curStability = maxStability;
-                    modsys.stabilityContributors.Add(ber);
+                    modsys.stabilityContributors.Add(ber.Pos);
                 }
                 //if the block is not rebuilt and our current stability is not zero, correct it and make sure we're not in the list of contributors
                 else if (ber.rebuildStage != ber.maxStage && curStability != 0)
                 {
                     curStability = 0;
-                    modsys.stabilityContributors.Remove(ber);
+                    bool result = modsys.stabilityContributors.Remove(ber.Pos);
+                    if (result == true) 
+                    { 
+                        Debug.WriteLine("ber was removed"); 
+                    } 
+                    else 
+                    { 
+                        Debug.WriteLine("ber was not removed"); 
+                    }
                 }
             }
             //just in case someone is a doofus
             else
             {
                 curStability = maxStability;
-                modsys.stabilityContributors.Add(ber);
+                modsys.stabilityContributors.Add(ber.Pos);
+            }
+        }*/
+
+        public void RemoveContributor()
+        {
+            if (coreAPI.Side == EnumAppSide.Server && ber != null)
+            {
+                curStability = 0;
+                bool x = modsys.stabilityContributors.Remove(ber.Pos);
+
+                if (modsys.stabilityContributors.Count >= 1)
+                {
+                    BlockPos efjs = modsys.stabilityContributors[0];
+                        bool y = efjs == ber.Pos;
+                }
             }
         }
 
-        //when the block is dleted, make sure it gets removed ASAP.
+        public void AddContributor()
+        {
+            if (coreAPI.Side == EnumAppSide.Server && ber != null)
+            {
+                curStability = maxStability;
+                modsys.stabilityContributors.Add(ber.Pos);
+            }
+        }
+
+        //when the block is deleted, make sure it gets removed ASAP.
         public override void OnBlockRemoved()
         {
             base.OnBlockRemoved();
-            modsys.stabilityContributors.Remove(ber);
-            modsys.allStableBlockEntities.Remove(ber);
+            if (coreAPI.Side == EnumAppSide.Server)
+            {
+                modsys.stabilityContributors.Remove(ber.Pos);
+                modsys.allStableBlockEntities.Remove(ber.Pos);
+            }
         }
     }
 }

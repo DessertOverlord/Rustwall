@@ -17,6 +17,8 @@ namespace Rustwall.ModSystems.TemporalStormHandler
     {
         //ICoreServerAPI sapi;
         //TemporalStormConfig config;
+        //public readonly bool isStormActive;
+
 
         internal enum EnumStormClimate
         {
@@ -64,7 +66,7 @@ namespace Rustwall.ModSystems.TemporalStormHandler
             try
             {
                 runtimeData = SerializerUtil.Deserialize<StormClimateRuntimeData>(sapi.WorldManager.SaveGame.GetData("stormClimate"));
-            } 
+            }
             catch (Exception)
             {
                 sapi.Logger.Error("Storm climate data unable to be loaded");
@@ -91,7 +93,7 @@ namespace Rustwall.ModSystems.TemporalStormHandler
             {
                 //Add the offset; onTempStormTick only runs every 2 seconds, so we need a buffer in case players kill multiple mobs inside of the 2 second window
                 Patch_onTempStormTick.currentStormOffset += config.TemporalStormDaysRemovedPerKill;
-                Patch_onTempStormTick.writeData = true;
+                //Patch_onTempStormTick.writeData = true;
                 Debug.WriteLine("Time subtracted");
             }
         }
@@ -106,6 +108,10 @@ namespace Rustwall.ModSystems.TemporalStormHandler
                 .HandleWith(handler => TextCommandResult.Success("Current Moon Phase: " + sapi.World.Calendar.MoonPhase + ", Exact: " + sapi.World.Calendar.MoonPhaseExact));*/
         }
 
+        public bool IsStormActive()
+        {
+            return Patch_onTempStormTick.tStormData.nowStormActive;
+        }
     }
 
     //We need to postfix the temporal storm ticking method to access the runtime data that the game uses for storms
@@ -113,8 +119,8 @@ namespace Rustwall.ModSystems.TemporalStormHandler
     internal static class Patch_onTempStormTick
     {
         //These fields are accessible from our modSystem
-        public static double currentStormOffset;
-        public static bool writeData = false;
+        public static double currentStormOffset = 0;
+        //public static bool writeData = false;
         public static TemporalStormRunTimeData tStormData;
         // ___data allows us to access the field "data" from the original code
         //Below comments stop Intellisense from bitching about the fact that it can't tell Harmony does shit here
@@ -127,14 +133,15 @@ namespace Rustwall.ModSystems.TemporalStormHandler
             {
                 tStormData = ___data;
             }
+
             // We only want to engage this to overwrite if we actually have new data, otherwise we're wasting time (and also may crash)
-            if (writeData)
+            if (currentStormOffset > 0)
             {
                 //Subtract the current offset from the timer the game uses.
                 // It is important to note that the game tracks the end of a temporal storm in terms of absolute calendar days,
                 // not by a relative number of days or hours.
                 ___data.stormActiveTotalDays -= currentStormOffset;
-                writeData = false;
+                //writeData = false;
                 currentStormOffset = 0;
             }
         }

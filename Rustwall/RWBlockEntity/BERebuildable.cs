@@ -20,10 +20,8 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         public int rebuildStage;
         public int itemsUsedThisStage;
         public bool repairLock;
-
         public bool isFullyRepaired { get { return rebuildStage >= maxStage; } }
-        BehaviorRebuildable ownBehavior;
-        public bool contributing = false;
+        public BehaviorRebuildable ownBehavior;
         public override void Initialize(ICoreAPI api)
         {
             base.Initialize(api);
@@ -46,7 +44,6 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
         {
             base.FromTreeAttributes(tree, worldAccessForResolve);
-            //base.FromTreeAttributes(tree, worldAccessForResolve);
 
             rebuildStage = tree.GetAsInt("rebuildStage");
             itemsUsedThisStage = tree.GetAsInt("itemsUsedThisStage");
