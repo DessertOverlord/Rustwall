@@ -7,8 +7,8 @@
       "Vykax"
     ],
     "description": "Custom mod for the spin-off mode of Mudwall",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "dependencies": {
-        "game": "1.20.12"
+        "game": "1.21.0"
     }
 }

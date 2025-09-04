@@ -1,0 +1,78 @@
+{
+  "code": "temporalsail",
+  "creativeinventory": {
+    "general": [ "*" ],
+    "rustwall": [ "*-broken-south", "*-repaired-south" ]
+  },
+  "shapeByType": {
+    "*-north": {
+      "base": "block/rustwallmachinery/temporalsail/temporalsail-{repairstate}",
+      "rotateY": 0
+    },
+    "*-east": {
+      "base": "block/rustwallmachinery/temporalsail/temporalsail-{repairstate}",
+      "rotateY": 270
+    },
+    "*-south": {
+      "base": "block/rustwallmachinery/temporalsail/temporalsail-{repairstate}",
+      "rotateY": 180
+    },
+    "*-west": {
+      "base": "block/rustwallmachinery/temporalsail/temporalsail-{repairstate}",
+      "rotateY": 90
+    }
+  },
+  "variantgroups": [
+    {
+      "code": "repairstate",
+      "states": [ "repaired", "broken" ]
+    },
+    {
+      "code": "side",
+      "loadFromProperties": "abstract/horizontalorientation"
+    }
+  ],
+  "drawtype": "json",
+  "replaceable": 90,
+  "resistance": 8,
+  "sidesolid": { "all": false },
+  "sideopaque": { "all": false },
+  "entityClass": "BlockEntityRebuildable",
+  "entityBehaviors": [
+    {
+      "name": "BehaviorGloballyStable",
+      "properties": {
+        "value": 10
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "name": "HorizontalOrientable"
+    },
+    {
+      "name": "BehaviorRebuildable",
+      "properties": {
+        "canRepairBeforeBroken": true,
+        "stages": [
+          {
+            "item": "wrench-copper",
+            "quantity": 50
+          },
+          {
+            "item": "wrench-copper",
+            "quantity": 50
+          },
+          {
+            "item": "wrench-copper",
+            "quantity": 50
+          },
+          {
+            "item": "wrench-copper",
+            "quantity": 50
+          }
+        ]
+      }
+    }
+  ]
+}
