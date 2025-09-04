@@ -57,8 +57,6 @@
   <None Remove="assets\rustwall\blocktypes\rustwallmachinery\pumpunit.json" />
   <None Remove="assets\rustwall\blocktypes\rustwallmachinery\temporalchronometer.json" />
   <None Remove="assets\rustwall\blocktypes\rustwallmachinery\valveassembly.json" />
-  <None Remove="assets\rustwall\blocktypes\TestRebuildable 2.json" />
-  <None Remove="assets\rustwall\blocktypes\TestRebuildable.json" />
   <Content Include="modinfo.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
   </Content>

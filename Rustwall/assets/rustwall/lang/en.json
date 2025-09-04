@@ -1,7 +1,18 @@
 {
-  "block-testrebuildableblock": "Rebuildable Block Test (you shouldn't find this!)", 
-  "block-fluxcoil-*": "Flux Coil",
-  "block-pumpunit-*": "Pump Unit",
-  "block-temporalchronometer-*": "Temporal Chronometer",
-  "block-valveassembly-*": "Valve Assembly"
+  "block-blowofftank-*" : "Blow-Off Tank",
+  "block-controlbox-*": "Control Box",
+  "block-flowregulator" : "Flow Regulator",
+  "block-fluxcoil-*" : "Flux Coil",
+  "block-gearbox-*" : "Gearbox",
+  "block-leverstation-*" : "Lever Station",
+  "block-parallelvalves-*" : "Parallel Valves",
+  "block-phaseconfluence-*" : "Phase Confluence",
+  "block-pressureregulator-*": "Pressure Regulator",
+  "block-pressurerelease-*" : "Pressure Release",
+  "block-pumpunit-*" : "Pump Unit",
+  "block-temporalanchor-*" : "Temporal Anchor",
+  "block-temporalchronometer-*" : "Temporal Chronometer",
+  "block-temporalsail-*" : "Temporal Sail",
+  "block-triplanarcore-*" : "Triplanar Core",
+  "block-valveassembly-*" : "Valve Assembly"
 }

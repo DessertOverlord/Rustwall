@@ -6,19 +6,19 @@
   },
   "shapeByType": {
     "*-north": {
-      "base": "block/rustwallmachinery/blowofftank",
+      "base": "block/rustwallmachinery/blowofftank/blowofftank-{repairstate}",
       "rotateY": 0
     },
     "*-east": {
-      "base": "block/rustwallmachinery/blowofftank",
+      "base": "block/rustwallmachinery/blowofftank/blowofftank-{repairstate}",
       "rotateY": 270
     },
     "*-south": {
-      "base": "block/rustwallmachinery/blowofftank",
+      "base": "block/rustwallmachinery/blowofftank/blowofftank-{repairstate}",
       "rotateY": 180
     },
     "*-west": {
-      "base": "block/rustwallmachinery/blowofftank",
+      "base": "block/rustwallmachinery/blowofftank/blowofftank-{repairstate}",
       "rotateY": 90
     }
   },
