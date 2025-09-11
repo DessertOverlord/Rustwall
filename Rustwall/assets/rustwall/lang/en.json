@@ -14,5 +14,8 @@
   "block-temporalchronometer-*" : "Temporal Chronometer",
   "block-temporalsail-*" : "Temporal Sail",
   "block-triplanarcore-*" : "Triplanar Core",
-  "block-valveassembly-*" : "Valve Assembly"
+  "block-valveassembly-*": "Valve Assembly",
+
+  "blockhelp-rebuildable": "Rebuild"
+
 }

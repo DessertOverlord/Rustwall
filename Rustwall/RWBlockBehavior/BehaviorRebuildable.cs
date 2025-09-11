@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography.X509Certificates;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Common.Entities;
@@ -20,8 +21,8 @@ namespace Rustwall.RWBehaviorRebuildable
     {
         public int numStages = 0;
         public bool canRepairBeforeBroken;
-        List<string> itemPerStage = new List<string>();
-        List<int> quantityPerStage = new List<int>();
+        public List<string> itemPerStage { get; private set; } = new List<string>();
+        public List<int> quantityPerStage { get; private set; } = new List<int>();
         
 
         public BehaviorRebuildable(Block block) : base(block)
@@ -108,7 +109,29 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection selection, IPlayer forPlayer, ref EnumHandling handling)
         {
-            return base.GetPlacedBlockInteractionHelp(world, selection, forPlayer, ref handling);
+            var be = selection.Block.GetBlockEntity<BlockEntityRebuildable>(selection);
+            if (be == null || be.rebuildStage == be.maxStage)
+            {
+                return base.GetPlacedBlockInteractionHelp(world, selection, forPlayer, ref handling);
+            }
+
+            int index = be.rebuildStage; //>= 0 ? be.rebuildStage : 0;
+            
+            int quantityThisStage = itemPerStage[index].StartsWith("wrench") ? 1 : quantityPerStage[index];
+            ItemStack itemstackThisStage = new ItemStack
+                (
+                world.GetItem(new AssetLocation(itemPerStage[index])) != null ? world.GetItem(new AssetLocation(itemPerStage[index])) : world.GetBlock(new AssetLocation(itemPerStage[index])),
+                quantityThisStage
+                );
+
+            WorldInteraction[] interaction = [new WorldInteraction
+            {
+                MouseButton = EnumMouseButton.Right,
+                ActionLangCode = "rustwall:blockhelp-rebuildable",
+                Itemstacks = [itemstackThisStage]
+            }];
+
+            return interaction;
         }
 
         public void DoBreakFully(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
@@ -204,7 +227,7 @@ namespace Rustwall.RWBehaviorRebuildable
                 be.MarkDirty(true);
             }
 
-            if (be.rebuildStage >= numStages) { DoFullRepair(world, slot, be, blockSel, byPlayer); }
+            if (be.rebuildStage >= numStages) { DoFullRepair(world, be); }
 
             return true;
         }
@@ -225,32 +248,14 @@ namespace Rustwall.RWBehaviorRebuildable
 
             if (be.rebuildStage >= be.maxStage)
             {
-                DoFullRepair(world, slot, be, blockSel, byPlayer);
+                DoFullRepair(world, be);
             }
 
             return true;
         }
 
-        public void DoFullRepair(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
+        public void DoFullRepair(IWorldAccessor world, BlockEntityRebuildable be)
         {
-            /*
-            //We need to initialize a new block that is the repaired version of the old block
-            Block newBlock = world.GetBlock(block.CodeWithVariant("repairstate", "repaired"));
-            world.BlockAccessor.SetBlock(newBlock.Id, blockSel.Position);
-
-            //when we do this, the block entity of the new block will be different from the old one, so we want to acquire it and...
-            var newBE = world.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(blockSel.Position);
-
-            if (newBE != null )
-            {
-                //set the fields of the new block entity to the ones used in the old.
-                newBE.rebuildStage = be.rebuildStage;
-                if (!canRepairBeforeBroken) { newBE.repairLock = true; }
-            }*/
-
-            //The old implementation required carrying over the fields and params from the old BE to the new one
-            // ExchangeBlock does not delete the old BE, so this removes that need.
-
             int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "repaired")).Id;
             world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
 
