@@ -56,19 +56,19 @@
         "canRepairBeforeBroken": false,
         "stages": [
           {
-            "item": "rod-lead",
+            "item": "game:rod-lead",
             "quantity": 1
           },
           {
-            "item": "rod-electrum",
+            "item": "game:rod-electrum",
             "quantity": 1
           },
           {
-            "item": "metal-parts",
+            "item": "game:metal-parts",
             "quantity": 3
           },
           {
-            "item": "wrench-*",
+            "item": "game:wrench-*",
             "quantity": 5
           }
         ]

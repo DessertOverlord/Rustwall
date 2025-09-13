@@ -53,20 +53,20 @@ namespace Rustwall.RWBehaviorRebuildable
             //checks if the block needs to be repaired or is repair locked
             if (be.rebuildStage < numStages && !be.repairLock)
             {
+                AssetLocation assetThisStage = new AssetLocation(itemPerStage[be.rebuildStage]);
 
-                if (itemPerStage[be.rebuildStage] == "wrench-*")
+                if (assetThisStage.Path == "wrench-*")
                 {
                     if (allWrenchItemStacks.Count <= 0)
                     {
-                        Item[] wrenches = world.SearchItems(new AssetLocation(itemPerStage[be.rebuildStage]));
+                        Item[] wrenches = world.SearchItems(assetThisStage);
                         foreach (var item in wrenches) { allWrenchItemStacks.Add(new ItemStack(item));}
                     }
                 }
 
-                //TODO: add flexibility for item checking -- all kinds of wrenches, for instance
-                if (slot.Itemstack?.Collectible.Code.Path == itemPerStage[be.rebuildStage] ||
+                if (slot.Itemstack?.Collectible.Code.Path == assetThisStage.Path ||
                         (
-                        itemPerStage[be.rebuildStage] == "wrench-*" &&
+                        assetThisStage.Path == "wrench-*" &&
                         allWrenchItemStacks.Any(x => (x.Id == slot.Itemstack.Id))
                         )
                     )
@@ -86,11 +86,11 @@ namespace Rustwall.RWBehaviorRebuildable
 
             //allows rusty gears to be used to damage blocks for testing
             //REMOVE IN LIVE!
-            if (slot.Itemstack.Collectible.Code.Path == "gear-rusty" && be.rebuildStage != 0)
+            /*if (slot.Itemstack.Collectible.Code.Path == "gear-rusty" && be.rebuildStage != 0)
             {
                 //DoBreakFully(world, byPlayer, be, blockSel);
                 return DamageOneStage(world, byPlayer, be, blockSel);
-            }
+            }*/
 
 
             return base.OnBlockInteractStart(world, byPlayer, blockSel, ref handling);
@@ -144,15 +144,16 @@ namespace Rustwall.RWBehaviorRebuildable
             }
 
             int index = be.rebuildStage;
-
-            int quantityThisStage = itemPerStage[index].StartsWith("wrench") ? 1 : quantityPerStage[index];
+            AssetLocation assetThisStage = new AssetLocation(itemPerStage[index]);
+            int quantityThisStage = assetThisStage.Path.StartsWith("wrench") ? 1 : quantityPerStage[index];
+            
             ItemStack[] itemStackThisStage = [];
 
-            if (itemPerStage[index] == "wrench-*") 
+            if (assetThisStage.Path == "wrench-*") 
             { 
                 if (allWrenchItemStacks.Count <= 0)
                 {
-                    Item[] wrenches = world.SearchItems(new AssetLocation(itemPerStage[index]));
+                    Item[] wrenches = world.SearchItems(assetThisStage);
                     foreach (var item in wrenches) { allWrenchItemStacks.Add(new ItemStack(item)); }
                 }
 
@@ -162,7 +163,7 @@ namespace Rustwall.RWBehaviorRebuildable
             {
                 itemStackThisStage = [new ItemStack
                     (
-                    world.GetItem(new AssetLocation(itemPerStage[index])) != null ? world.GetItem(new AssetLocation(itemPerStage[index])) : world.GetBlock(new AssetLocation(itemPerStage[index])),
+                    world.GetItem(assetThisStage) != null ? world.GetItem(assetThisStage) : world.GetBlock(assetThisStage),
                     quantityThisStage - be.itemsUsedThisStage
                     )];
             }

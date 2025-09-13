@@ -56,15 +56,15 @@
         "canRepairBeforeBroken": true,
         "stages": [
           {
-            "item": "wrench-*",
+            "item": "game:wrench-*",
             "quantity": 5
           },
           {
-            "item": "wrench-*",
+            "item": "game:wrench-*",
             "quantity": 1
           },
           {
-            "item": "wrench-*",
+            "item": "game:wrench-*",
             "quantity": 1
           }
         ]

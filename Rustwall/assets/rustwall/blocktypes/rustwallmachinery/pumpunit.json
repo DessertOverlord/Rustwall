@@ -56,31 +56,31 @@
         "canRepairBeforeBroken": true,
         "stages": [
           {
-            "item": "rod-tinbronze",
+            "item": "game:rod-tinbronze",
             "quantity": 1
           },
           {
-            "item": "metalplate-copper",
+            "item": "game:metalplate-copper",
             "quantity": 2
           },
           {
-            "item": "gear-rusty",
+            "item": "rustwall:gear-iron",
             "quantity": 3
           },
           {
-            "item": "wrench-*",
+            "item": "game:wrench-*",
             "quantity": 5
           },
           {
-            "item": "gear-rusty",
+            "item": "rustwall:gear-iron",
             "quantity": 3
           },
           {
-            "item": "wrench-*",
+            "item": "game:wrench-*",
             "quantity": 5
           },
           {
-            "item": "wrench-*",
+            "item": "game:wrench-*",
             "quantity": 5
           }
         ]

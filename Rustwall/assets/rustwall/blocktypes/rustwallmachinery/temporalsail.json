@@ -56,7 +56,7 @@
         "canRepairBeforeBroken": true,
         "stages": [
           {
-            "item": "metalplate-electrum",
+            "item": "game:metalplate-electrum",
             "quantity": 1
           }
         ]

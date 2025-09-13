@@ -1,0 +1,64 @@
+﻿{
+  "code": "gear-iron",
+  "shape": { "base": "item/gear/gear-iron" },
+  "maxstacksize" :  64,
+  "creativeinventory": {
+    "general": [ "*" ],
+    "items": [ "*" ],
+    "rustwall": [ "*" ]
+  },
+  "guiTransform": {
+    "translation": {
+      "x": 0,
+      "y": 0,
+      "z": 0
+    },
+    "rotation": {
+      "x": 145,
+      "y": -12,
+      "z": 0
+    },
+    "origin": {
+      "x": 0.32,
+      "y": 0.0625,
+      "z": 0.5
+    },
+    "scale": 2.5
+  },
+  "fpHandTransform": {
+    "translation": {
+      "x": 0,
+      "y": 0.2,
+      "z": 0
+    },
+    "rotation": {
+      "x": 15,
+      "y": 0,
+      "z": 0
+    },
+    "origin": {
+      "x": 0.5,
+      "y": 0,
+      "z": 0.5
+    },
+    "scale": 1.8
+  },
+  "tpHandTransform": {
+    "translation": {
+      "x": -0.45,
+      "y": -0.35,
+      "z": -0.55
+    },
+    "rotation": {
+      "x": 0,
+      "y": -89,
+      "z": -83
+    },
+    "origin": {
+      "x": 0.5,
+      "y": 0.0625,
+      "z": 0.5
+    },
+    "scale": 0.97
+  }
+}

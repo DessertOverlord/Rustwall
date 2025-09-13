@@ -35,15 +35,15 @@
         "canRepairBeforeBroken" : false,
         "stages": [
           {
-            "item": "metalplate-electrum",
+            "item": "game:metalplate-electrum",
             "quantity": 1
           },
           {
-            "item": "metalplate-lead",
+            "item": "game:metalplate-lead",
             "quantity": 1
           },
           {
-            "item": "metal-parts",
+            "item": "game:metal-parts",
             "quantity": 3
           }
         ]

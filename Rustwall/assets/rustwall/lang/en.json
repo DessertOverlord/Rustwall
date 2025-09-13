@@ -16,7 +16,9 @@
   "block-triplanarcore-*" : "Triplanar Core",
   "block-valveassembly-*": "Valve Assembly",
 
+  "item-gear-iron" : "Iron Gear",
+
   "blockhelp-rebuildable": "Rebuild",
 
-  "game:item-rod-lead": "Lead Rod"
+  "game:item-rod-lead": "Lead Rod",
 }

@@ -56,19 +56,19 @@
         "canRepairBeforeBroken": true,
         "stages": [
           {
-            "item": "metal-parts",
+            "item": "game:metal-parts",
             "quantity": 3
           },
           {
-            "item": "wrench-*",
+            "item": "game:wrench-*",
             "quantity": 5
           },
           {
-            "item": "gear-rusty",
+            "item": "rustwall:gear-iron",
             "quantity": 1
           },
           {
-            "item": "wrench-*",
+            "item": "game:wrench-*",
             "quantity": 5
           }
         ]
