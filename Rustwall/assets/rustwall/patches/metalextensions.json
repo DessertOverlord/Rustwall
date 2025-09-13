@@ -1,0 +1,25 @@
+[
+  {
+    "file": "game:itemtypes/resource/metalplate.json",
+    "op": "remove",
+    "path": "/skipVariants/0"
+  },
+  {
+    "file": "game:recipes/smithing/plate.json",
+    "op": "add",
+    "path": "/ingredient/allowedVariants/-",
+    "value": "cupronickel"
+  },
+  {
+    "file": "game:itemtypes/part/rod.json",
+    "op": "add",
+    "path": "/variantgroups/0/states/-",
+    "value": "lead"
+  },
+  {
+    "file": "game:recipes/smithing/rod.json",
+    "op": "add",
+    "path": "/ingredient/allowedVariants/-",
+    "value": "lead"
+  }
+]

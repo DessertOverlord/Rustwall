@@ -56,12 +56,16 @@
         "canRepairBeforeBroken": false,
         "stages": [
           {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "metalplate-cupronickel",
+            "quantity": 1
           },
           {
             "item": "metal-parts",
-            "quantity": 2
+            "quantity": 3
+          },
+          {
+            "item": "wrench-*",
+            "quantity": 1
           }
         ]
       }

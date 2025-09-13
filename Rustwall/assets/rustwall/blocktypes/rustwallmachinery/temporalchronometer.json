@@ -50,21 +50,29 @@
   {
     "name" : "HorizontalOrientable"
   },
-  {
-    "name": "BehaviorRebuildable",
-    "properties": {
-      "canRepairBeforeBroken": false,
-      "stages": [
-        {
-            "item": "wrench-copper",
-            "quantity": 50
-        },
-        {
+    {
+      "name": "BehaviorRebuildable",
+      "properties": {
+        "canRepairBeforeBroken": false,
+        "stages": [
+          {
+            "item": "rod-lead",
+            "quantity": 1
+          },
+          {
+            "item": "rod-electrum",
+            "quantity": 1
+          },
+          {
             "item": "metal-parts",
-            "quantity": 2
-        }
-      ]
+            "quantity": 3
+          },
+          {
+            "item": "wrench-*",
+            "quantity": 5
+          }
+        ]
+      }
     }
-  }
   ]
 }

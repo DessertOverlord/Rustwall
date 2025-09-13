@@ -1,19 +1,11 @@
 ﻿using Rustwall.RWBlockEntity.BERebuildable;
 using Rustwall.RWEntityBehavior;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
+using System.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using Vintagestory.API.Common.Entities;
-using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using Vintagestory.API.Server;
-using Vintagestory.GameContent;
-
 
 namespace Rustwall.RWBehaviorRebuildable
 {
@@ -23,8 +15,8 @@ namespace Rustwall.RWBehaviorRebuildable
         public bool canRepairBeforeBroken;
         public List<string> itemPerStage { get; private set; } = new List<string>();
         public List<int> quantityPerStage { get; private set; } = new List<int>();
-        
 
+        private static List<ItemStack> allWrenchItemStacks = [];
         public BehaviorRebuildable(Block block) : base(block)
         {
         }
@@ -44,7 +36,6 @@ namespace Rustwall.RWBehaviorRebuildable
                 quantityPerStage.Add(item["quantity"].AsInt());
                 numStages++;
             }
-
         }
 
         public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ref EnumHandling handling)
@@ -62,8 +53,23 @@ namespace Rustwall.RWBehaviorRebuildable
             //checks if the block needs to be repaired or is repair locked
             if (be.rebuildStage < numStages && !be.repairLock)
             {
+
+                if (itemPerStage[be.rebuildStage] == "wrench-*")
+                {
+                    if (allWrenchItemStacks.Count <= 0)
+                    {
+                        Item[] wrenches = world.SearchItems(new AssetLocation(itemPerStage[be.rebuildStage]));
+                        foreach (var item in wrenches) { allWrenchItemStacks.Add(new ItemStack(item));}
+                    }
+                }
+
                 //TODO: add flexibility for item checking -- all kinds of wrenches, for instance
-                if (slot.Itemstack?.Collectible.Code.Path == itemPerStage[be.rebuildStage])
+                if (slot.Itemstack?.Collectible.Code.Path == itemPerStage[be.rebuildStage] ||
+                        (
+                        itemPerStage[be.rebuildStage] == "wrench-*" &&
+                        allWrenchItemStacks.Any(x => (x.Id == slot.Itemstack.Id))
+                        )
+                    )
                 {
                     //if the item is a wrench, repair by a whole stage and subtract durability
                     if (slot.Itemstack.Collectible.Code.PathStartsWith("wrench"))
@@ -92,18 +98,40 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public override string GetPlacedBlockInfo(IWorldAccessor world, BlockPos pos, IPlayer forPlayer)
         {
-            string text = base.GetPlacedBlockInfo(world, pos, forPlayer).Trim();
+            //string text = base.GetPlacedBlockInfo(world, pos, forPlayer).Trim();
 
             BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityRebuildable;
 
             if (be is null)
             {
-                return text;
+                return "Undefined";
             }
-            else
+            else 
             {
-                return text + "rebuildStage: " + be.rebuildStage + "\nitemsUsedThisStage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock;
+                //Debugging
+                //return text + "rebuildStage: " + be.rebuildStage + "\nitemsUsedThisStage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock;
+                string outputText = "";
+                if (be.rebuildStage == be.maxStage)
+                {
+                    outputText = "Operational";
+                }
+                else if (be.rebuildStage > 0)
+                {
+                    if (be.repairLock)
+                    {
+                        outputText = "Operational";
+                    }
+                    else
+                    {
+                        outputText = "Damaged";
+                    }
+                }
+                else
+                {
+                    outputText = "Broken";
+                }
 
+                return outputText; 
             }
         }
 
@@ -115,20 +143,35 @@ namespace Rustwall.RWBehaviorRebuildable
                 return base.GetPlacedBlockInteractionHelp(world, selection, forPlayer, ref handling);
             }
 
-            int index = be.rebuildStage; //>= 0 ? be.rebuildStage : 0;
-            
+            int index = be.rebuildStage;
+
             int quantityThisStage = itemPerStage[index].StartsWith("wrench") ? 1 : quantityPerStage[index];
-            ItemStack itemstackThisStage = new ItemStack
-                (
-                world.GetItem(new AssetLocation(itemPerStage[index])) != null ? world.GetItem(new AssetLocation(itemPerStage[index])) : world.GetBlock(new AssetLocation(itemPerStage[index])),
-                quantityThisStage
-                );
+            ItemStack[] itemStackThisStage = [];
+
+            if (itemPerStage[index] == "wrench-*") 
+            { 
+                if (allWrenchItemStacks.Count <= 0)
+                {
+                    Item[] wrenches = world.SearchItems(new AssetLocation(itemPerStage[index]));
+                    foreach (var item in wrenches) { allWrenchItemStacks.Add(new ItemStack(item)); }
+                }
+
+                itemStackThisStage = allWrenchItemStacks.ToArray();
+            }
+            else
+            {
+                itemStackThisStage = [new ItemStack
+                    (
+                    world.GetItem(new AssetLocation(itemPerStage[index])) != null ? world.GetItem(new AssetLocation(itemPerStage[index])) : world.GetBlock(new AssetLocation(itemPerStage[index])),
+                    quantityThisStage - be.itemsUsedThisStage
+                    )];
+            }
 
             WorldInteraction[] interaction = [new WorldInteraction
             {
                 MouseButton = EnumMouseButton.Right,
                 ActionLangCode = "rustwall:blockhelp-rebuildable",
-                Itemstacks = [itemstackThisStage]
+                Itemstacks = itemStackThisStage
             }];
 
             return interaction;
@@ -164,43 +207,15 @@ namespace Rustwall.RWBehaviorRebuildable
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), be.Pos, -0.25, null, true, 16);
             be.MarkDirty(true);
 
-            //Old implementation - ExchangeBlock fixes the need to grab the new BE
-            /*if (be.isFullyRepaired)
-            {
-                Block newBlock = world.GetBlock(block.CodeWithVariant("repairstate", "broken"));
-                world.BlockAccessor.SetBlock(newBlock.Id, be.Pos);
-
-                var newBE = world.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(be.Pos);
-                
-                if (newBE != null)
-                {
-                    newBE.rebuildStage = be.rebuildStage - 1;
-                    newBE.itemsUsedThisStage = 0;
-                    newBE.repairLock = be.repairLock;
-                }
-            }
-            else
-            {
-                be.rebuildStage--;
-                be.itemsUsedThisStage = 0;
-            }*/
-
             if (be.isFullyRepaired)
             {
                 int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "broken")).Id;
                 world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
-
-                /*var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-                if (beb != null)
-                {
-                    beb.RemoveContributor();
-                }*/
-                
             }
             be.rebuildStage--;
             be.itemsUsedThisStage = 0;
 
-            //Move this logic -- we want to remove a contributor only if it is fully destroyed.
+            //We want to remove a contributor only if it is fully destroyed.
             if (be.rebuildStage == 0)
             {
                 var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
@@ -208,6 +223,8 @@ namespace Rustwall.RWBehaviorRebuildable
                 {
                     beb.RemoveContributor();
                 }
+
+                be.repairLock = false;
             }
 
             return true;
@@ -219,6 +236,8 @@ namespace Rustwall.RWBehaviorRebuildable
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
             slot.MarkDirty();
             be.itemsUsedThisStage++;
+
+            be.MarkDirty(true);
 
             if (be.itemsUsedThisStage >= quantityPerStage[be.rebuildStage])
             {
@@ -264,6 +283,8 @@ namespace Rustwall.RWBehaviorRebuildable
             {
                 beb.AddContributor();
             }
+
+            be.repairLock = true;
 
         }
     }

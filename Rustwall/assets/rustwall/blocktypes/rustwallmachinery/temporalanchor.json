@@ -56,20 +56,12 @@
         "canRepairBeforeBroken": true,
         "stages": [
           {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "metal-parts",
+            "quantity": 5
           },
           {
-            "item": "wrench-copper",
-            "quantity": 50
-          },
-          {
-            "item": "wrench-copper",
-            "quantity": 50
-          },
-          {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "wrench-*",
+            "quantity": 5
           }
         ]
       }

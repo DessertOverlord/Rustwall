@@ -56,20 +56,24 @@
         "canRepairBeforeBroken": true,
         "stages": [
           {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "metalplate-electrum",
+            "quantity": 3
           },
           {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "metalplate-cupronickel",
+            "quantity": 3
           },
           {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "rod-electrum",
+            "quantity": 2
           },
           {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "rod-cupronickel",
+            "quantity": 2
+          },
+          {
+            "item": "metal-parts",
+            "quantity": 5
           }
         ]
       }
