@@ -6,6 +6,9 @@ using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
+using Vintagestory.API.Util;
+using Vintagestory.API.Server;
+using Vintagestory.GameContent;
 
 namespace Rustwall.RWBehaviorRebuildable
 {
@@ -17,6 +20,7 @@ namespace Rustwall.RWBehaviorRebuildable
         public List<int> quantityPerStage { get; private set; } = new List<int>();
 
         private static List<ItemStack> allWrenchItemStacks = [];
+
         public BehaviorRebuildable(Block block) : base(block)
         {
         }
@@ -225,6 +229,8 @@ namespace Rustwall.RWBehaviorRebuildable
                     beb.RemoveContributor();
                 }
 
+                be.DeactivateAnimations();
+
                 be.repairLock = false;
             }
 
@@ -286,7 +292,7 @@ namespace Rustwall.RWBehaviorRebuildable
             }
 
             be.repairLock = true;
-
+            be.ActivateAnimations();
         }
     }
 }
