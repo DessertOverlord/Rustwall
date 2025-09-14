@@ -138,7 +138,7 @@ namespace Rustwall.RWBehaviorRebuildable
         public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection selection, IPlayer forPlayer, ref EnumHandling handling)
         {
             var be = selection.Block.GetBlockEntity<BlockEntityRebuildable>(selection);
-            if (be == null || be.rebuildStage == be.maxStage)
+            if (be == null || be.rebuildStage == be.maxStage || be.repairLock == true)
             {
                 return base.GetPlacedBlockInteractionHelp(world, selection, forPlayer, ref handling);
             }

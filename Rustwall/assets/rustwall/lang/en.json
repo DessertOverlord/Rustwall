@@ -1,7 +1,7 @@
 {
   "block-blowofftank-*" : "Blow-Off Tank",
   "block-controlbox-*": "Control Box",
-  "block-flowregulator" : "Flow Regulator",
+  "block-flowregulator-*" : "Flow Regulator",
   "block-fluxcoil-*" : "Flux Coil",
   "block-gearbox-*" : "Gearbox",
   "block-leverstation-*" : "Lever Station",

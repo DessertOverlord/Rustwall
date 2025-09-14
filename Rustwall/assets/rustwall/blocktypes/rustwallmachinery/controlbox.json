@@ -1,5 +1,5 @@
 {
-  "code": "blowofftank",
+  "code": "controlbox",
   "creativeinventory": {
     "general": [ "*" ],
     "rustwall": [ "*-broken-south", "*-repaired-south" ]
