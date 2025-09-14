@@ -55,22 +55,34 @@
       "properties": {
         "canRepairBeforeBroken": true,
         "stages": [
-            {
-              "item": "wrench-copper",
-              "quantity": 50
-            },
-            {
-              "item": "wrench-copper",
-              "quantity": 50
-            },
-            {
-              "item": "wrench-copper",
-              "quantity": 50
-            },
-            {
-              "item": "wrench-copper",
-              "quantity": 50
-            }
+          {
+            "item": "game:rod-tinbronze",
+            "quantity": 1
+          },
+          {
+            "item": "game:metalplate-copper",
+            "quantity": 2
+          },
+          {
+            "item": "rustwall:gear-iron",
+            "quantity": 3
+          },
+          {
+            "item": "game:wrench-*",
+            "quantity": 5
+          },
+          {
+            "item": "rustwall:gear-iron",
+            "quantity": 3
+          },
+          {
+            "item": "game:wrench-*",
+            "quantity": 5
+          },
+          {
+            "item": "game:wrench-*",
+            "quantity": 5
+          }
         ]
       }
     }

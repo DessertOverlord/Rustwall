@@ -177,8 +177,9 @@ namespace Rustwall.ModSystems.GlobalStability
             {
                 //Check if the contributor is actually a rebuildable block. Adds functionality for the future for unbreakable stability contributors.
                 // Also check if it's already destroyed -- no reason to run all of this code if it's already broken.
+                // We ALSO want to check if the machine is a complex machine -- if the complex machine is not fully repaired, don't break it.
                 BlockEntityRebuildable RBitem = sapi.World.BlockAccessor.GetBlockEntity(item) as BlockEntityRebuildable;
-                if (RBitem == null || RBitem.rebuildStage == 0) { continue; }
+                if (RBitem == null || RBitem.rebuildStage == 0 || RBitem.repairLock == false) { continue; }
 
                 double damageChanceMultiplier;
                 if (sapi.ModLoader.GetModSystem<TemporalStormHandlerSystem>().IsStormActive())

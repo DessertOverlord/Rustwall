@@ -56,12 +56,20 @@
         "canRepairBeforeBroken": false,
         "stages": [
           {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "rustwall:gear-iron",
+            "quantity": 5
           },
           {
-            "item": "metal-parts",
-            "quantity": 2
+            "item": "game:wrench-*",
+            "quantity": 5
+          },
+          {
+            "item": "game:wrench-*",
+            "quantity": 5
+          },
+          {
+            "item": "game:wrench-*",
+            "quantity": 5
           }
         ]
       }

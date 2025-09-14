@@ -1,0 +1,22 @@
+{
+  "ingredient": {
+    "type": "item",
+    "code": "game:ingot-*",
+    "name": "metal",
+    "allowedVariants": [ "iron" ]
+  },
+  "name": "2 Gears",
+  "pattern": [
+    [
+      "_##___##_",
+      "####_####",
+      "####_####",
+      "_##___##_"
+    ]
+  ],
+  "output": {
+    "type": "item",
+    "code": "rustwall:gear-iron",
+    "stacksize": 2
+  }
+}

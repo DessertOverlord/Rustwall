@@ -63,7 +63,10 @@
 </ItemGroup>
 
 <ItemGroup>
+  <Folder Include="assets\rustwall\recipes\grid\" />
   <Folder Include="assets\rustwall\textures\" />
 </ItemGroup>
+
+<ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
 
 </Project>

@@ -35,12 +35,16 @@
         "canRepairBeforeBroken" : false,
         "stages": [
           {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "game:metalplate-electrum",
+            "quantity": 1
           },
           {
-            "item": "metal-parts",
-            "quantity": 2
+            "item": "game:metalplate-lead",
+            "quantity": 1
+          },
+          {
+            "item": "game:metal-parts",
+            "quantity": 3
           }
         ]
       }

@@ -1,78 +1,82 @@
 ﻿{
-    "code": "blowofftank",
-    "creativeinventory": {
-        "general": [ "*" ],
-        "rustwall": [ "*-broken-south", "*-repaired-south" ]
+  "code": "flowregulator",
+  "creativeinventory": {
+    "general": [ "*" ],
+    "rustwall": [ "*-broken-south", "*-repaired-south" ]
+  },
+  "shapeByType": {
+    "*-north": {
+      "base": "block/rustwallmachinery/flowregulator/flowregulator-{repairstate}",
+      "rotateY": 0
     },
-    "shapeByType": {
-        "*-north": {
-            "base": "block/rustwallmachinery/flowregulator/flowregulator-{repairstate}",
-            "rotateY": 0
-        },
-        "*-east": {
-            "base": "block/rustwallmachinery/flowregulator/flowregulator-{repairstate}",
-            "rotateY": 270
-        },
-        "*-south": {
-            "base": "block/rustwallmachinery/flowregulator/flowregulator-{repairstate}",
-            "rotateY": 180
-        },
-        "*-west": {
-            "base": "block/rustwallmachinery/flowregulator/flowregulator-{repairstate}",
-            "rotateY": 90
-        }
+    "*-east": {
+      "base": "block/rustwallmachinery/flowregulator/flowregulator-{repairstate}",
+      "rotateY": 270
     },
-    "variantgroups": [
-        {
-            "code": "repairstate",
-            "states": [ "repaired", "broken" ]
-        },
-        {
-            "code": "side",
-            "loadFromProperties": "abstract/horizontalorientation"
-        }
-    ],
-    "drawtype": "json",
-    "replaceable": 90,
-    "resistance": 8,
-    "sidesolid": { "all": false },
-    "sideopaque": { "all": false },
-    "entityClass": "BlockEntityRebuildable",
-    "entityBehaviors": [
-        {
-            "name": "BehaviorGloballyStable",
-            "properties": {
-                "value": 10
-            }
-        }
-    ],
-    "behaviors": [
-        {
-            "name": "HorizontalOrientable"
-        },
-        {
-            "name": "BehaviorRebuildable",
-            "properties": {
-                "canRepairBeforeBroken": true,
-                "stages": [
-                    {
-                        "item": "wrench-copper",
-                        "quantity": 50
-                    },
-                    {
-                        "item": "wrench-copper",
-                        "quantity": 50
-                    },
-                    {
-                        "item": "wrench-copper",
-                        "quantity": 50
-                    },
-                    {
-                        "item": "wrench-copper",
-                        "quantity": 50
-                    }
-                ]
-            }
-        }
-    ]
+    "*-south": {
+      "base": "block/rustwallmachinery/flowregulator/flowregulator-{repairstate}",
+      "rotateY": 180
+    },
+    "*-west": {
+      "base": "block/rustwallmachinery/flowregulator/flowregulator-{repairstate}",
+      "rotateY": 90
+    }
+  },
+  "variantgroups": [
+    {
+      "code": "repairstate",
+      "states": [ "repaired", "broken" ]
+    },
+    {
+      "code": "side",
+      "loadFromProperties": "abstract/horizontalorientation"
+    }
+  ],
+  "drawtype": "json",
+  "replaceable": 90,
+  "resistance": 8,
+  "sidesolid": { "all": false },
+  "sideopaque": { "all": false },
+  "entityClass": "BlockEntityRebuildable",
+  "entityBehaviors": [
+    {
+      "name": "BehaviorGloballyStable",
+      "properties": {
+        "value": 10
+      }
+    }
+  ],
+  "behaviors": [
+    {
+      "name": "HorizontalOrientable"
+    },
+    {
+      "name": "BehaviorRebuildable",
+      "properties": {
+        "canRepairBeforeBroken": true,
+        "stages": [
+          {
+            "item": "game:rod-tinbronze",
+            "quantity": 1
+          },
+          {
+            "item": "game:metalplate-lead",
+            "quantity": 1
+          },
+          {
+            "item": "game:wrench-*",
+            "quantity": 5
+          },
+          {
+            "item": "rustwall:gear-iron",
+            "quantity": 1
+          },
+          {
+            "item": "game:wrench-*",
+            "quantity": 5
+          }
+        ]
+      }
+    }
+  ]
 }

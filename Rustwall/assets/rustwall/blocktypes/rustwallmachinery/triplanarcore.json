@@ -56,20 +56,24 @@
         "canRepairBeforeBroken": true,
         "stages": [
           {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "game:metalplate-electrum",
+            "quantity": 3
           },
           {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "game:metalplate-cupronickel",
+            "quantity": 3
           },
           {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "game:rod-electrum",
+            "quantity": 2
           },
           {
-            "item": "wrench-copper",
-            "quantity": 50
+            "item": "game:rod-cupronickel",
+            "quantity": 2
+          },
+          {
+            "item": "game:metal-parts",
+            "quantity": 5
           }
         ]
       }
