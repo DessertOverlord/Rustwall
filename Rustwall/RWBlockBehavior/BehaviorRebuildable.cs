@@ -9,6 +9,9 @@ using Vintagestory.API.MathTools;
 using Vintagestory.API.Util;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
+using Vintagestory.Server;
+using Vintagestory.API.Config;
+using System.Diagnostics;
 
 namespace Rustwall.RWBehaviorRebuildable
 {
@@ -44,15 +47,52 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ref EnumHandling handling)
         {
-            handling = EnumHandling.PreventSubsequent;
+            //handling = EnumHandling.PreventSubsequent;
+            handling = EnumHandling.Handled;
             ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
             BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityRebuildable;
 
+            IServerPlayer serverPlayer = world.Side == EnumAppSide.Server ? (byPlayer as IServerPlayer) : null;
+
+            
+
+            if (world.Side == EnumAppSide.Client)
+            {
+                Debug.WriteLine("CLIENT SIDE");
+            } 
+            else if (world.Side == EnumAppSide.Server)
+            {
+                Debug.WriteLine("SERVER SIDE");
+            }
+            else
+            {
+                Debug.WriteLine("UNIVERSAL");
+            }
+
+            if (be.repairLock)
+            {
+                serverPlayer?.SendIngameError("rustwall:interact-repairlock");
+                return true;
+            }
+
+            if (be.rebuildStage == be.maxStage)
+            {
+                serverPlayer?.SendIngameError("rustwall:interact-fullyrepaired");
+                return true;
+            }
+
             //there is no case where the block should do something when a player's hand is empty
-            if (slot.Empty || slot.Itemstack == null || be == null) return false;
+            if (slot.Empty || slot.Itemstack == null || be == null)
+            {
+                serverPlayer?.SendIngameError("rustwall:interact-emptyhand");
+                return true;
+            }
 
             //if the block is not able to be partially repaired, this resets the repair lock on the block on the next interaction
-            if (be.repairLock && be.rebuildStage == 0 && be.itemsUsedThisStage == 0) { be.repairLock = false; }
+            if (be.repairLock && be.rebuildStage == 0 && be.itemsUsedThisStage == 0) 
+            {
+                be.repairLock = false;
+            }
 
             //checks if the block needs to be repaired or is repair locked
             if (be.rebuildStage < numStages && !be.repairLock)
@@ -68,12 +108,14 @@ namespace Rustwall.RWBehaviorRebuildable
                     }
                 }
 
-                if (slot.Itemstack?.Collectible.Code.Path == assetThisStage.Path ||
-                        (
+                if (
+                    slot.Itemstack?.Collectible.Code.Path == assetThisStage.Path ||
+                    (
                         assetThisStage.Path == "wrench-*" &&
-                        allWrenchItemStacks.Any(x => (x.Id == slot.Itemstack.Id))
-                        )
+                        allWrenchItemStacks.Any(x => (x.Id == slot.Itemstack.Id)) &&
+                        slot.Itemstack.Item.GetRemainingDurability(slot.Itemstack) >= quantityPerStage[be.rebuildStage]
                     )
+                )
                 {
                     //if the item is a wrench, repair by a whole stage and subtract durability
                     if (slot.Itemstack.Collectible.Code.PathStartsWith("wrench"))
@@ -84,6 +126,17 @@ namespace Rustwall.RWBehaviorRebuildable
                     else
                     {
                         return RepairByOneItem(world, slot, be, blockSel, byPlayer);
+                    }
+                } 
+                else
+                {
+                    if (slot.Itemstack.Collectible.Code.PathStartsWith("wrench") && slot.Itemstack.Item.GetRemainingDurability(slot.Itemstack) < quantityPerStage[be.rebuildStage])
+                    {
+                        serverPlayer?.SendIngameError("rustwall:interact-notenoughdurability");
+                    }
+                    else
+                    {
+                        serverPlayer?.SendIngameError("rustwall:interact-wrongitem");
                     }
                 }
             }
@@ -97,7 +150,7 @@ namespace Rustwall.RWBehaviorRebuildable
             }*/
 
 
-            return base.OnBlockInteractStart(world, byPlayer, blockSel, ref handling);
+            return true;
         }
 
         public override string GetPlacedBlockInfo(IWorldAccessor world, BlockPos pos, IPlayer forPlayer)
@@ -260,8 +313,6 @@ namespace Rustwall.RWBehaviorRebuildable
 
         private bool RepairByOneStage(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
         {
-            if (slot.Itemstack.Item.GetRemainingDurability(slot.Itemstack) < quantityPerStage[be.rebuildStage]) { return false; }
-
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
 
             slot.Itemstack.Item.DamageItem(world, byPlayer.Entity, slot, quantityPerStage[be.rebuildStage]);

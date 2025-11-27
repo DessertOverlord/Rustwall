@@ -29,7 +29,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         private string curRebID = "";
         BlockEntityAnimationUtil animUtil
         {
-            get { return GetBehavior<BEBehaviorAnimatable>().animUtil; }
+            get { return GetBehavior<BEBehaviorAnimatable>()?.animUtil; }
         } 
 
         public override void Initialize(ICoreAPI api)
@@ -45,20 +45,23 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             string rebuildableID = "";
 
+            // Takes all of the items and quantities needed to rebuild a given block and makes what is essentially a hash code for it
             foreach (var (x, y) in ownBehavior.itemPerStage.Zip(ownBehavior.quantityPerStage))
             {
                 rebuildableID += x.ToString() + y.ToString();
             }
 
+            //determine if the hash above differs from what we had stored previously (the costs for rebuilding have been updated)
             if (curRebID != rebuildableID && curRebID != "")
             {
+                // if they differ, repair all blocks affected fully to prevent weird undefined behavior
                 rebuildStage = maxStage;
                 itemsUsedThisStage = 0;
                 if (!ownBehavior.canRepairBeforeBroken)
                 {
                     repairLock = true;
                 }
-
+                
                 //DoFullRepair does not require slot, BlockSel, or ByPlayer for any functionality (I'm too lazy to reorder the args)
                 // I just removed them instead :]
                 ownBehavior.DoFullRepair(api.World, this);
@@ -69,7 +72,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
         public void ActivateAnimations()
         {
-            animUtil?.StartAnimation(new AnimationMetaData() { Animation = "active", Code = "active", EaseInSpeed = 1, EaseOutSpeed = 2, AnimationSpeed = 1f });
+            animUtil?.StartAnimation(new AnimationMetaData() { Animation = "active", Code = "active", EaseInSpeed = 1, EaseOutSpeed = 1, AnimationSpeed = 1f });
             MarkDirty(true);
         }
 

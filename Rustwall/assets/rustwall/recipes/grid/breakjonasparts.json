@@ -1,0 +1,46 @@
+[
+  {
+    "ingredientPattern": "HJ",
+    "ingredients": {
+      "H": {
+        "type": "item",
+        "code": "game:hammer-*",
+        "isTool": true
+      },
+      "J": {
+        "type": "item",
+        "code": "game:jonasparts-*"
+      }
+    },
+    "shapeless": true,
+    "width": 2,
+    "height": 1,
+    "output": {
+      "type": "item",
+      "code": "jonasscrap",
+      "quantity": 1
+    }
+  },
+  {
+    "ingredientPattern": "HJ",
+    "ingredients": {
+      "H": {
+        "type": "item",
+        "code": "game:hammer-*",
+        "isTool": true
+      },
+      "J": {
+        "type": "item",
+        "code": "game:jonasframes-*"
+      }
+    },
+    "shapeless": true,
+    "width": 2,
+    "height": 1,
+    "output": {
+      "type": "item",
+      "code": "jonasscrap",
+      "quantity": 1
+    }
+  }
+]
