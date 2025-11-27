@@ -54,21 +54,6 @@ namespace Rustwall.RWBehaviorRebuildable
 
             IServerPlayer serverPlayer = world.Side == EnumAppSide.Server ? (byPlayer as IServerPlayer) : null;
 
-            
-
-            if (world.Side == EnumAppSide.Client)
-            {
-                Debug.WriteLine("CLIENT SIDE");
-            } 
-            else if (world.Side == EnumAppSide.Server)
-            {
-                Debug.WriteLine("SERVER SIDE");
-            }
-            else
-            {
-                Debug.WriteLine("UNIVERSAL");
-            }
-
             if (be.repairLock)
             {
                 serverPlayer?.SendIngameError("rustwall:interact-repairlock");
