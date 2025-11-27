@@ -1,24 +1,31 @@
 {
-  "block-blowofftank-*" : "Blow-Off Tank",
+  "block-blowofftank-*": "Blow-Off Tank",
   "block-controlbox-*": "Control Box",
-  "block-flowregulator-*" : "Flow Regulator",
-  "block-fluxcoil-*" : "Flux Coil",
-  "block-gearbox-*" : "Gearbox",
-  "block-leverstation-*" : "Lever Station",
-  "block-parallelvalves-*" : "Parallel Valves",
-  "block-phaseconfluence-*" : "Phase Confluence",
+  "block-flowregulator-*": "Flow Regulator",
+  "block-fluxcoil-*": "Flux Coil",
+  "block-gearbox-*": "Gearbox",
+  "block-leverstation-*": "Lever Station",
+  "block-parallelvalves-*": "Parallel Valves",
+  "block-phaseconfluence-*": "Phase Confluence",
   "block-pressureregulator-*": "Pressure Regulator",
-  "block-pressurerelease-*" : "Pressure Release",
-  "block-pumpunit-*" : "Pump Unit",
-  "block-temporalanchor-*" : "Temporal Anchor",
-  "block-temporalchronometer-*" : "Temporal Chronometer",
-  "block-temporalsail-*" : "Temporal Sail",
-  "block-triplanarcore-*" : "Triplanar Core",
+  "block-pressurerelease-*": "Pressure Release",
+  "block-pumpunit-*": "Pump Unit",
+  "block-temporalanchor-*": "Temporal Anchor",
+  "block-temporalchronometer-*": "Temporal Chronometer",
+  "block-temporalsail-*": "Temporal Sail",
+  "block-triplanarcore-*": "Triplanar Core",
   "block-valveassembly-*": "Valve Assembly",
 
-  "item-gear-iron" : "Iron Gear",
+  "item-gear-iron": "Iron Gear",
 
   "blockhelp-rebuildable": "Rebuild",
 
   "game:item-rod-lead": "Lead Rod",
+
+  "ingameerror-rustwall:interact-emptyhand": "I can't do anything with an empty hand!",
+  "ingameerror-rustwall:interact-repairlock": "This machine is too complex to repair while it's operational!",
+  "ingameerror-rustwall:interact-fullyrepaired": "This machine is already fully repaired!",
+  "ingameerror-rustwall:interact-notenoughdurability": "My wrench doesn't have enough durability!",
+  "ingameerror-rustwall:interact-wrongitem": "This is the wrong item to repair this machine with!"
+
 }

@@ -44,6 +44,9 @@
       "properties": {
         "value": 10
       }
+    },
+    {
+      "name": "Animatable"
     }
   ],
   "behaviors": [

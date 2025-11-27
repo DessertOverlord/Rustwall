@@ -1,6 +1,8 @@
-﻿using Vintagestory.API.Common;
+﻿using Rustwall.RWBehaviorRebuildable;
+//using Rustwall.RWBlockBehavior;
 using Rustwall.RWBlockEntity.BERebuildable;
-using Rustwall.RWBehaviorRebuildable;
+using Rustwall.RWItem;
+using Vintagestory.API.Common;
 
 namespace Rustwall.ModSystems.RebuildableBlock
 {
@@ -10,6 +12,8 @@ namespace Rustwall.ModSystems.RebuildableBlock
         {
             api.RegisterBlockEntityClass("BlockEntityRebuildable", typeof(BlockEntityRebuildable));
             api.RegisterBlockBehaviorClass("BehaviorRebuildable", typeof(BehaviorRebuildable));
+            //api.RegisterBlockBehaviorClass("BehaviorDeconstructContents", typeof(BehaviorDeconstructContents));
+            api.RegisterItemClass("ItemJonasScrap", typeof(ItemJonasScrap));
         }
 
         protected override void RustwallStartServerSide()
