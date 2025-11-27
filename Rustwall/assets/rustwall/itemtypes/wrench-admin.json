@@ -1,0 +1,11 @@
+{
+  "code": "wrench-admin",
+  "class": "ItemAdminWrench",
+  "shape": { "base": "item/tool/wrench-admin" },
+  "maxstacksize": 1,
+  "creativeinventory": {
+    "general": [ "*" ],
+    "items": [ "*" ],
+    "rustwall": [ "*" ]
+  }
+}

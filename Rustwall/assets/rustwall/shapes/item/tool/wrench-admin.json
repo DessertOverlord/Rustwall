@@ -1,0 +1,242 @@
+{
+  "editor": {
+    "collapsedPaths": "Root/ORIGINARM/BeamBaseN2,Root/MASTERTEMPGEARMOVER/TEMPORALMOVERpin4/TGTOOTHMOVER1094,Root/BaseFlange3section/BaseHousing45d/BaseHousing4,Root/MASTERTEMPGEARMOVER/TEMPORALMOVERpin4/TempGearCenter1062,Root/BASEMOVER2/Base1501/STEP1MOVER1507/NcolumbBase1508,Root/ORIGINSPINE3/TopFin6,Root/ORIGINARM/ArmBottomOuter/ArmMidOuter/SpineMid,Root/BaseFlange3section/BaseHousing45d/Rusty1,Root/BaseFlange/BaseHousing45d,Root/FootPlate2/CubeDown2,Root/MEAUSREROD3,Root/MEAUSREROD5,Root/ORIGINtuningFork/PipeCenter/PipePostEBottom,Root/BaseFlange3section/BasePedestal,Root/ORIGINDishArray/IronArmLower,Root/FootPlate2,Root/BASEMOVER2/Base1501/STEP1MOVER1507,Root/ORIGINDishArray,Root/BaseFlange,Root/MASTERTEMPGEARMOVER/TEMPORALMOVERpin4/TGTOOTHMOVER1082,Root/FootPlate2/PipeCenter/PipePostEBottom,Root/BaseFlange3section/BaseHousing45d/BossRimS2,Root/ORIGINtuningFork/PipeCenter/PipePostEBottom2,Root/MEAUSREROD,Root/BaseFlange3section/BaseHousing45d/Socketplate,Root/ORIGINDishArray/DishSmall5,Root/ORIGINSPINE2/BackArcMid1/FinW2,Root/ArmBase/EarB1,Root/ORIGINtuningFork/GearShaft,Root/ORIGINSIDEARM/BottomUnit,Root/ORIGINSPINE2/IronBar5/IronBar6,Root/FootPlate2/PipeCenter,Root/FootPlate2/FloorPlate2,Root/BASEMOVER2/Base1501/STEP3MOVER1524,Root/BASEMOVER2/Base1501/STEP2MOVER1517,Root/BaseFlange3section/BaseHousing45d/BossRimS,Root/BaseFlange3section,Root/ORIGINtuningFork/CubeDown2,Root/MASTERTEMPGEARMOVER/TEMPORALMOVERpin4/TGRIMMOVER1066,Root/ORIGINtuningFork/FloorPlate3,Root/ORIGINSPINE,Root/ORIGINARM/BeamBaseN,Root/tierstee,Root/ORIGINtuningFork/FloorPlate2,Root/ORIGINARM/BeamBaseS,Root/ShaftUD24,Root/BASEMOVER2/Base1501/STEP1MOVER1507/NcolumbBase1513,Root/ORIGINARM/ArmBottomOuter/ArmMidOuter/ArmTopOuter/SpineMid2,Root/FootPlate,Root/ORIGINDishArray/DishLarge,Root/ORIGINWHEEL/WoodHubBeam/HubPlate/Hub/MAINSHAFT/WheelHubORIGIN/MainSpoke2/MainSpoke5/Cube6,Root/ORIGINWHEEL/WoodHubBeam/HubPlate/Hub/MAINSHAFT/WheelHubORIGIN/MainSpoke2/MainSpoke5/Cube4,Root/ORIGINWHEEL/WoodHubBeam/HubPlate/Hub/MAINSHAFT/WheelHubORIGIN/MainSpoke2/MainSpoke5/Cube5,Root/ORIGINWHEEL/WoodHubBeam/HubPlate/Hub/MAINSHAFT/WheelHubORIGIN/MainSpoke2/MainSpoke5/Cube2,Root/ORIGINWHEEL/WoodHubBeam/HubPlate/Hub/MAINSHAFT/WheelHubORIGIN/MainSpoke2/MainSpoke5/Cube3,Root/ORIGINARM/ArmBottomOuter/SpineBottom,Root/ORIGINBASE,Root/ArmBase",
+    "allAngles": false,
+    "entityTextureMode": false
+  },
+  "textureWidth": 16,
+  "textureHeight": 16,
+  "textureSizes": {
+  },
+  "textures": {
+    "diamond1": "game:block/cloth/linen/diamond1",
+    "electrum": "game:block/metal/ingot/electrum"
+  },
+  "elements": [
+    {
+      "name": "Cube1",
+      "from": [ 3.0, 0.0, 7.0 ],
+      "to": [ 12.5, 1.0, 9.0 ],
+      "rotationOrigin": [ 6.0, 0.0, 7.0 ],
+      "faces": {
+        "north": {
+          "texture": "#electrum",
+          "uv": [ 0.0, 0.0, 9.5, 1.0 ],
+          "glow": 255
+        },
+        "east": {
+          "texture": "#electrum",
+          "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+          "glow": 255
+        },
+        "south": {
+          "texture": "#electrum",
+          "uv": [ 0.0, 0.0, 9.5, 1.0 ],
+          "glow": 255
+        },
+        "west": {
+          "texture": "#electrum",
+          "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+          "glow": 255,
+          "windMode": [ -1, -1, -1, -1 ]
+        },
+        "up": {
+          "texture": "#electrum",
+          "uv": [ 0.0, 0.0, 9.5, 2.0 ],
+          "glow": 255
+        },
+        "down": {
+          "texture": "#electrum",
+          "uv": [ 0.0, 0.0, 9.5, 2.0 ],
+          "glow": 255,
+          "windMode": [ -1, -1, -1, -1 ]
+        }
+      },
+      "children": [
+        {
+          "name": "Cube2",
+          "from": [ 8.5, -0.1, 0.0 ],
+          "to": [ 10.5, 1.1, 1.0 ],
+          "rotationOrigin": [ 8.5, -0.1, 0.0 ],
+          "rotationY": 45.0,
+          "faces": {
+            "north": {
+              "texture": "#electrum",
+              "uv": [ 2.0, 2.0, 4.0, 3.0 ],
+              "glow": 255
+            },
+            "east": {
+              "texture": "#electrum",
+              "uv": [ 0.0, 0.0, 1.0, 1.0 ],
+              "glow": 255
+            },
+            "south": {
+              "texture": "#electrum",
+              "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+              "glow": 255
+            },
+            "west": {
+              "texture": "#electrum",
+              "uv": [ 0.0, 0.0, 1.0, 1.0 ],
+              "glow": 255
+            },
+            "up": {
+              "texture": "#electrum",
+              "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+              "glow": 255
+            },
+            "down": {
+              "texture": "#electrum",
+              "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+              "glow": 255
+            }
+          },
+          "children": [
+            {
+              "name": "Cube3",
+              "from": [ 2.0, 0.1, 0.0 ],
+              "to": [ 4.0, 1.1, 1.0 ],
+              "rotationOrigin": [ 2.0, 0.1, 0.0 ],
+              "rotationY": -45.0,
+              "faces": {
+                "north": {
+                  "texture": "#electrum",
+                  "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+                  "glow": 255
+                },
+                "east": {
+                  "texture": "#electrum",
+                  "uv": [ 0.0, 0.0, 1.0, 1.0 ],
+                  "glow": 255
+                },
+                "south": {
+                  "texture": "#electrum",
+                  "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+                  "glow": 255
+                },
+                "up": {
+                  "texture": "#electrum",
+                  "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+                  "glow": 255
+                },
+                "down": {
+                  "texture": "#electrum",
+                  "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+                  "glow": 255
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cube4",
+          "from": [ 8.5, -0.1, 1.0 ],
+          "to": [ 10.5, 1.1, 2.0 ],
+          "rotationOrigin": [ 8.5, -0.1, 2.0 ],
+          "rotationY": -45.0,
+          "faces": {
+            "north": {
+              "texture": "#electrum",
+              "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+              "glow": 255
+            },
+            "east": {
+              "texture": "#electrum",
+              "uv": [ 0.0, 0.0, 1.0, 1.0 ],
+              "glow": 255
+            },
+            "south": {
+              "texture": "#electrum",
+              "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+              "glow": 255
+            },
+            "west": {
+              "texture": "#electrum",
+              "uv": [ 0.0, 0.0, 1.0, 1.0 ],
+              "glow": 255
+            },
+            "up": {
+              "texture": "#electrum",
+              "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+              "glow": 255
+            },
+            "down": {
+              "texture": "#electrum",
+              "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+              "glow": 255
+            }
+          },
+          "children": [
+            {
+              "name": "Cube5",
+              "from": [ 2.0, 0.1, 0.0 ],
+              "to": [ 4.0, 1.1, 1.0 ],
+              "rotationOrigin": [ 2.0, 0.1, 1.0 ],
+              "rotationY": 45.0,
+              "faces": {
+                "north": {
+                  "texture": "#electrum",
+                  "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+                  "glow": 255
+                },
+                "east": {
+                  "texture": "#electrum",
+                  "uv": [ 0.0, 0.0, 1.0, 1.0 ],
+                  "glow": 255
+                },
+                "south": {
+                  "texture": "#electrum",
+                  "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+                  "glow": 255,
+                  "autoUv": false
+                },
+                "up": {
+                  "texture": "#electrum",
+                  "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+                  "glow": 255
+                },
+                "down": {
+                  "texture": "#electrum",
+                  "uv": [ 0.0, 0.0, 2.0, 1.0 ],
+                  "glow": 255
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cube6",
+          "from": [ 1.0, -0.2, -0.2 ],
+          "to": [ 5.0, 1.2, 2.2 ],
+          "rotationOrigin": [ 1.0, -0.2, -0.2 ],
+          "faces": {
+            "north": {
+              "texture": "#diamond1",
+              "uv": [ 1.5, 4.0, 5.5, 5.0 ]
+            },
+            "east": {
+              "texture": "#diamond1",
+              "uv": [ 1.5, 4.5, 3.5, 5.5 ]
+            },
+            "south": {
+              "texture": "#diamond1",
+              "uv": [ 0.0, 5.5, 4.0, 6.5 ]
+            },
+            "west": {
+              "texture": "#diamond1",
+              "uv": [ 1.0, 5.0, 3.0, 6.0 ]
+            },
+            "up": {
+              "texture": "#diamond1",
+              "uv": [ 0.0, 4.0, 4.0, 6.0 ]
+            },
+            "down": {
+              "texture": "#diamond1",
+              "uv": [ 0.0, 4.0, 4.0, 6.0 ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
