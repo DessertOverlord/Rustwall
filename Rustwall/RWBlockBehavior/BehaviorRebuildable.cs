@@ -94,17 +94,29 @@ namespace Rustwall.RWBehaviorRebuildable
                 }
 
                 if (
-                    slot.Itemstack?.Collectible.Code.Path == assetThisStage.Path ||
+                    (
+                    slot.Itemstack?.Collectible.Code.Path == assetThisStage.Path
+                    )
+                    ||
                     (
                         assetThisStage.Path == "wrench-*" &&
                         allWrenchItemStacks.Any(x => (x.Id == slot.Itemstack.Id)) &&
                         slot.Itemstack.Item.GetRemainingDurability(slot.Itemstack) >= quantityPerStage[be.rebuildStage]
+                    )
+                    ||
+                    (
+                        slot.Itemstack?.Collectible.Code.Path == "wrench-admin"
                     )
                 )
                 {
                     //if the item is a wrench, repair by a whole stage and subtract durability
                     if (slot.Itemstack.Collectible.Code.PathStartsWith("wrench"))
                     {
+                        if (!(slot.Itemstack?.Collectible.Code.Path == "wrench-admin"))
+                        {
+                            slot.Itemstack.Item.DamageItem(world, byPlayer.Entity, slot, quantityPerStage[be.rebuildStage]);
+                        }
+
                         return RepairByOneStage(world, slot, be, blockSel, byPlayer);
                     }
                     //otherwise, subtract just one item
@@ -299,8 +311,6 @@ namespace Rustwall.RWBehaviorRebuildable
         private bool RepairByOneStage(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
         {
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
-
-            slot.Itemstack.Item.DamageItem(world, byPlayer.Entity, slot, quantityPerStage[be.rebuildStage]);
 
             slot.MarkDirty();
             be.itemsUsedThisStage = 0;
