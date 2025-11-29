@@ -11,7 +11,7 @@ using Vintagestory.GameContent;
 
 namespace Rustwall.RWItem
 {
-    internal class ItemAdminWrench : ItemWrench
+    internal class ItemAdminWrench : Item
     {
         ICoreServerAPI sapi;
 
@@ -21,20 +21,20 @@ namespace Rustwall.RWItem
             sapi = api as ICoreServerAPI;
         }
 
-
         public override void OnHeldAttackStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, ref EnumHandHandling handling)
         {
-            BlockEntityRebuildable ber = sapi?.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(blockSel.Position);
-            IPlayer byplayer = byEntity as IPlayer;
+            IWorldAccessor world = byEntity.World;
+            BlockEntityRebuildable ber = world.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(blockSel.Position);
+            IPlayer byplayer = (byEntity as EntityPlayer)?.Player;
 
-            if (ber is not null && byplayer is not null)
+            if (ber is not null && byplayer is not null && world.Side == EnumAppSide.Server)
             {
-                ber.ownBehavior.DamageOneStage(sapi.World, byplayer, ber, blockSel);
+                ber.ownBehavior.DamageOneStage(world, byplayer, ber, blockSel);
             }
-            else
-            {
-                base.OnHeldAttackStart(slot, byEntity, blockSel, entitySel, ref handling);
-            }
+
+            handling = EnumHandHandling.PreventDefault;
+
+            return;
         }
     }
 }

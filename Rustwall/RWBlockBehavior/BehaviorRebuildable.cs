@@ -249,7 +249,7 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
         {
-            if (be.rebuildStage <= 0) { return false; ; }
+            if (be.rebuildStage <= 0) { return false; }
 
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), be.Pos, -0.25, null, true, 16);
             be.MarkDirty(true);
