@@ -112,6 +112,7 @@ namespace Rustwall.RWBehaviorRebuildable
                     //if the item is a wrench, repair by a whole stage and subtract durability
                     if (slot.Itemstack.Collectible.Code.PathStartsWith("wrench"))
                     {
+                        // If we aren't using the admin wrench, subtract durability
                         if (!(slot.Itemstack?.Collectible.Code.Path == "wrench-admin"))
                         {
                             slot.Itemstack.Item.DamageItem(world, byPlayer.Entity, slot, quantityPerStage[be.rebuildStage]);
@@ -137,15 +138,6 @@ namespace Rustwall.RWBehaviorRebuildable
                     }
                 }
             }
-
-            //allows rusty gears to be used to damage blocks for testing
-            //REMOVE IN LIVE!
-            /*if (slot.Itemstack.Collectible.Code.Path == "gear-rusty" && be.rebuildStage != 0)
-            {
-                //DoBreakFully(world, byPlayer, be, blockSel);
-                return DamageOneStage(world, byPlayer, be, blockSel);
-            }*/
-
 
             return true;
         }
