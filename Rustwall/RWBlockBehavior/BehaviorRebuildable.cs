@@ -54,21 +54,6 @@ namespace Rustwall.RWBehaviorRebuildable
 
             IServerPlayer serverPlayer = world.Side == EnumAppSide.Server ? (byPlayer as IServerPlayer) : null;
 
-            
-
-            if (world.Side == EnumAppSide.Client)
-            {
-                Debug.WriteLine("CLIENT SIDE");
-            } 
-            else if (world.Side == EnumAppSide.Server)
-            {
-                Debug.WriteLine("SERVER SIDE");
-            }
-            else
-            {
-                Debug.WriteLine("UNIVERSAL");
-            }
-
             if (be.repairLock)
             {
                 serverPlayer?.SendIngameError("rustwall:interact-repairlock");
@@ -109,17 +94,30 @@ namespace Rustwall.RWBehaviorRebuildable
                 }
 
                 if (
-                    slot.Itemstack?.Collectible.Code.Path == assetThisStage.Path ||
+                    (
+                    slot.Itemstack?.Collectible.Code.Path == assetThisStage.Path
+                    )
+                    ||
                     (
                         assetThisStage.Path == "wrench-*" &&
                         allWrenchItemStacks.Any(x => (x.Id == slot.Itemstack.Id)) &&
                         slot.Itemstack.Item.GetRemainingDurability(slot.Itemstack) >= quantityPerStage[be.rebuildStage]
+                    )
+                    ||
+                    (
+                        slot.Itemstack?.Collectible.Code.Path == "wrench-admin"
                     )
                 )
                 {
                     //if the item is a wrench, repair by a whole stage and subtract durability
                     if (slot.Itemstack.Collectible.Code.PathStartsWith("wrench"))
                     {
+                        // If we aren't using the admin wrench, subtract durability
+                        if (!(slot.Itemstack?.Collectible.Code.Path == "wrench-admin"))
+                        {
+                            slot.Itemstack.Item.DamageItem(world, byPlayer.Entity, slot, quantityPerStage[be.rebuildStage]);
+                        }
+
                         return RepairByOneStage(world, slot, be, blockSel, byPlayer);
                     }
                     //otherwise, subtract just one item
@@ -140,15 +138,6 @@ namespace Rustwall.RWBehaviorRebuildable
                     }
                 }
             }
-
-            //allows rusty gears to be used to damage blocks for testing
-            //REMOVE IN LIVE!
-            /*if (slot.Itemstack.Collectible.Code.Path == "gear-rusty" && be.rebuildStage != 0)
-            {
-                //DoBreakFully(world, byPlayer, be, blockSel);
-                return DamageOneStage(world, byPlayer, be, blockSel);
-            }*/
-
 
             return true;
         }
@@ -260,7 +249,7 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
         {
-            if (be.rebuildStage <= 0) { return false; ; }
+            if (be.rebuildStage <= 0) { return false; }
 
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), be.Pos, -0.25, null, true, 16);
             be.MarkDirty(true);
@@ -314,8 +303,6 @@ namespace Rustwall.RWBehaviorRebuildable
         private bool RepairByOneStage(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
         {
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
-
-            slot.Itemstack.Item.DamageItem(world, byPlayer.Entity, slot, quantityPerStage[be.rebuildStage]);
 
             slot.MarkDirty();
             be.itemsUsedThisStage = 0;

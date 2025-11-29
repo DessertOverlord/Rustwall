@@ -19,7 +19,6 @@ namespace Rustwall.RWItem
         float curY;
 
         float prevSecUsed;
-        //List<ItemStack> possibleCraftResultStacks;
         List<JsonItemStack> possibleCraftResultStacks;
 
         LCGRandom rnd;
@@ -32,21 +31,7 @@ namespace Rustwall.RWItem
             rnd = new LCGRandom(api.World.Seed);
 
             List<JsonItemStack> jstacks = Attributes["output"].AsObject<List<JsonItemStack>>();
-            //List<ItemStack> stacklist = new List<ItemStack>();
 
-            /*for (int i = 0; i < jstacks.Length; i++)
-            {
-                JsonItemStack jstack = jstacks[i];
-                jstack.Resolve(api.World, "Scrap weapon kit craft result");
-                if (jstack.ResolvedItemstack is not null)
-                {
-                    stacklist.Add(jstack.ResolvedItemstack);
-                }
-            }*/
-
-            //possibleCraftResultStacks = stacklist.ToArray();
-            //stacklist.copy  (possibleCraftResultStacks);
-            //possibleCraftResultStacks = [.. stacklist];
             possibleCraftResultStacks = [.. jstacks];
         }
 
@@ -115,52 +100,10 @@ namespace Rustwall.RWItem
             {
                 if (api.Side == EnumAppSide.Server)
                 {
-                    //ItemStack resultstack = craftResultStacks[api.World.Rand.Next(craftResultStacks.Length)];
-                    //slot.Itemstack = resultstack.Clone();
-                    //ItemStack[] itemStacks = craftResultStacks.Clone();
-
-
-                    //For now we will ouput ALL of the output stacks -- this behavior should be changed later.
-                    //ItemStack[] outputStacks;
-                    //ItemStack[] outputStacks = new ItemStack[possibleCraftResultStacks.Count];
                     List<JsonItemStack> outputJsonStacks = [.. possibleCraftResultStacks];
-
-                    //Take note we want to copy this to the array, not set them equal, or else operations performed will affect both.
-                    //possibleCraftResultStacks.CopyTo(outputStacks, 0);
-
-                    /*
-                    foreach (ItemStack item in possibleCraftResultStacks) 
-                    {
-                        rnd.NextInt(possibleCraftResultStacks.Length);
-                    }*/
-
-
-                    //slot.TryPutInto(byEntity.World, slot);
-
-
 
                     slot.TakeOut(1);
                     slot.MarkDirty();
-                    //ItemSlot newSlot = new ItemSlot ;
-
-                    /*
-                    ItemSlot[] tempSlots = slot.Inventory.GenEmptySlots(outputStacks.Length);
-
-                    for (int i = 0; i < outputStacks.Length; i++)
-                    {
-                        tempSlots[i].Itemstack = outputStacks[i];
-                    }
-
-                    if (tempSlots[0].TryPutInto(byEntity.World, slot) == 0)
-                    {
-
-                    }
-                    tempSlots = tempSlots.RemoveAt(0);
-
-                    foreach (ItemSlot tempSlot in tempSlots)
-                    {
-                        tempSlot.
-                    }*/
 
                     foreach (JsonItemStack jsonItemStack in outputJsonStacks)
                     { 
@@ -169,18 +112,7 @@ namespace Rustwall.RWItem
                         {
                             byEntity.World.SpawnItemEntity(jsonItemStack.ResolvedItemstack, byEntity.Pos.XYZ);
                         }
-
-                        //byEntity.World.SpawnItemEntity(itemStack, byEntity.Pos.XYZ);
-                        /*entity.Attributes.SetInt("minsecondsToDespawn", despawnSeconds);
-                        if (entity.GetBehavior("timeddespawn") is ITimedDespawn timedDespawn)
-                        {
-                            timedDespawn.DespawnSeconds = despawnSeconds;
-                        }*/
                     }
-
-                    //ItemStack adshfjkd = new ItemStack(... );
-
-
                 }
                 else
                 {
@@ -199,12 +131,5 @@ namespace Rustwall.RWItem
                 }
             ];
         }
-
-
-
-
-
-
-
     }
 }
