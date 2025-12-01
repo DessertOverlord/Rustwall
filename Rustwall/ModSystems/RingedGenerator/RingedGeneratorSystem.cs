@@ -2,15 +2,19 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
+using System.Runtime.InteropServices.JavaScript;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
+using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
-using Vintagestory.API.Config;
-using Vintagestory.ServerMods.NoObf;
 using Vintagestory.API.Util;
-using Vintagestory.API.Client;
+using Vintagestory.Common;
 using Vintagestory.Server;
+using Vintagestory.ServerMods;
+using Vintagestory.ServerMods.NoObf;
 
 namespace Rustwall.ModSystems.RingedGenerator
 {
@@ -29,28 +33,35 @@ namespace Rustwall.ModSystems.RingedGenerator
         // Some day I won't have to do this, but I haven't figured out how to gather the currently selected params until
         // after the game is saved for the first time.
         // TODO: programmatically gather the selected worldgen params on first launch.
-        //private readonly List<double> WorldgenDefaultParams = new List<double> { 1, 1, 1, 0, 1, 1, 0.3, 0.05 };
         private readonly List<double> WorldgenDefaultParams = new List<double> { 1, 1, 1, 0, 0, 1, 0.3, 0.05 };
         private static int curRing = 0;
         private static int desiredRing = 0;
         private static int ringMapSize;
         private double regionMidPoint;
 
+        GenMaps mapGenerator;
+
         protected override void RustwallStartServerSide()
         {
             //if (sapi.WorldManager.SaveGame.IsNew == true) { sapi.Server.ShutDown(); }
-            
+            mapGenerator = sapi.ModLoader.GetModSystem<GenMaps>();
 
             RegisterChatCommands();
-            // This calculates map size relative to the resolution of the rings
-            // It also checks to make sure the world is a square; if it is rectangular, the ring generator doesn't initialize
-            ringMapSize = sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ ? (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2 : -500;
-            regionMidPoint = ((ringMapSize + ringMapSize - 1) / 2.0);
-            ringDictList = new List<Dictionary<string, double>>(ringMapSize);
 
-            //sapi.Event.SaveGameLoaded += InitRingedWorldGenerator;
 
-            InitRingedWorldGenerator();
+
+            sapi.Event.ServerRunPhase(EnumServerRunPhase.GameReady, () => 
+            { 
+                // This calculates map size relative to the resolution of the rings
+                // It also checks to make sure the world is a square; if it is rectangular, the ring generator doesn't initialize
+                ringMapSize = sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ ? (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2 : -500;
+                regionMidPoint = ((ringMapSize + ringMapSize - 1) / 2.0);
+                ringDictList = new List<Dictionary<string, double>>(ringMapSize);
+
+                //sapi.Event.SaveGameLoaded += InitRingedWorldGenerator;
+
+                InitRingedWorldGenerator();
+            });
 
             //Add the region method to the MapRegionGeneration event, causing it to be called any time the engine wants to generate a new region
             MapRegionGeneratorDelegate regionHandler = HandleRegionLoading;
@@ -76,11 +87,14 @@ namespace Rustwall.ModSystems.RingedGenerator
             desiredRing = (int)(double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5);
             if (curRing != desiredRing)
             {
+                Debug.WriteLine("Changing ring generator. Old ring was " + curRing + ", new ring is " + desiredRing);
+
                 curRing = desiredRing;
                 SetWorldParams(sapi, ringDictList[curRing], seedList[curRing]);
-                RestartChunkGenerator();
+
+
+                //RestartChunkGenerator();
             }
-            //Debug.WriteLine("Region at " + regionX + ", " + regionZ + "is generating with landcover set to " + ringDictList[curRing]["landcover"]);
         }
 
         //Initialize and load the worldgen parameters
@@ -95,7 +109,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             else
             {
                 byte[] seedData = sapi.WorldManager.SaveGame.GetData("rustwallRingSeeds");
-                //this happens if the world is improperly saved after the initial world load.
+                //this could happen if the world is improperly saved after the initial world load.
                 //HOPEfully this should never arise.
                 if (seedData != null)
                 { 
@@ -216,14 +230,86 @@ namespace Rustwall.ModSystems.RingedGenerator
         }
 
         //SetWorldParams takes the parameters and seed provided and updates the world generator with them.
-        private void SetWorldParams(ICoreServerAPI api, Dictionary<string, double> keyValuePairs, int seed)
+        private void SetWorldParams(ICoreServerAPI api, Dictionary<string, double> ringGenKVP, int seed)
         {
-            foreach (var item in keyValuePairs)
+            //sapi.WorldManager.SaveGame.Seed = seed;
+
+            var worldConfig = sapi.World.Config;
+
+            LatitudeData latdata = new LatitudeData();
+
+            /// We're directly modifying the values that GenMaps.cs uses to instruct the world generator.
+            /// We do NOT need to change any noiseSize vars because they are computed off of a hardcoded value and a region size value, 
+            /// neither of which we are changing.
+
+            float tempModifier = (float)ringGenKVP["globalTemperature"];
+            float rainModifier = (float)ringGenKVP["globalPrecipitation"];
+            //latdata.polarEquatorDistance = worldConfig.GetString("polarEquatorDistance", "50000").ToInt(50000);
+            float upheavelCommonness = (float)ringGenKVP["upheavelCommonness"];
+            float landcover = (float)ringGenKVP["landcover"];
+            float oceanscale = (float)ringGenKVP["oceanscale"];
+            float landformScale = (float)ringGenKVP["landformScale"];
+
+            //DO NOT CHANGE! Polar-eq dist is not a worldconfig the rings change!
+            latdata.polarEquatorDistance = worldConfig.GetString("polarEquatorDistance", "50000").ToInt(50000);
+            NoiseClimate noiseClimate;
+
+            string climate = worldConfig.GetString("worldClimate", "realistic");
+            switch (climate)
             {
-                sapi.World.Config.SetDouble(item.Key, item.Value);
-                sapi.World.Config.TryGetAttribute(item.Key, out IAttribute curAttr);
+                case "realistic":
+                    int spawnMinTemp = 6;
+                    int spawnMaxTemp = 14;
+
+                    string startingClimate = worldConfig.GetString("startingClimate");
+                    switch (startingClimate)
+                    {
+                        case "hot":
+                            spawnMinTemp = 28;
+                            spawnMaxTemp = 32;
+                            break;
+                        case "warm":
+                            spawnMinTemp = 19;
+                            spawnMaxTemp = 23;
+                            break;
+                        case "cool":
+                            spawnMinTemp = -5;
+                            spawnMaxTemp = 1;
+                            break;
+                        case "icy":
+                            spawnMinTemp = -15;
+                            spawnMaxTemp = -10;
+                            break;
+                    }
+
+                    noiseClimate = new NoiseClimateRealistic(seed, (double)sapi.WorldManager.MapSizeZ / TerraGenConfig.climateMapScale / TerraGenConfig.climateMapSubScale, latdata.polarEquatorDistance, spawnMinTemp, spawnMaxTemp);
+                    (noiseClimate as NoiseClimateRealistic).GeologicActivityStrength = (float)ringGenKVP["geologicActivity"];
+
+                    latdata.isRealisticClimate = true;
+                    latdata.ZOffset = (noiseClimate as NoiseClimateRealistic).ZOffset;
+                    break;
+                    
+                default:
+                    noiseClimate = new NoiseClimatePatchy(seed);
+                    break;
             }
-            sapi.WorldManager.SaveGame.Seed = seed;
+
+
+
+            noiseClimate.rainMul = rainModifier;
+            noiseClimate.tempMul = tempModifier;
+
+            mapGenerator.climateGen = GenMaps.GetClimateMapGen(seed + 1, noiseClimate);
+
+            mapGenerator.upheavelGen = GenMaps.GetGeoUpheavelMapGen(seed + 873, TerraGenConfig.geoUpheavelMapScale);
+            mapGenerator.oceanGen = GenMaps.GetOceanMapGen(seed + 1873, landcover, TerraGenConfig.oceanMapScale, oceanscale, mapGenerator.requireLandAt, false);
+            mapGenerator.forestGen = GenMaps.GetForestMapGen(seed + 2, TerraGenConfig.forestMapScale);
+            mapGenerator.bushGen = GenMaps.GetForestMapGen(seed + 109, TerraGenConfig.shrubMapScale);
+            mapGenerator.flowerGen= GenMaps.GetForestMapGen(seed + 223, TerraGenConfig.forestMapScale);
+            mapGenerator.beachGen = GenMaps.GetBeachMapGen(seed + 2273, TerraGenConfig.beachMapScale);
+            mapGenerator.geologicprovinceGen = GenMaps.GetGeologicProvinceMapGen(seed + 3, sapi);
+            mapGenerator.landformsGen = GenMaps.GetLandformMapGen(seed + 4, noiseClimate, sapi, landformScale); ;
+
         }
 
         //Turns off chunk generation and sending to clients, reloads all of the worldgen parameters (seed, multipliers), and then re-enables everything.
@@ -257,9 +343,9 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         private void ReloadWorldgenAssets()
         {
-            sapi.Assets.Reload(new AssetLocation("worldgen/"));
-            var patchLoader = sapi.ModLoader.GetModSystem<ModJsonPatchLoader>();
-            patchLoader.ApplyPatches("worldgen/");
+            //sapi.Assets.Reload(new AssetLocation("worldgen/"));
+            //var patchLoader = sapi.ModLoader.GetModSystem<ModJsonPatchLoader>();
+            //patchLoader.ApplyPatches("worldgen/");
             sapi.Event.TriggerInitWorldGen();
         }
 
@@ -274,6 +360,8 @@ namespace Rustwall.ModSystems.RingedGenerator
             List<Vec2i> regionCoordsToDelete = new List<Vec2i>();
             int chSize = sapi.WorldManager.ChunkSize;
             int chunksInRegion = (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
+
+            var allPlayers = sapi.World.AllOnlinePlayers;
 
             for (int i = fromRing; i <= toRing; i++)
             {
@@ -295,16 +383,60 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             foreach (var i in regionCoordsToDelete)
             {
+                //bool regionDeleted = false;
+
+                /*sapi.WorldManager.TestMapRegionExists(i.X, i.Y, (exec) => 
+                {
+                    if (exec)
+                    {
+                        Debug.WriteLine("Region " + i.X + ", " + i.Y + " exists, deleting");
+                        regionDeleted = true;
+                        sapi.WorldManager.DeleteMapRegion(i.X, i.Y);
+                    }
+                    else
+                    {
+                        regionDeleted = false;
+                        Debug.WriteLine("Region " + i.X + ", " + i.Y + " does not exist, doing nothing");
+                    }
+                });
+
+                if (regionDeleted == false)
+                {
+                    continue;
+                }*/
+
                 sapi.WorldManager.DeleteMapRegion(i.X, i.Y);
+
                 for (int j = i.X * chunksInRegion; j < (i.X * chunksInRegion) + chunksInRegion; j++)
                 {
                     for (int k = i.Y * chunksInRegion; k < (i.Y * chunksInRegion) + chunksInRegion; k++)
                     {
-                        //Debug.WriteLine("I would like to delete the chunk at: " + j + ", " + k);
+                        /*sapi.WorldManager.TestMapChunkExists(j, k, (exec) =>
+                        {
+                            if (exec)
+                            {
+                                Debug.WriteLine("Chunk Col " + j + ", " + k + " exists, deleting");
+                                sapi.WorldManager.DeleteChunkColumn(j, k);
+                            }
+                            else
+                            {
+                                Debug.WriteLine("Chunk Col " + j + ", " + k + " does not exist, doing nothing");
+                            }
+                        });*/
+
                         sapi.WorldManager.DeleteChunkColumn(j, k);
                     }
                 }
-                //Debug.WriteLine("I would like to delete the region at: " + i.X + ", " + i.Y);
+            }
+
+
+            foreach (var ply in allPlayers)
+            {
+                var sply = (ply as IServerPlayer);
+                var eply = ply.Entity;
+                sply.CurrentChunkSentRadius = 0;
+                sapi.WorldManager.ForceSendChunkColumn(sply, (int)(eply.Pos.X / chSize), (int)(eply.Pos.Z / chSize), 1);
+                Debug.WriteLine("Sent chunk " + (int)(eply.Pos.X / chSize) + ", " + (int)(eply.Pos.Z / chSize) + " to player " + sply.PlayerName);
             }
         }
 
@@ -321,7 +453,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             RandomizeRingRange(fromRing, toRing);
             StoreWorldgenData();
             DeleteRingRange(fromRing, toRing);
-            ReloadWorldgenAssets();
+            //ReloadWorldgenAssets();
             StartChunkGeneration();
         }
 
@@ -418,7 +550,6 @@ namespace Rustwall.ModSystems.RingedGenerator
                 {
                     //RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, EnumDistribution.NARROWINVERSEGAUSSIAN);
                     TriggerGreatDecay(1.0f);
-                   
 
                     return TextCommandResult.Success("deleted some shit prolly");
                 });
