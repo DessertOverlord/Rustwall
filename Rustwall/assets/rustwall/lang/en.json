@@ -28,5 +28,10 @@
     "ingameerror-rustwall:interact-repairlock": "This machine is too complex to repair while it's operational!",
     "ingameerror-rustwall:interact-fullyrepaired": "This machine is already fully repaired!",
     "ingameerror-rustwall:interact-notenoughdurability": "My wrench doesn't have enough durability!",
-    "ingameerror-rustwall:interact-wrongitem": "This is the wrong item to repair this machine with!"
+    "ingameerror-rustwall:interact-wrongitem": "This is the wrong item to repair this machine with!",
+
+    "rustwall:introduction-title": "Rustwall: Introduction",
+    "rustwall:introduction-text": "Welcome to Rustwall!\nTo be expanded."
+
+
 }
