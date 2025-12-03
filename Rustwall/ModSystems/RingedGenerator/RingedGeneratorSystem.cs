@@ -383,47 +383,12 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             foreach (var i in regionCoordsToDelete)
             {
-                //bool regionDeleted = false;
-
-                /*sapi.WorldManager.TestMapRegionExists(i.X, i.Y, (exec) => 
-                {
-                    if (exec)
-                    {
-                        Debug.WriteLine("Region " + i.X + ", " + i.Y + " exists, deleting");
-                        regionDeleted = true;
-                        sapi.WorldManager.DeleteMapRegion(i.X, i.Y);
-                    }
-                    else
-                    {
-                        regionDeleted = false;
-                        Debug.WriteLine("Region " + i.X + ", " + i.Y + " does not exist, doing nothing");
-                    }
-                });
-
-                if (regionDeleted == false)
-                {
-                    continue;
-                }*/
-
                 sapi.WorldManager.DeleteMapRegion(i.X, i.Y);
 
                 for (int j = i.X * chunksInRegion; j < (i.X * chunksInRegion) + chunksInRegion; j++)
                 {
                     for (int k = i.Y * chunksInRegion; k < (i.Y * chunksInRegion) + chunksInRegion; k++)
                     {
-                        /*sapi.WorldManager.TestMapChunkExists(j, k, (exec) =>
-                        {
-                            if (exec)
-                            {
-                                Debug.WriteLine("Chunk Col " + j + ", " + k + " exists, deleting");
-                                sapi.WorldManager.DeleteChunkColumn(j, k);
-                            }
-                            else
-                            {
-                                Debug.WriteLine("Chunk Col " + j + ", " + k + " does not exist, doing nothing");
-                            }
-                        });*/
-
                         sapi.WorldManager.DeleteChunkColumn(j, k);
                     }
                 }
@@ -440,28 +405,48 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
         }
 
-        public void TriggerGreatDecay(float stabRatio)
+        public void TriggerGreatDecay(int fromRing, int toRing)
         {
-            int ringsToDelete = (int)(ringMapSize - (ringMapSize * stabRatio));
-            int fromRing = ringsToDelete;
-            int toRing = ringMapSize;
+            if (toRing > ringMapSize)
+            {
+                Debug.WriteLine("Rustwall error: requested deletion exceeds size of ring map. Try a smaller value.");
+                return;
+            }
 
-            //We are not allowed to regen ring 0 (the innermost safe zone). This hardcodes that in even if players let the stability get to 0
-            if (fromRing == 0) { fromRing = 1; }
+            if (fromRing > toRing)
+            {
+                Debug.WriteLine("Rustwall error: fromRing was greater than toRing. What the fuck did you do?");
+                return;
+            }
 
             StopChunkGeneration();
             RandomizeRingRange(fromRing, toRing);
             StoreWorldgenData();
             DeleteRingRange(fromRing, toRing);
-            //ReloadWorldgenAssets();
             StartChunkGeneration();
+        }
+
+        public void TriggerGreatDecay(float stabRatio)
+        {
+            int fromRing = (int)(ringMapSize - (ringMapSize * stabRatio));
+            int toRing = ringMapSize;
+
+            //We are not allowed to regen ring 0 (the innermost safe zone). This hardcodes that in even if players let the stability get to 0
+            if (fromRing == 0) { fromRing = 1; }
+
+            TriggerGreatDecay(fromRing, toRing);
+        }
+
+        public void TriggerGreatDecay(int ring)
+        {
+            TriggerGreatDecay(ring, ring);
         }
 
         private void RegisterChatCommands()
         {
-            sapi.ChatCommands.Create("regreg")
+            /*sapi.ChatCommands.Create("regreg")
                 .WithDescription("I UNNO")
-                .RequiresPrivilege(Privilege.chat)
+                .RequiresPrivilege(Privilege.controlserver)
                 .RequiresPlayer()
                 .WithArgs()
                 .HandleWith((args) =>
@@ -539,24 +524,50 @@ namespace Rustwall.ModSystems.RingedGenerator
                     sapi.Server.ResumeThread("chunkdbthread");
 
                     return TextCommandResult.Success("deleted some stuff?");
-                });
+                });*/
 
-            sapi.ChatCommands.Create("drr")
-                .WithDescription("Destroys all generated terrain except for the safe zone and scrambles worldgen parameters.")
-                .RequiresPrivilege(Privilege.chat)
+            sapi.ChatCommands.Create("rustwall")
+                .RequiresPrivilege(Privilege.controlserver)
                 .RequiresPlayer()
-                .WithArgs()
-                .HandleWith((args) =>
-                {
-                    //RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, EnumDistribution.NARROWINVERSEGAUSSIAN);
-                    TriggerGreatDecay(1.0f);
+                .WithDescription("Manage rustwall-specific functions")
 
-                    return TextCommandResult.Success("deleted some shit prolly");
-                });
+                .BeginSubCommand("delete")
 
-            sapi.ChatCommands.Create("PrintWorldConfig")
+                    .BeginSubCommand("ring")
+                    .WithArgs(sapi.ChatCommands.Parsers.Int("ring"))
+                    .HandleWith((args) =>
+                    {
+                        TriggerGreatDecay((int)args[0]);
+
+                        return TextCommandResult.Success("Deleted ring " + (int)args[0]);
+                    })
+                    .EndSubCommand()
+
+                    .BeginSubCommand("ringrange")
+                    .WithArgs(sapi.ChatCommands.Parsers.Int("fromRing"), sapi.ChatCommands.Parsers.Int("toRing"))
+                    .HandleWith((args) =>
+                    {
+                        TriggerGreatDecay((int)args[0], (int)args[1]);
+
+                        return TextCommandResult.Success("deleted some shit prolly");
+                    })
+                    .EndSubCommand()
+
+                    .BeginSubCommand("ratio")
+                    .WithArgs(sapi.ChatCommands.Parsers.Float("ratio"))
+                    .HandleWith((args) =>
+                    {
+                        TriggerGreatDecay((float)args[0]);
+
+                        return TextCommandResult.Success("deleted some shit prolly");
+                    })
+                    .EndSubCommand()
+
+                .EndSubCommand();
+
+            /*sapi.ChatCommands.Create("PrintWorldConfig")
                 .WithDescription("Does what it says on the tin.")
-                .RequiresPrivilege(Privilege.chat)
+                .RequiresPrivilege(Privilege.controlserver)
                 .RequiresPlayer()
                 .WithArgs()
                 .HandleWith((args) =>
@@ -571,9 +582,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                     }
 
                     return TextCommandResult.Success("Values: " + result);
-                });
-
-
+                });*/
         }
     }
 }
