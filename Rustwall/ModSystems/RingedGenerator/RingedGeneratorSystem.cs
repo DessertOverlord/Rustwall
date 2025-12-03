@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Reflection.Metadata.Ecma335;
 using System.Runtime.InteropServices.JavaScript;
@@ -87,13 +88,10 @@ namespace Rustwall.ModSystems.RingedGenerator
             desiredRing = (int)(double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5);
             if (curRing != desiredRing)
             {
-                Debug.WriteLine("Changing ring generator. Old ring was " + curRing + ", new ring is " + desiredRing);
+                //Debug.WriteLine("Changing ring generator. Old ring was " + curRing + ", new ring is " + desiredRing);
 
                 curRing = desiredRing;
                 SetWorldParams(sapi, ringDictList[curRing], seedList[curRing]);
-
-
-                //RestartChunkGenerator();
             }
         }
 
@@ -207,7 +205,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 default:
                     break;
             }
-            newSeed = sapi.World.Seed + sapi.World.Rand.Next(100000);
+            newSeed = sapi.World.Seed + sapi.World.Rand.Next(1000);
         }
 
         private void RandomizeRing(int ringNumber, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
@@ -353,6 +351,19 @@ namespace Rustwall.ModSystems.RingedGenerator
         {
             sapi.WorldManager.AutoGenerateChunks = true;
             sapi.WorldManager.SendChunks = true;
+
+            int chSize = sapi.WorldManager.ChunkSize;
+            var allPlayers = sapi.World.AllOnlinePlayers;
+
+            foreach (var ply in allPlayers)
+            {
+                var sply = (ply as IServerPlayer);
+                var eply = ply.Entity;
+                sply.CurrentChunkSentRadius = 0;
+                //sapi.WorldManager.ForceSendChunkColumn(sply, (int)(eply.Pos.X / chSize), (int)(eply.Pos.Z / chSize), 1);
+                //Debug.WriteLine("Sent chunk " + (int)(eply.Pos.X / chSize) + ", " + (int)(eply.Pos.Z / chSize) + " to player " + sply.PlayerName);
+                eply.TeleportToDouble(eply.Pos.X, eply.Pos.Y, eply.Pos.Z);
+            }
         }
         //Given a range of rings, erase them and mangle the worldgen params
         private void DeleteRingRange(int fromRing, int toRing) 
@@ -361,7 +372,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             int chSize = sapi.WorldManager.ChunkSize;
             int chunksInRegion = (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
 
-            var allPlayers = sapi.World.AllOnlinePlayers;
 
             for (int i = fromRing; i <= toRing; i++)
             {
@@ -393,20 +403,23 @@ namespace Rustwall.ModSystems.RingedGenerator
                     }
                 }
             }
-
-
-            foreach (var ply in allPlayers)
-            {
-                var sply = (ply as IServerPlayer);
-                var eply = ply.Entity;
-                sply.CurrentChunkSentRadius = 0;
-                sapi.WorldManager.ForceSendChunkColumn(sply, (int)(eply.Pos.X / chSize), (int)(eply.Pos.Z / chSize), 1);
-                Debug.WriteLine("Sent chunk " + (int)(eply.Pos.X / chSize) + ", " + (int)(eply.Pos.Z / chSize) + " to player " + sply.PlayerName);
-            }
         }
 
         public void TriggerGreatDecay(int fromRing, int toRing)
         {
+            //We are not allowed to regen ring 0 (the innermost safe zone). This hardcodes that in even if players let the stability get to 0
+            if (fromRing <= 0)
+            {
+                Debug.WriteLine("Rustwall error: fromRing was less than or equal to 0. Safezone deletions are forbidden. Changing to 1.");
+                fromRing = 1;
+            }
+
+            if (toRing <= 0)
+            {
+                Debug.WriteLine("Rustwall error: toRing was less than or equal to 0. Safezone deletions are forbidden. Changing to 1.");
+                toRing = 1;
+            }
+
             if (toRing > ringMapSize)
             {
                 Debug.WriteLine("Rustwall error: requested deletion exceeds size of ring map. Try a smaller value.");
@@ -420,7 +433,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
 
             StopChunkGeneration();
-            RandomizeRingRange(fromRing, toRing);
+            RandomizeRingRange(fromRing, toRing, EnumDistribution.UNIFORM);
             StoreWorldgenData();
             DeleteRingRange(fromRing, toRing);
             StartChunkGeneration();
@@ -431,8 +444,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             int fromRing = (int)(ringMapSize - (ringMapSize * stabRatio));
             int toRing = ringMapSize;
 
-            //We are not allowed to regen ring 0 (the innermost safe zone). This hardcodes that in even if players let the stability get to 0
-            if (fromRing == 0) { fromRing = 1; }
+
 
             TriggerGreatDecay(fromRing, toRing);
         }
