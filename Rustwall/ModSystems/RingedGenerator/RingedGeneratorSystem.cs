@@ -435,6 +435,18 @@ namespace Rustwall.ModSystems.RingedGenerator
                 return;
             }
 
+            if (fromRing >= ringMapSize)
+            {
+                fromRing = ringMapSize - 1;
+                Debug.WriteLine("Rustwall error: fromRing exceeded size of ring map. This will crash the fuck out of the server");
+            }
+
+            if (toRing >= ringMapSize)
+            {
+                toRing = ringMapSize - 1;
+                Debug.WriteLine("Rustwall error: toRing exceeded size of ring map. This will crash the fuck out of the server");
+            }
+
             StopChunkGeneration();
             RandomizeRingRange(fromRing, toRing, EnumDistribution.UNIFORM);
             StoreWorldgenData();
