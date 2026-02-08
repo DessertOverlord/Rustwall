@@ -79,7 +79,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             int regionX = chunkX / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
             int regionZ = chunkZ / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
             //HandleChunkLoading would perform the same math... so we just figure out what region the chunk is in and call HandleRegionLoading!
-            HandleRegionLoading(null, regionX, regionZ);
+            //HandleRegionLoading(null, regionX, regionZ);
         }
 
         private void HandleRegionLoading(IMapRegion region, int regionX, int regionZ, ITreeAttribute chunkGenParams = null)
@@ -91,6 +91,10 @@ namespace Rustwall.ModSystems.RingedGenerator
                 //Debug.WriteLine("Changing ring generator. Old ring was " + curRing + ", new ring is " + desiredRing);
 
                 curRing = desiredRing;
+
+                var tempvar = ringDictList[curRing];
+                var tempvar2 = seedList[curRing];
+
                 SetWorldParams(sapi, ringDictList[curRing], seedList[curRing]);
             }
         }
@@ -118,7 +122,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                     CreateWorldgenValues(); 
                 }
 
-                for (int i = 0; i < ringMapSize; i++)
+                for (int i = 0; i <= ringMapSize; i++)
                 {
                     byte[] data = sapi.WorldManager.SaveGame.GetData("rustwallRingData_" + i);
                     ringDictList.Add(SerializerUtil.Deserialize<Dictionary<string, double>>(data));
@@ -144,7 +148,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
             // and this adds the rest of them -- note -1 because we already added 1 with the previous loop
             // it needs to be less than or equal to because I want exactly 25 (minus the first one already added), not 24. Otherwise shit goes sideways!
-            for (int i = 0; i <= ringMapSize - 1; i++)
+            for (int i = 1; i <= ringMapSize; i++)
             {
                 RandomizeParams(out Dictionary<string, double> newParams, out int seed, EnumDistribution.NARROWINVERSEGAUSSIAN);
                 seedList.Add(seed);
@@ -221,7 +225,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         private void RandomizeRingRange(int fromRing, int toRing, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
         {
-            for (int i = fromRing; i < toRing; i++)
+            for (int i = fromRing; i <= toRing; i++)
             {
                 RandomizeRing(i, dist);
             }
@@ -307,7 +311,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             mapGenerator.beachGen = GenMaps.GetBeachMapGen(seed + 2273, TerraGenConfig.beachMapScale);
             mapGenerator.geologicprovinceGen = GenMaps.GetGeologicProvinceMapGen(seed + 3, sapi);
             mapGenerator.landformsGen = GenMaps.GetLandformMapGen(seed + 4, noiseClimate, sapi, landformScale); ;
-
         }
 
         //Turns off chunk generation and sending to clients, reloads all of the worldgen parameters (seed, multipliers), and then re-enables everything.
@@ -379,12 +382,12 @@ namespace Rustwall.ModSystems.RingedGenerator
                 var toRegionZ = (int)(i + regionMidPoint + 0.5);
                 var fromRegionX = (int)(regionMidPoint - i - 0.5);
                 var fromRegionZ = (int)(regionMidPoint - i - 0.5);
-                for (int j = fromRegionX; j < toRegionX; j++)
+                for (int j = fromRegionX; j <= toRegionX; j++)
                 {
                     regionCoordsToDelete.Add(new Vec2i(j, fromRegionZ));
                     regionCoordsToDelete.Add(new Vec2i(j, toRegionZ));
                 }
-                for (int j = fromRegionZ; j < toRegionZ; j++)
+                for (int j = fromRegionZ; j <= toRegionZ; j++)
                 {
                     regionCoordsToDelete.Add(new Vec2i(fromRegionX, j));
                     regionCoordsToDelete.Add(new Vec2i(toRegionX, j));
@@ -430,6 +433,18 @@ namespace Rustwall.ModSystems.RingedGenerator
             {
                 Debug.WriteLine("Rustwall error: fromRing was greater than toRing. What the fuck did you do?");
                 return;
+            }
+
+            if (fromRing >= ringMapSize)
+            {
+                fromRing = ringMapSize - 1;
+                Debug.WriteLine("Rustwall error: fromRing exceeded size of ring map. This will crash the fuck out of the server");
+            }
+
+            if (toRing >= ringMapSize)
+            {
+                toRing = ringMapSize - 1;
+                Debug.WriteLine("Rustwall error: toRing exceeded size of ring map. This will crash the fuck out of the server");
             }
 
             StopChunkGeneration();
