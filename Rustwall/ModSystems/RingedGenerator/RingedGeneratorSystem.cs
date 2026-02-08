@@ -411,7 +411,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         public void TriggerGreatDecay(int fromRing, int toRing)
         {
             //We are not allowed to regen ring 0 (the innermost safe zone). This hardcodes that in even if players let the stability get to 0
-            /*if (fromRing <= 0)
+            if (fromRing <= 0)
             {
                 Debug.WriteLine("Rustwall error: fromRing was less than or equal to 0. Safezone deletions are forbidden. Changing to 1.");
                 fromRing = 1;
@@ -421,7 +421,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             {
                 Debug.WriteLine("Rustwall error: toRing was less than or equal to 0. Safezone deletions are forbidden. Changing to 1.");
                 toRing = 1;
-            }*/
+            }
 
             if (toRing > ringMapSize)
             {
