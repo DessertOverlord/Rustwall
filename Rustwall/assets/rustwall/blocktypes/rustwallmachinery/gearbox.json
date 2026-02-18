@@ -56,7 +56,7 @@
     {
       "name": "BehaviorRebuildable",
       "properties": {
-        "canRepairBeforeBroken": false,
+        "type": "simple",
         "stages": [
           {
             "item": "rustwall:gear-iron",

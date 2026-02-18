@@ -53,7 +53,7 @@
     {
       "name": "BehaviorRebuildable",
       "properties": {
-        "canRepairBeforeBroken": true,
+        "type": "simple",
         "stages": [
           {
             "item": "game:rod-tinbronze",

@@ -53,7 +53,7 @@
     {
       "name": "BehaviorRebuildable",
       "properties": {
-        "canRepairBeforeBroken": true,
+        "type": "complex",
         "stages": [
           {
             "item": "game:metal-parts",

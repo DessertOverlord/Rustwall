@@ -12,6 +12,7 @@ using Vintagestory.GameContent;
 using Vintagestory.Server;
 using Vintagestory.API.Config;
 using System.Diagnostics;
+using Vintagestory;
 
 namespace Rustwall.RWBehaviorRebuildable
 {
@@ -31,8 +32,25 @@ namespace Rustwall.RWBehaviorRebuildable
         public override void Initialize(JsonObject properties)
         {
             base.Initialize(properties);
+            
+            //Replaced. This shit is confusing as hell code-wise.
+            //canRepairBeforeBroken = properties["canRepairBeforeBroken"].AsBool();
+            //canRepairBeforeBroken = properties["type"].AsString() == "simple" ? true : false;
+            
+            string type = properties["type"].AsString();
 
-            canRepairBeforeBroken = properties["canRepairBeforeBroken"].AsBool();
+            if (type == "simple")
+            {
+                canRepairBeforeBroken = true;
+            } 
+            else if (type == "complex")
+            {
+                canRepairBeforeBroken = false;
+            } 
+            else
+            {
+                Debug.WriteLine("CRITICAL: Asset loaded with incorrect type: " + block.Code);
+            }
 
             var stages = properties["stages"].AsArray();
             
@@ -54,26 +72,25 @@ namespace Rustwall.RWBehaviorRebuildable
 
             IServerPlayer serverPlayer = world.Side == EnumAppSide.Server ? (byPlayer as IServerPlayer) : null;
 
-            if (be.repairLock)
-            {
-                serverPlayer?.SendIngameError("rustwall:interact-repairlock");
-                return true;
-            }
-
-            if (be.rebuildStage == be.maxStage)
-            {
-                serverPlayer?.SendIngameError("rustwall:interact-fullyrepaired");
-                return true;
-            }
-
             //there is no case where the block should do something when a player's hand is empty
             if (slot.Empty || slot.Itemstack == null || be == null)
             {
                 serverPlayer?.SendIngameError("rustwall:interact-emptyhand");
                 return true;
             }
+            if (be.rebuildStage == be.maxStage)
+            {
+                serverPlayer?.SendIngameError("rustwall:interact-fullyrepaired");
+                return true;
+            }
 
-            //if the block is not able to be partially repaired, this resets the repair lock on the block on the next interaction
+            if (be.repairLock)
+            {
+                serverPlayer?.SendIngameError("rustwall:interact-repairlock");
+                return true;
+            }
+
+            //if the block is not able to be partially repaired, this resets the repair lock on the block on the next interaction once it breaks fully
             if (be.repairLock && be.rebuildStage == 0 && be.itemsUsedThisStage == 0) 
             {
                 be.repairLock = false;

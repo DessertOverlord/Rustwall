@@ -32,7 +32,7 @@
     {
       "name": "BehaviorRebuildable",
       "properties": {
-        "canRepairBeforeBroken" : false,
+        "type": "simple",
         "stages": [
           {
             "item": "game:metalplate-electrum",
