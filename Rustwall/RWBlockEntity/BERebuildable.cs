@@ -19,9 +19,22 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 {
     public class BlockEntityRebuildable : BlockEntity
     {
+        /// <summary>
+        /// Maximum number of repairable stages for this block. This is determined by the length of the item and quantity lists in the BehaviorRebuildable, and is set on initialization.
+        /// </summary>
         public int maxStage { get; private set; }
+        /// <summary>
+        /// Current repair stage of the block. 0 is the initial, fully broken state, and maxStage is fully repaired. This is saved to world data, and is used to determine what the block looks like and what items are needed to repair it further.
+        /// </summary>
         public int rebuildStage;
+        /// <summary>
+        /// Gets or sets the number of items used in the current stage.
+        /// </summary>
         public int itemsUsedThisStage;
+        /// <summary>
+        /// Gets or sets a value indicating whether the repair lock is enabled.
+        /// </summary>
+        /// <remarks>When set to <see langword="true"/>, repairs are disabled for the block until set to false.</remarks>
         public bool repairLock;
         public bool isFullyRepaired { get { return rebuildStage >= maxStage; } }
         public BehaviorRebuildable ownBehavior;
@@ -72,13 +85,13 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
         public void ActivateAnimations()
         {
-            animUtil?.StartAnimation(new AnimationMetaData() { Animation = "active", Code = "active", EaseInSpeed = 1, EaseOutSpeed = 1, AnimationSpeed = 1f });
+            animUtil?.StartAnimation(new AnimationMetaData() { Animation = "active", Code = Block.Code + "active", EaseInSpeed = 1, EaseOutSpeed = 1, AnimationSpeed = 1f });
             MarkDirty(true);
         }
 
         public void DeactivateAnimations()
         {
-            animUtil?.StopAnimation("active");
+            animUtil?.StopAnimation(Block.Code + "active");
             MarkDirty(true);
         }
 

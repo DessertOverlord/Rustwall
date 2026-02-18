@@ -226,25 +226,10 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public void DoBreakFully(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
         {
-            world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
-
-            if (be.isFullyRepaired)
+            for (int i = 0; i < be.rebuildStage; i++)
             {
-                Block newBlock = world.GetBlock(block.CodeWithVariant("repairstate", "broken"));
-                world.BlockAccessor.SetBlock(newBlock.Id, blockSel.Position);
-
-                var newBE = world.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(blockSel.Position);
-
-                if (newBE != null)
-                {
-                    newBE.rebuildStage = 0;
-                    newBE.itemsUsedThisStage = 0;
-                    newBE.repairLock = be.repairLock;
-                }
+                DamageOneStage(world, byPlayer, be, blockSel);
             }
-
-            be.rebuildStage = 0;
-            be.itemsUsedThisStage = 0;
         }
 
         public bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
