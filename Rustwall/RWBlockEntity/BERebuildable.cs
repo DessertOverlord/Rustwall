@@ -41,7 +41,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             ownBehavior = Block.BlockBehaviors.ToList().Find(x => x.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable;
             maxStage = ownBehavior.numStages;
 
-            if (Block.Variant["repairstate"] == "repaired") { rebuildStage = maxStage; ActivateAnimations(); }
+            if (Block.Variant["repairstate"] == "repaired") { rebuildStage = maxStage; ActivateAnimations(); if (!ownBehavior.canRepairBeforeBroken) { repairLock = true; } }
 
             string rebuildableID = "";
 
@@ -66,8 +66,6 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                 // I just removed them instead :]
                 ownBehavior.DoFullRepair(api.World, this);
             }
-
-
         }
 
         public void ActivateAnimations()

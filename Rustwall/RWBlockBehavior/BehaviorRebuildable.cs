@@ -346,7 +346,11 @@ namespace Rustwall.RWBehaviorRebuildable
                 beb.AddContributor();
             }
 
-            be.repairLock = true;
+            if (!canRepairBeforeBroken)
+            {
+                be.repairLock = true;
+            }
+
             be.ActivateAnimations();
         }
     }
