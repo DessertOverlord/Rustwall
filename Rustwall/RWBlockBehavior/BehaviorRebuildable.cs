@@ -274,13 +274,15 @@ namespace Rustwall.RWBehaviorRebuildable
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), be.Pos, -0.25, null, true, 16);
             be.MarkDirty(true);
 
-            if (be.isFullyRepaired)
+            be.rebuildStage--;
+            be.itemsUsedThisStage = 0;
+
+            //We only want to make it appear broken if it is fully broken, not partially damaged.
+            if (be.rebuildStage <= 0)
             {
                 int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "broken")).Id;
                 world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
             }
-            be.rebuildStage--;
-            be.itemsUsedThisStage = 0;
 
             //We want to remove a contributor only if it is fully destroyed.
             if (be.rebuildStage == 0)

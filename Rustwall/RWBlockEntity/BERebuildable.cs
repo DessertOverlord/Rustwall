@@ -44,7 +44,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         /// </summary>
         public BehaviorRebuildable ownBehavior;
         /// <summary>
-        /// Duration in game calendar days of the repair grace period
+        /// Duration in game calendar days of the current repair grace period
         /// </summary>
         public double gracePeriodDuration = 0;
         /// <summary>
