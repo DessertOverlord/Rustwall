@@ -278,15 +278,12 @@ namespace Rustwall.RWBehaviorRebuildable
             be.itemsUsedThisStage = 0;
 
             //We only want to make it appear broken if it is fully broken, not partially damaged.
-            if (be.rebuildStage <= 0)
-            {
-                int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "broken")).Id;
-                world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
-            }
-
             //We want to remove a contributor only if it is fully destroyed.
             if (be.rebuildStage == 0)
             {
+                int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "broken")).Id;
+                world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
+
                 var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
                 if (beb != null)
                 {
