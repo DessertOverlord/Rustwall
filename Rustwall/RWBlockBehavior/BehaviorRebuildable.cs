@@ -164,8 +164,6 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public override string GetPlacedBlockInfo(IWorldAccessor world, BlockPos pos, IPlayer forPlayer)
         {
-            //string text = base.GetPlacedBlockInfo(world, pos, forPlayer).Trim();
-
             BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityRebuildable;
 
             if (be is null)
@@ -174,8 +172,6 @@ namespace Rustwall.RWBehaviorRebuildable
             }
             else 
             {
-                //Debugging
-                //return text + "rebuildStage: " + be.rebuildStage + "\nitemsUsedThisStage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock;
                 string outputText = "";
                 if (be.rebuildStage == be.maxStage)
                 {
@@ -196,6 +192,9 @@ namespace Rustwall.RWBehaviorRebuildable
                 {
                     outputText = "Broken";
                 }
+
+                //Debugging
+                outputText += ("\nrebuildStage: " + be.rebuildStage + "\nitemsUsedThisStage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + be.gracePeriodDuration);
 
                 return outputText; 
             }
@@ -333,6 +332,11 @@ namespace Rustwall.RWBehaviorRebuildable
             {
                 DoFullRepair(world, be);
             }
+            else
+            {
+                //replace with config-derived value later
+                be.gracePeriodDuration = 0.2;
+            }
 
             return true;
         }
@@ -354,6 +358,9 @@ namespace Rustwall.RWBehaviorRebuildable
             }
 
             be.ActivateAnimations();
+
+            //replace with config-derived value later
+            be.gracePeriodDuration = 1.0;
         }
     }
 }
