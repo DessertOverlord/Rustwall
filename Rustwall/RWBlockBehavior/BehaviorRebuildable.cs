@@ -68,7 +68,9 @@ namespace Rustwall.RWBehaviorRebuildable
             //handling = EnumHandling.PreventSubsequent;
             handling = EnumHandling.Handled;
             ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
-            BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityRebuildable;
+            var be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityRebuildable;
+
+
 
             IServerPlayer serverPlayer = world.Side == EnumAppSide.Server ? (byPlayer as IServerPlayer) : null;
 
@@ -78,6 +80,7 @@ namespace Rustwall.RWBehaviorRebuildable
                 serverPlayer?.SendIngameError("rustwall:interact-emptyhand");
                 return true;
             }
+
             if (be.rebuildStage == be.maxStage)
             {
                 serverPlayer?.SendIngameError("rustwall:interact-fullyrepaired");

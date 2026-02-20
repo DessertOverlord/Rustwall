@@ -19,13 +19,42 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 {
     public class BlockEntityRebuildable : BlockEntity
     {
+        /// <summary>
+        /// Maximum number of rebuild stages
+        /// </summary>
         public int maxStage { get; private set; }
+        /// <summary>
+        /// Current rebuild stage
+        /// </summary>
         public int rebuildStage;
+        /// <summary>
+        /// Number of items used to repair; typically items work towards completing a stage
+        /// </summary>
         public int itemsUsedThisStage;
+        /// <summary>
+        /// Whether or not repairs are disabled; used for complex machines
+        /// </summary>
         public bool repairLock;
+        /// <summary>
+        /// Simple bool for whether or not the machine is fully repaired.
+        /// </summary>
         public bool isFullyRepaired { get { return rebuildStage >= maxStage; } }
+        /// <summary>
+        /// Easy way to access this BE's own behavior
+        /// </summary>
         public BehaviorRebuildable ownBehavior;
-
+        /// <summary>
+        /// Duration in game calendar days of the repair grace period
+        /// </summary>
+        public double gracePeriodDuration = 0;
+        /// <summary>
+        /// Simple bool for whether or not the grace period is currently active
+        /// </summary>
+        public bool isGracePeriodActive { get { return gracePeriodDuration > 0; } }
+        /// <summary>
+        /// String for the rebuildable block ID / hash code, used to determine if the
+        /// items needed to repair a block have changed.
+        /// </summary>
         private string curRebID = "";
         BlockEntityAnimationUtil animUtil
         {
