@@ -13,6 +13,7 @@ using Vintagestory.Server;
 using Vintagestory.API.Config;
 using System.Diagnostics;
 using Vintagestory;
+using Rustwall.ModSystems.RebuildableBlock;
 
 namespace Rustwall.RWBehaviorRebuildable
 {
@@ -194,7 +195,10 @@ namespace Rustwall.RWBehaviorRebuildable
                 }
 
                 //Debugging
-                outputText += ("\nrebuildStage: " + be.rebuildStage + "\nitemsUsedThisStage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + be.gracePeriodDuration);
+                if (world?.Api.Side == EnumAppSide.Client && (world?.Api as ICoreClientAPI).Settings.Bool.Get("extendedDebugInfo") == true)
+                {
+                    outputText += ("\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + be.gracePeriodDuration);
+                }
 
                 return outputText; 
             }
