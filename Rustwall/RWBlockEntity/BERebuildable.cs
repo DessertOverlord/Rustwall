@@ -1,6 +1,8 @@
 ﻿using Microsoft.Win32.SafeHandles;
+using Rustwall.ModSystems.GlobalStability;
 using Rustwall.ModSystems.RebuildableBlock;
 using Rustwall.RWBehaviorRebuildable;
+using Rustwall.RWEntityBehavior;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,6 +13,7 @@ using System.Threading.Tasks;
 //using Rustwall.RWBlockBehavior;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
+using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 
@@ -52,10 +55,23 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         /// </summary>
         public bool isGracePeriodActive { get { return gracePeriodDuration > 0; } }
         /// <summary>
+        /// Date in calendar days when the grace period will expire. Easier to calculate with.
+        /// </summary>
+        public double gracePeriodExpirationDate { get { return gracePeriodDuration + sapi.World.Calendar.ElapsedDays; } }
+
+        public GlobalStabilitySystem globalStabSys;
+
+        public BlockEntityRebuildable ber;
+        public int curStability { get; private set; } //= 0;
+        public int maxStability { get; private set; } //= 0;
+
+        public ICoreServerAPI sapi;
+        /// <summary>
         /// String for the rebuildable block ID / hash code, used to determine if the
         /// items needed to repair a block have changed.
         /// </summary>
         private string curRebID = "";
+
         BlockEntityAnimationUtil animUtil
         {
             get { return GetBehavior<BEBehaviorAnimatable>()?.animUtil; }
@@ -65,8 +81,15 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         {
             base.Initialize(api);
 
-            if (api as ICoreServerAPI == null) animUtil?.InitializeAnimator("rebuildableblock");
-
+            if (api.Side == EnumAppSide.Client) 
+            {
+                animUtil?.InitializeAnimator("rebuildableblock");
+            }  
+            else if (api.Side == EnumAppSide.Server)
+            {
+                sapi = api as ICoreServerAPI;
+            }
+            
             ownBehavior = Block.BlockBehaviors.ToList().Find(x => x.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable;
             maxStage = ownBehavior.numStages;
 
@@ -95,6 +118,30 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                 // I just removed them instead :]
                 ownBehavior.DoFullRepair(api.World, this);
             }
+
+            //Global Stability section
+
+            if (api.Side == EnumAppSide.Server)
+            {
+                maxStability = GetBehavior<BEBehaviorGloballyStable>().properties["value"].AsInt();
+                ber = this;
+
+                globalStabSys = (api as ICoreServerAPI).ModLoader.GetModSystem<GlobalStabilitySystem>();
+                globalStabSys.allStableBlockEntities.Add(ber.Pos);
+
+                int berRepairedBlockID = api.World.GetBlock(Block.CodeWithVariant("repairstate", "repaired")).Id;
+
+                if (ber != null && ber.Block.Id == berRepairedBlockID)
+                {
+                    curStability = maxStability;
+                    globalStabSys.stabilityContributors.Add(ber.Pos);
+                }
+
+                ber.ber = ber;
+                ber.globalStabSys = globalStabSys;
+
+                ber.RegisterGameTickListener(QueryAndUpdateCurrentStability, 5000);
+            }
         }
 
         public void ActivateAnimations()
@@ -107,6 +154,78 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         {
             animUtil?.StopAnimation("active");
             MarkDirty(true);
+        }
+
+        public void QueryAndUpdateCurrentStability(float dt)
+        {
+            //check that this is actually a rebuildable block
+            if (ber != null)
+            {
+                //if the block is already fully repaired and the stability is already set to max, we don't care to check again
+                if (ber.rebuildStage == ber.maxStage && curStability == maxStability) { return; }
+
+                //if the block is rebuilt but our current stability is still zero, correct it and add the block to the list of contributors
+                if (ber.rebuildStage == ber.maxStage && curStability == 0)
+                {
+                    curStability = maxStability;
+                    globalStabSys.stabilityContributors.Add(ber.Pos);
+                }
+                //if the block is not rebuilt and our current stability is not zero, correct it and make sure we're not in the list of contributors
+                else if (ber.rebuildStage != ber.maxStage && curStability != 0)
+                {
+                    curStability = 0;
+                    bool result = globalStabSys.stabilityContributors.Remove(ber.Pos);
+                    if (result == true)
+                    {
+                        Debug.WriteLine("ber was removed");
+                    }
+                    else
+                    {
+                        Debug.WriteLine("ber was not removed");
+                    }
+                }
+            }
+            //just in case someone is a doofus
+            else
+            {
+                curStability = maxStability;
+                globalStabSys.stabilityContributors.Add(ber.Pos);
+            }
+        }
+
+        public override void OnBlockRemoved()
+        {
+            base.OnBlockRemoved();
+
+            if (Api.Side == EnumAppSide.Server)
+            {
+                globalStabSys.stabilityContributors.Remove(ber.Pos);
+                globalStabSys.allStableBlockEntities.Remove(ber.Pos);
+            }
+        }
+
+        public void RemoveContributor()
+        {
+            if (Api.Side == EnumAppSide.Server && ber != null)
+            {
+                curStability = 0;
+                bool x = globalStabSys.stabilityContributors.Remove(ber.Pos);
+
+                if (globalStabSys.stabilityContributors.Count >= 1)
+                {
+                    BlockPos efjs = globalStabSys.stabilityContributors[0];
+                    bool y = efjs == ber.Pos;
+                }
+            }
+        }
+
+        public void AddContributor()
+        {
+            if (Api.Side == EnumAppSide.Server && ber != null)
+            {
+                curStability = maxStability;
+                globalStabSys.stabilityContributors.Add(ber.Pos);
+            }
         }
 
         public override void ToTreeAttributes(ITreeAttribute tree)

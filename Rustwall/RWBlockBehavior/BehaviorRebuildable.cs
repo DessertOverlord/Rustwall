@@ -170,6 +170,8 @@ namespace Rustwall.RWBehaviorRebuildable
         {
             BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityRebuildable;
 
+            //var globalStabBehav = be?.GetBehavior<BEBehaviorGloballyStable>();
+
             if (be is null)
             {
                 return "Undefined";
@@ -198,9 +200,13 @@ namespace Rustwall.RWBehaviorRebuildable
                 }
 
                 //Debugging
-                if (world?.Api.Side == EnumAppSide.Client && (world?.Api as ICoreClientAPI).Settings.Bool.Get("extendedDebugInfo") == true)
+                if (world?.Api.Side == EnumAppSide.Client && (world?.Api as ICoreClientAPI)?.Settings.Bool.Get("extendedDebugInfo") == true)
                 {
-                    outputText += ("\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + be.gracePeriodDuration);
+                    string machineType = canRepairBeforeBroken ? "Simple" : "Complex";
+
+                    outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + be.gracePeriodDuration);
+
+                    outputText += ("\nCurrent Global Stability Contribution: " + be.curStability);
                 }
 
                 return outputText; 
@@ -290,10 +296,10 @@ namespace Rustwall.RWBehaviorRebuildable
                 int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "broken")).Id;
                 world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
 
-                var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-                if (beb != null)
+                //var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                if (be != null)
                 {
-                    beb.RemoveContributor();
+                    be.RemoveContributor();
                 }
 
                 be.DeactivateAnimations();
@@ -353,10 +359,10 @@ namespace Rustwall.RWBehaviorRebuildable
             int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "repaired")).Id;
             world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
 
-            var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-            if (beb != null)
+            //var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+            if (be != null)
             {
-                beb.AddContributor();
+                be.AddContributor();
             }
 
             if (!canRepairBeforeBroken)

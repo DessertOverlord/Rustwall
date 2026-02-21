@@ -16,7 +16,7 @@ using Vintagestory.GameContent;
 
 namespace Rustwall.ModSystems.GlobalStability
 {
-    internal class GlobalStabilitySystem : RustwallModSystem
+    public class GlobalStabilitySystem : RustwallModSystem
     {
         [ProtoContract(ImplicitFields = ImplicitFields.AllPublic)]
         private class globalStabilityRuntimeData
@@ -104,6 +104,26 @@ namespace Rustwall.ModSystems.GlobalStability
 
         private void onGlobalStabilityTick(float dt)
         {
+            //Run through all of the GlobalStabilityBlockEntities and update them first
+            /*foreach (var item in allStableBlockEntities)
+            {
+                var RBitem = sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(item);
+
+                if (RBitem is not null)
+                {
+                    var globalStabBehav = RBitem.GetBehavior<BEBehaviorGloballyStable>();
+
+                    if (globalStabBehav is not null)
+                    {
+                        globalStabBehav.QueryAndUpdateCurrentStability(0);
+                    }
+
+
+                }
+
+
+            }*/
+
             //Checks if there have actually been any changes since last time -- if not we don't care
             if (!allStableBlockEntities.SequenceEqual(previousStableBlockEntities)) {
                 //reset our amount
@@ -112,8 +132,9 @@ namespace Rustwall.ModSystems.GlobalStability
                 foreach (var bePos in allStableBlockEntities)
                 {
                     //var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-                    var beb = sapi.World.BlockAccessor.GetBlockEntity(bePos)?.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-                    possibleGlobalStability += beb?.maxStability != null ? beb.maxStability : 0;
+                    //var beb = sapi.World.BlockAccessor.GetBlockEntity(bePos)?.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                    var be = sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(bePos);
+                    possibleGlobalStability += be?.maxStability != null ? be.maxStability : 0;
                 }
                 //add our current working list to the previous list, for future checking
                 previousStableBlockEntities = new List<BlockPos> { };
@@ -127,8 +148,9 @@ namespace Rustwall.ModSystems.GlobalStability
                 foreach (var bePos in stabilityContributors)
                 {
                     //var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-                    var beb = sapi.World.BlockAccessor.GetBlockEntity(bePos)?.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-                    globalStability += beb?.curStability != null ? beb.curStability : 0;
+                    //var beb = sapi.World.BlockAccessor.GetBlockEntity(bePos)?.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                    var be = sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(bePos);
+                    globalStability += be?.curStability != null ? be.curStability : 0;
                 }
                 previousStabilityContributors = new List<BlockPos> { };
                 previousStabilityContributors.AddRange(stabilityContributors);
@@ -179,7 +201,21 @@ namespace Rustwall.ModSystems.GlobalStability
                 // Also check if it's already destroyed -- no reason to run all of this code if it's already broken.
                 // We ALSO want to check if the machine is a complex machine -- if the complex machine is not fully repaired, don't break it.
                 BlockEntityRebuildable RBitem = sapi.World.BlockAccessor.GetBlockEntity(item) as BlockEntityRebuildable;
-                if (RBitem == null || RBitem.rebuildStage == 0 || RBitem.repairLock == false) { continue; }
+                if (RBitem == null || RBitem.rebuildStage == 0 || (!RBitem.ownBehavior.canRepairBeforeBroken && RBitem.repairLock == false)) { continue; }
+
+                //Check to see if we're under a grace period. If we subtract the amount of time that has passed since last execution
+                // and the grace period has elapsed, then we should proceed with damaging it.
+                if (RBitem.isGracePeriodActive)
+                {
+                    if (RBitem.gracePeriodExpirationDate <= sapi.World.Calendar.TotalDays)
+                    {
+                        RBitem.gracePeriodDuration = 0;
+                    }
+                    else
+                    {
+                        continue;
+                    }
+                }
 
                 double damageChanceMultiplier;
                 if (sapi.ModLoader.GetModSystem<TemporalStormHandlerSystem>().IsStormActive())
