@@ -91,6 +91,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
             
             ownBehavior = Block.BlockBehaviors.ToList().Find(x => x.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable;
+            maxStability = GetBehavior<BEBehaviorGloballyStable>().properties["value"].AsInt();
             maxStage = ownBehavior.numStages;
 
             if (Block.Variant["repairstate"] == "repaired") { rebuildStage = maxStage; ActivateAnimations(); if (!ownBehavior.canRepairBeforeBroken) { repairLock = true; } }
@@ -121,24 +122,28 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             //Global Stability section
 
+            string berRepairedBlockID = Block.CodeWithVariant("repairstate", "repaired");
+
+            if (this != null && Block.Code == berRepairedBlockID)
+            {
+                curStability = maxStability;
+            }
+
             if (api.Side == EnumAppSide.Server)
             {
-                maxStability = GetBehavior<BEBehaviorGloballyStable>().properties["value"].AsInt();
+                
                 ber = this;
 
                 globalStabSys = (api as ICoreServerAPI).ModLoader.GetModSystem<GlobalStabilitySystem>();
                 globalStabSys.allStableBlockEntities.Add(ber.Pos);
 
-                int berRepairedBlockID = api.World.GetBlock(Block.CodeWithVariant("repairstate", "repaired")).Id;
+                //int berRepairedBlockID = api.World.GetBlock(Block.CodeWithVariant("repairstate", "repaired")).Id;
 
-                if (ber != null && ber.Block.Id == berRepairedBlockID)
+                if (ber != null && Block.Code == berRepairedBlockID)
                 {
                     curStability = maxStability;
                     globalStabSys.stabilityContributors.Add(ber.Pos);
                 }
-
-                ber.ber = ber;
-                ber.globalStabSys = globalStabSys;
 
                 ber.RegisterGameTickListener(QueryAndUpdateCurrentStability, 5000);
             }
@@ -206,7 +211,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
         public void RemoveContributor()
         {
-            if (Api.Side == EnumAppSide.Server && ber != null)
+            if (ber != null)
             {
                 curStability = 0;
                 bool x = globalStabSys.stabilityContributors.Remove(ber.Pos);
@@ -221,7 +226,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
         public void AddContributor()
         {
-            if (Api.Side == EnumAppSide.Server && ber != null)
+            if (ber != null)
             {
                 curStability = maxStability;
                 globalStabSys.stabilityContributors.Add(ber.Pos);

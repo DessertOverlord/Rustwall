@@ -206,7 +206,7 @@ namespace Rustwall.RWBehaviorRebuildable
 
                     outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + be.gracePeriodDuration);
 
-                    outputText += ("\nCurrent Global Stability Contribution: " + be.curStability);
+                    outputText += ("\nCurrent Global Stability Contribution: " + be.curStability + "\nMax Global Stability Contribution: " + be.maxStability);
                 }
 
                 return outputText; 
