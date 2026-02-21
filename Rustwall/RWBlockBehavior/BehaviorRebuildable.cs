@@ -14,6 +14,8 @@ using Vintagestory.API.Config;
 using System.Diagnostics;
 using Vintagestory;
 using Rustwall.ModSystems.RebuildableBlock;
+using Rustwall.Configs;
+using Rustwall.ModSystems;
 
 namespace Rustwall.RWBehaviorRebuildable
 {
@@ -25,6 +27,8 @@ namespace Rustwall.RWBehaviorRebuildable
         public List<int> quantityPerStage { get; private set; } = new List<int>();
 
         private static List<ItemStack> allWrenchItemStacks = [];
+
+        public static RustwallConfig config;
 
         public BehaviorRebuildable(Block block) : base(block)
         {
@@ -39,6 +43,8 @@ namespace Rustwall.RWBehaviorRebuildable
             //canRepairBeforeBroken = properties["type"].AsString() == "simple" ? true : false;
             
             string type = properties["type"].AsString();
+
+            config = RustwallModSystem.config;
 
             if (type == "simple")
             {
@@ -66,12 +72,9 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ref EnumHandling handling)
         {
-            //handling = EnumHandling.PreventSubsequent;
             handling = EnumHandling.Handled;
             ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
             var be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityRebuildable;
-
-
 
             IServerPlayer serverPlayer = world.Side == EnumAppSide.Server ? (byPlayer as IServerPlayer) : null;
 
@@ -339,7 +342,7 @@ namespace Rustwall.RWBehaviorRebuildable
             else
             {
                 //replace with config-derived value later
-                be.gracePeriodDuration = 0.2;
+                be.gracePeriodDuration = config.GracePeriodDurationRepairOneStage;
             }
 
             return true;
@@ -364,7 +367,7 @@ namespace Rustwall.RWBehaviorRebuildable
             be.ActivateAnimations();
 
             //replace with config-derived value later
-            be.gracePeriodDuration = 1.0;
+            be.gracePeriodDuration = config.GracePeriodDurationRepairFully;
         }
     }
 }

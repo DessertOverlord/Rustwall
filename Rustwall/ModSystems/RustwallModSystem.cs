@@ -9,7 +9,7 @@ namespace Rustwall.ModSystems
     public abstract class RustwallModSystem : ModSystem
     {
         protected ICoreServerAPI sapi;
-        public RustwallConfig config;
+        public static RustwallConfig config;
         private readonly string configName = "rustwall.json";
         public override void StartServerSide(ICoreServerAPI api)
         {
