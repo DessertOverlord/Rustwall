@@ -72,7 +72,7 @@ namespace Rustwall.RWEntityBehavior
 
         }
 
-        public void QueryAndUpdateCurrentStability(float dt)
+        /*public void QueryAndUpdateCurrentStability(float dt)
         {
             //check that this is actually a rebuildable block
             if (ber != null)
@@ -107,7 +107,7 @@ namespace Rustwall.RWEntityBehavior
                 curStability = maxStability;
                 modsys.stabilityContributors.Add(ber.Pos);
             }
-        }
+        }*/
 
         public void RemoveContributor()
         {
