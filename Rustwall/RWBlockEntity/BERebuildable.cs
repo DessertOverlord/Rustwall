@@ -8,13 +8,17 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Runtime.ConstrainedExecution;
+using System.Runtime.InteropServices.Marshalling;
 using System.Text;
 using System.Threading.Tasks;
+using Vintagestory;
+
 //using Rustwall.RWBlockBehavior;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
+using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
 
@@ -75,17 +79,15 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         BlockEntityAnimationUtil animUtil
         {
             get { return GetBehavior<BEBehaviorAnimatable>()?.animUtil; }
-        } 
+        }
 
         public override void Initialize(ICoreAPI api)
         {
             base.Initialize(api);
 
-            if (api.Side == EnumAppSide.Client) 
-            {
-                animUtil?.InitializeAnimator("rebuildableblock");
-            }  
-            else if (api.Side == EnumAppSide.Server)
+            InitAnimations(api);
+
+            if (api.Side == EnumAppSide.Server)
             {
                 sapi = api as ICoreServerAPI;
             }
@@ -149,16 +151,35 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
         }
 
-        public void ActivateAnimations()
+        protected virtual void InitAnimations(ICoreAPI api)
         {
-            animUtil?.StartAnimation(new AnimationMetaData() { Animation = "active", Code = "active", EaseInSpeed = 1, EaseOutSpeed = 1, AnimationSpeed = 1f });
-            MarkDirty(true);
+            sapi.Logger.Error("Animatible Rustwall Machine initialized with BlockEntityRebuildable. Move it to its own BlockEntity for animations to work!");
+        }
+       
+        protected virtual void ActivateAnimations()
+        {
+            sapi.Logger.Error("Animatible Rustwall Machine initialized with BlockEntityRebuildable. Move it to its own BlockEntity for animations to work!");
         }
 
-        public void DeactivateAnimations()
+        protected virtual void DeactivateAnimations()
         {
-            animUtil?.StopAnimation("active");
-            MarkDirty(true);
+            sapi.Logger.Error("Animatible Rustwall Machine initialized with BlockEntityRebuildable. Move it to its own BlockEntity for animations to work!");
+        }
+
+        //Because the behavior calls ActivateAnimations and DeactivateAnimations on the server,
+        //we need to make sure the client does the same because animUtil is not defined server-side.
+        //We use network packets to achieve this as it syncs with all players.
+        public override void OnReceivedServerPacket(int packetid, byte[] data)
+        {
+            base.OnReceivedServerPacket(packetid, data);
+
+            if (packetid == 1)
+            {
+                bool active = SerializerUtil.Deserialize<bool>(data);
+
+                if (active) { ActivateAnimations(); }
+                else { DeactivateAnimations(); }
+            }
         }
 
         public void QueryAndUpdateCurrentStability(float dt)

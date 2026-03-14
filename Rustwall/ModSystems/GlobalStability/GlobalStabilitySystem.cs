@@ -65,7 +65,10 @@ namespace Rustwall.ModSystems.GlobalStability
             }
             catch (Exception)
             {
-                sapi.World.Logger.Error("Failed loading global stability data, will initialize new data set");
+                if (!sapi.WorldManager.SaveGame.IsNew)
+                {
+                    sapi.World.Logger.Error("Failed to load existing global stability data.");
+                }
             }
 
             sapi.Event.GameWorldSave += Event_GameWorldSave;
@@ -74,7 +77,7 @@ namespace Rustwall.ModSystems.GlobalStability
             {
                 if (sapi.WorldManager.SaveGame.IsNew || data == null)
                 {
-                    sapi.World.Logger.Error("Failed loading global stability data, will initialize new data set");
+                    sapi.World.Logger.Notification("Failed to load global stability data, will initialize new data set. Normal on first world load.");
 
                     data = new globalStabilityRuntimeData()
                     {

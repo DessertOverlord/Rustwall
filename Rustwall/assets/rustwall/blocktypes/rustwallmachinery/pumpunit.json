@@ -37,7 +37,8 @@
   "resistance": 8,
   "sidesolid": { "all": false },
   "sideopaque": { "all": false },
-  "entityClass": "BlockEntityRebuildable",
+  //"entityClass": "BlockEntityRebuildable",
+  "entityClass": "BlockEntityPumpUnit",
   "entityBehaviors": [
     {
       "name": "BehaviorGloballyStable",

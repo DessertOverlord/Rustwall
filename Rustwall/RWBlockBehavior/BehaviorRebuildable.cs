@@ -204,7 +204,7 @@ namespace Rustwall.RWBehaviorRebuildable
                 {
                     string machineType = canRepairBeforeBroken ? "Simple" : "Complex";
 
-                    outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + be.gracePeriodDuration);
+                    outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + be.gracePeriodDuration + " days");
 
                     outputText += ("\nCurrent Global Stability Contribution: " + be.curStability + "\nMax Global Stability Contribution: " + be.maxStability);
                 }
@@ -260,38 +260,7 @@ namespace Rustwall.RWBehaviorRebuildable
         {
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
 
-            if (be.isFullyRepaired)
-            {
-                Block newBlock = world.GetBlock(block.CodeWithVariant("repairstate", "broken"));
-                world.BlockAccessor.SetBlock(newBlock.Id, blockSel.Position);
-
-                var newBE = world.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(blockSel.Position);
-
-                if (newBE != null)
-                {
-                    newBE.rebuildStage = 0;
-                    newBE.itemsUsedThisStage = 0;
-                    newBE.repairLock = be.repairLock;
-                }
-            }
-
-            be.rebuildStage = 0;
-            be.itemsUsedThisStage = 0;
-        }
-
-        public bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
-        {
-            if (be.rebuildStage <= 0) { return false; }
-
-            world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), be.Pos, -0.25, null, true, 16);
-            be.MarkDirty(true);
-
-            be.rebuildStage--;
-            be.itemsUsedThisStage = 0;
-
-            //We only want to make it appear broken if it is fully broken, not partially damaged.
-            //We want to remove a contributor only if it is fully destroyed.
-            if (be.rebuildStage == 0)
+            if (true)
             {
                 int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "broken")).Id;
                 world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
@@ -302,12 +271,54 @@ namespace Rustwall.RWBehaviorRebuildable
                     be.RemoveContributor();
                 }
 
-                be.DeactivateAnimations();
+                DeactivateAnimations(world, be);
 
                 be.repairLock = false;
+
+                be.MarkDirty(true);
             }
 
-            return true;
+            be.rebuildStage = 0;
+            be.itemsUsedThisStage = 0;
+        }
+
+        public bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
+        {
+            if (be.rebuildStage < 0) { return false; }
+
+            if (be.rebuildStage > 0)
+            {
+                world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), be.Pos, -0.25, null, true, 16);
+                be.MarkDirty(true);
+
+                be.rebuildStage--;
+                be.itemsUsedThisStage = 0;
+
+                //We only want to make it appear broken if it is fully broken, not partially damaged.
+                //We want to remove a contributor only if it is fully destroyed.
+                if (be.rebuildStage == 0)
+                {
+
+                    DoBreakFully(world, byPlayer, be, blockSel);
+
+                    /*int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "broken")).Id;
+                    world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
+
+                    //var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
+                    if (be != null)
+                    {
+                        be.RemoveContributor();
+                    }
+
+                    be.DeactivateAnimations();
+
+                    be.repairLock = false;*/
+                }
+
+                return true;
+            }
+
+            return false;
         }
 
         private bool RepairByOneItem(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
@@ -362,7 +373,7 @@ namespace Rustwall.RWBehaviorRebuildable
             //var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
             if (be != null)
             {
-                be.AddContributor();
+                ActivateAnimations(world, be);
             }
 
             if (!canRepairBeforeBroken)
@@ -370,10 +381,28 @@ namespace Rustwall.RWBehaviorRebuildable
                 be.repairLock = true;
             }
 
-            be.ActivateAnimations();
-
-            //replace with config-derived value later
+            //be.ActivateAnimations();
             be.gracePeriodDuration = config.GracePeriodDurationRepairFully;
+        }
+        
+        private void ActivateAnimations(IWorldAccessor world, BlockEntityRebuildable be)
+        {
+            if (world.Api.Side == EnumAppSide.Server)
+            {
+                ICoreServerAPI sapi = world.Api as ICoreServerAPI;
+                //activates animations
+                sapi.Network.BroadcastBlockEntityPacket(be.Pos, 1, true);
+            }
+        }
+
+        private void DeactivateAnimations(IWorldAccessor world, BlockEntityRebuildable be)
+        {
+            if (world.Api.Side == EnumAppSide.Server)
+            {
+                ICoreServerAPI sapi = world.Api as ICoreServerAPI;
+                //activates animations
+                sapi.Network.BroadcastBlockEntityPacket(be.Pos, 1, false);
+            }
         }
     }
 }
