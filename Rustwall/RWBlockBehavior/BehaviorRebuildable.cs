@@ -358,8 +358,8 @@ namespace Rustwall.RWBehaviorRebuildable
             }
             else
             {
-                //replace with config-derived value later
-                be.gracePeriodDuration = config.GracePeriodDurationRepairOneStage;
+                //be.gracePeriodDuration = config.GracePeriodDurationRepairOneStage;
+                be.gracePeriodExpirationDate = world.Calendar.ElapsedDays + config.GracePeriodDurationRepairOneStage;
             }
 
             return true;
@@ -382,7 +382,7 @@ namespace Rustwall.RWBehaviorRebuildable
             }
 
             //be.ActivateAnimations();
-            be.gracePeriodDuration = config.GracePeriodDurationRepairFully;
+            be.gracePeriodExpirationDate = world.Calendar.ElapsedDays + config.GracePeriodDurationRepairFully;
         }
         
         private void ActivateAnimations(IWorldAccessor world, BlockEntityRebuildable be)

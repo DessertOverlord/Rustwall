@@ -53,15 +53,15 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         /// <summary>
         /// Duration in game calendar days of the current repair grace period
         /// </summary>
-        public double gracePeriodDuration = 0;
+        public double gracePeriodDuration { get { return gracePeriodExpirationDate - sapi.World.Calendar.ElapsedDays; } }
         /// <summary>
         /// Simple bool for whether or not the grace period is currently active
         /// </summary>
-        public bool isGracePeriodActive { get { return gracePeriodDuration > 0; } }
+        public bool isGracePeriodActive { get { return gracePeriodExpirationDate > sapi.World.Calendar.ElapsedDays; } }
         /// <summary>
         /// Date in calendar days when the grace period will expire. Easier to calculate with.
         /// </summary>
-        public double gracePeriodExpirationDate { get { return gracePeriodDuration + sapi.World.Calendar.ElapsedDays; } }
+        public double gracePeriodExpirationDate { get; set; }
 
         public GlobalStabilitySystem globalStabSys;
 
@@ -186,6 +186,13 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             //check that this is actually a rebuildable block
             if (ber != null)
             {
+                ///Check to see if we have a grace period active. 
+                ///If we do, decrease the duration and check if it has expired. 
+                ///If it has, remove the grace period and update stability accordingly.
+                ///
+
+                Debug.WriteLine("dt is " + dt);
+
                 //if the block is already fully repaired and the stability is already set to max, we don't care to check again
                 if (ber.rebuildStage == ber.maxStage && curStability == maxStability) { return; }
 
@@ -193,18 +200,19 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                 if (ber.rebuildStage == ber.maxStage && curStability == 0)
                 {
                     AddContributor();
+                    return;
                 }
                 //if the block is not rebuilt and our current stability is not zero, correct it and make sure we're not in the list of contributors
                 else if (ber.rebuildStage != ber.maxStage && curStability != 0)
                 {
                     RemoveContributor();
+                    return;
                 }
             }
             //just in case someone is a doofus
             else
             {
-                curStability = maxStability;
-                globalStabSys.stabilityContributors.Add(ber.Pos);
+                sapi.Logger.Error("ber was null during OnServerTick... how?");
             }
         }
 

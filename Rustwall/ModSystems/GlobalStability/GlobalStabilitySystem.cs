@@ -210,14 +210,7 @@ namespace Rustwall.ModSystems.GlobalStability
                 // and the grace period has elapsed, then we should proceed with damaging it.
                 if (RBitem.isGracePeriodActive)
                 {
-                    if (RBitem.gracePeriodExpirationDate <= sapi.World.Calendar.TotalDays)
-                    {
-                        RBitem.gracePeriodDuration = 0;
-                    }
-                    else
-                    {
-                        continue;
-                    }
+                    continue;
                 }
 
                 double damageChanceMultiplier;
