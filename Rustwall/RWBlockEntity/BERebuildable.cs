@@ -75,7 +75,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         /// items needed to repair a block have changed.
         /// </summary>
         private string curRebID = "";
-
+        
         BlockEntityAnimationUtil animUtil
         {
             get { return GetBehavior<BEBehaviorAnimatable>()?.animUtil; }
@@ -143,11 +143,10 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
                 if (ber != null && Block.Code == berRepairedBlockID)
                 {
-                    curStability = maxStability;
-                    globalStabSys.stabilityContributors.Add(ber.Pos);
+                    AddContributor();
                 }
 
-                ber.RegisterGameTickListener(QueryAndUpdateCurrentStability, 5000);
+                ber.RegisterGameTickListener(OnServerTick, 5000);
             }
         }
 
@@ -182,7 +181,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
         }
 
-        public void QueryAndUpdateCurrentStability(float dt)
+        public void OnServerTick(float dt)
         {
             //check that this is actually a rebuildable block
             if (ber != null)
@@ -193,22 +192,12 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                 //if the block is rebuilt but our current stability is still zero, correct it and add the block to the list of contributors
                 if (ber.rebuildStage == ber.maxStage && curStability == 0)
                 {
-                    curStability = maxStability;
-                    globalStabSys.stabilityContributors.Add(ber.Pos);
+                    AddContributor();
                 }
                 //if the block is not rebuilt and our current stability is not zero, correct it and make sure we're not in the list of contributors
                 else if (ber.rebuildStage != ber.maxStage && curStability != 0)
                 {
-                    curStability = 0;
-                    bool result = globalStabSys.stabilityContributors.Remove(ber.Pos);
-                    if (result == true)
-                    {
-                        Debug.WriteLine("ber was removed");
-                    }
-                    else
-                    {
-                        Debug.WriteLine("ber was not removed");
-                    }
+                    RemoveContributor();
                 }
             }
             //just in case someone is a doofus
@@ -235,13 +224,14 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             if (ber != null)
             {
                 curStability = 0;
-                bool x = globalStabSys.stabilityContributors.Remove(ber.Pos);
+                //bool x = globalStabSys.stabilityContributors.Remove(ber.Pos);
+                globalStabSys.stabilityContributors.Remove(ber.Pos);
 
-                if (globalStabSys.stabilityContributors.Count >= 1)
+                /*if (globalStabSys.stabilityContributors.Count >= 1)
                 {
                     BlockPos efjs = globalStabSys.stabilityContributors[0];
                     bool y = efjs == ber.Pos;
-                }
+                }*/
             }
         }
 
