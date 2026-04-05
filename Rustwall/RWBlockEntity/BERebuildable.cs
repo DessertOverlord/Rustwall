@@ -12,6 +12,8 @@ using System.Runtime.InteropServices.Marshalling;
 using System.Text;
 using System.Threading.Tasks;
 using Vintagestory;
+using Vintagestory.API.Client;
+
 
 //using Rustwall.RWBlockBehavior;
 using Vintagestory.API.Common;
@@ -57,7 +59,20 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         /// <summary>
         /// Simple bool for whether or not the grace period is currently active
         /// </summary>
-        public bool isGracePeriodActive { get { return gracePeriodExpirationDate > sapi.World.Calendar.ElapsedDays; } }
+        public bool isGracePeriodActive
+        {
+            get
+            {
+                if (sapi is not null)
+                {
+                    return gracePeriodExpirationDate > sapi.World.Calendar.ElapsedDays;
+                }
+                else
+                {
+                    return gracePeriodExpirationDate > capi.World.Calendar.ElapsedDays;
+                }
+            }
+        }
         /// <summary>
         /// Date in calendar days when the grace period will expire. Easier to calculate with.
         /// </summary>
@@ -70,6 +85,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         public int maxStability { get; private set; } //= 0;
 
         public ICoreServerAPI sapi;
+        public ICoreClientAPI capi;
         /// <summary>
         /// String for the rebuildable block ID / hash code, used to determine if the
         /// items needed to repair a block have changed.
@@ -89,6 +105,11 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             if (api.Side == EnumAppSide.Server)
             {
                 sapi = api as ICoreServerAPI;
+            }
+
+            if (api.Side == EnumAppSide.Client)
+            {
+                capi = api as ICoreClientAPI;
             }
 
             //Must be done client-side
@@ -144,8 +165,6 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                     if (!ownBehavior.canRepairBeforeBroken) { repairLock = true; }
                     AddContributor();
                 }
-
-                RegisterGameTickListener(OnServerTick, 5000);
             }
         }
 
@@ -168,41 +187,6 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         //we need to make sure the client does the same because animUtil is not defined server-side.
         //We use network packets to achieve this as it syncs with all players.
 
-        public void OnServerTick(float dt)
-        {
-            //check that this is actually a rebuildable block
-            if (this != null)
-            {
-                ///Check to see if we have a grace period active. 
-                ///If we do, decrease the duration and check if it has expired. 
-                ///If it has, remove the grace period and update stability accordingly.
-                ///
-
-                Debug.WriteLine("dt is " + dt);
-
-                //if the block is already fully repaired and the stability is already set to max, we don't care to check again
-                if (rebuildStage == maxStage && curStability == maxStability) { return; }
-                /*
-                //if the block is rebuilt but our current stability is still zero, correct it and add the block to the list of contributors
-                if (ber.rebuildStage == ber.maxStage && curStability == 0)
-                {
-                    AddContributor();
-                    return;
-                }
-                //if the block is not destroyed and our current stability is not zero, correct it and make sure we're not in the list of contributors
-                else if (ber.rebuildStage == 0 && curStability != 0)
-                {
-                    RemoveContributor();
-                    return;
-                }*/
-            }
-            //just in case someone is a doofus
-            else
-            {
-                sapi.Logger.Error("ber was null during OnServerTick... how?");
-            }
-        }
-
         public override void OnBlockRemoved()
         {
             base.OnBlockRemoved();
@@ -217,7 +201,10 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         public void RemoveContributor()
         { 
             curStability = 0;
-            globalStabSys.stabilityContributors.Remove(Pos);
+            if (globalStabSys is not null)
+            {
+                globalStabSys.stabilityContributors.Remove(Pos);
+            }
             MarkDirty(true);
         }
 
@@ -227,10 +214,6 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             if (globalStabSys is not null)
             {
                 globalStabSys.stabilityContributors.Add(Pos);
-            }
-            else
-            {
-                Debug.WriteLine("globalStabSys is null");
             }
             MarkDirty(true);
         }
@@ -244,7 +227,6 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             int newBlockID = world.GetBlock(Block.CodeWithVariant("repairstate", "broken")).Id;
             world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
 
-            //var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
             if (be != null)
             {
                 be.RemoveContributor();
@@ -319,18 +301,25 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             be.itemsUsedThisStage = 0;
             be.rebuildStage++;
 
-            be.MarkDirty(true);
-
-            if (be.rebuildStage >= be.maxStage)
+            if (be.rebuildStage == be.maxStage)
             {
                 DoFullRepair(world, be);
             }
             else
             {
-                //be.gracePeriodDuration = config.GracePeriodDurationRepairOneStage;
                 be.gracePeriodExpirationDate = world.Calendar.ElapsedDays + BehaviorRebuildable.config.GracePeriodDurationRepairOneStage;
             }
 
+            //Simple machines should contribute and be animated 
+            if (be.rebuildStage > 0 && be.ownBehavior.canRepairBeforeBroken)
+            {
+                if (be.animatible)
+                {
+                    ActivateAnimations();
+                }
+            }
+
+            be.MarkDirty(true);
             return true;
         }
 

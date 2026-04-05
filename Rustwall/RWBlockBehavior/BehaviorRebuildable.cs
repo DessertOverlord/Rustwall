@@ -205,8 +205,9 @@ namespace Rustwall.RWBehaviorRebuildable
                 if (world?.Api.Side == EnumAppSide.Client && (world?.Api as ICoreClientAPI)?.Settings.Bool.Get("extendedDebugInfo") == true)
                 {
                     string machineType = canRepairBeforeBroken ? "Simple" : "Complex";
+                    string graceperiod = be.isGracePeriodActive ? (be.gracePeriodExpirationDate - (world.Api as ICoreClientAPI).World.Calendar.ElapsedDays).ToString("#.##") + " days" : "Inactive";
 
-                    outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock /*+ "\nGrace Period: " + be.gracePeriodDuration + " days"*/);
+                    outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + graceperiod);
 
                     outputText += ("\nCurrent Global Stability Contribution: " + curStability + "\nMax Global Stability Contribution: " + be.maxStability);
                 }

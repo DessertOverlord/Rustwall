@@ -206,8 +206,7 @@ namespace Rustwall.ModSystems.GlobalStability
                 BlockEntityRebuildable RBitem = sapi.World.BlockAccessor.GetBlockEntity(item) as BlockEntityRebuildable;
                 if (RBitem == null || RBitem.rebuildStage == 0 || (!RBitem.ownBehavior.canRepairBeforeBroken && RBitem.repairLock == false)) { continue; }
 
-                //Check to see if we're under a grace period. If we subtract the amount of time that has passed since last execution
-                // and the grace period has elapsed, then we should proceed with damaging it.
+                //Check to see if this item is under a grace period. If so, skip it.
                 if (RBitem.isGracePeriodActive)
                 {
                     continue;
@@ -229,22 +228,17 @@ namespace Rustwall.ModSystems.GlobalStability
                 {
                     //This gives us a 1/288 chance every 10 seconds to damage the block. In theory, this should mean a block gets damage ~once every in-game day.
                     //Diving by damageChanceMultiplier means that it is 5x more likely to hit the random chance.
-                    //if (rand.Next(288 / damageChanceMultiplier) == 0)
                     if (rand.Next((int)(config.ChanceToBreakSimple / damageChanceMultiplier)) == 0)
                     {
-                        //Debug.WriteLine("Damaged shit by one stage. Multiplier is: " + damageChanceMultiplier);
                         //Feeding nulls into this function is okay because IPlayer and BlockSel are only used to create sounds; for our purposes, they are not needed.
-
-                        //TEMPORARY -- FOR TESTING
-                        //RBitem.ownBehavior.DamageOneStage(sapi.World, null, RBitem, null);
+                        RBitem.DamageOneStage(sapi.World, null, RBitem, null);
                     }
                 }
                 else
                 {
                     if (rand.Next((int)(config.ChanceToBreakComplex / damageChanceMultiplier)) == 0)
                     {
-                        //TEMPORARY -- FOR TESTING
-                        //RBitem.ownBehavior.DamageOneStage(sapi.World, null, RBitem, null);
+                        RBitem.DamageOneStage(sapi.World, null, RBitem, null);
                     }
                 }
             }
