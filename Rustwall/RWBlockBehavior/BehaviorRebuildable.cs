@@ -257,25 +257,5 @@ namespace Rustwall.RWBehaviorRebuildable
 
             return interaction;
         }
-        
-        /*private void ActivateAnimations(IWorldAccessor world, BlockEntityRebuildable be)
-        {
-            if (world.Api.Side == EnumAppSide.Server)
-            {
-                ICoreServerAPI sapi = world.Api as ICoreServerAPI;
-                //activates animations
-                sapi.Network.BroadcastBlockEntityPacket(be.Pos, 1, true);
-            }
-        }*/
-
-        /*private void DeactivateAnimations(IWorldAccessor world, BlockEntityRebuildable be)
-        {
-            if (world.Api.Side == EnumAppSide.Server)
-            {
-                ICoreServerAPI sapi = world.Api as ICoreServerAPI;
-                //deactivates animations
-                sapi.Network.BroadcastBlockEntityPacket(be.Pos, 1, false);
-            }
-        }*/
     }
 }

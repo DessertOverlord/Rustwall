@@ -167,18 +167,6 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         //Because the behavior calls ActivateAnimations and DeactivateAnimations on the server,
         //we need to make sure the client does the same because animUtil is not defined server-side.
         //We use network packets to achieve this as it syncs with all players.
-        public override void OnReceivedServerPacket(int packetid, byte[] data)
-        {
-            base.OnReceivedServerPacket(packetid, data);
-
-            if (packetid == 1 && animatible)
-            {
-                bool active = SerializerUtil.Deserialize<bool>(data);
-
-                if (active) { ActivateAnimations(); }
-                else { DeactivateAnimations(); }
-            }
-        }
 
         public void OnServerTick(float dt)
         {
