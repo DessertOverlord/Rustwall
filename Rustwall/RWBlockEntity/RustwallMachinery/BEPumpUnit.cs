@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Vintagestory.API.Common;
+using Vintagestory.API.MathTools;
 using Vintagestory.GameContent;
 
 namespace Rustwall.RWBlockEntity.RustwallMachinery
@@ -20,7 +21,8 @@ namespace Rustwall.RWBlockEntity.RustwallMachinery
         {
             if (api.Side == EnumAppSide.Client)
             {
-                animUtil?.InitializeAnimator("rebuildableblock-pumpunit");
+                float rotY = Block.Shape.rotateY;
+                animUtil?.InitializeAnimator("rebuildableblock-pumpunit", null, null, new Vec3f(0, rotY, 0));
             }
         }
 

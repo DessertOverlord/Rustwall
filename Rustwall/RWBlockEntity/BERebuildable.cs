@@ -91,9 +91,14 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                 sapi = api as ICoreServerAPI;
             }
 
+            //Must be done client-side
             if (animatible)
             {
                 InitAnimations(api);
+                if (Block.Variant["repairstate"] == "repaired")
+                {
+                    ActivateAnimations();
+                }
             }
 
             ownBehavior = Block.BlockBehaviors.ToList().Find(x => x.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable;
@@ -136,7 +141,6 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                 if (Block.Variant["repairstate"] == "repaired")
                 {
                     rebuildStage = maxStage;
-                    if (animatible) { ActivateAnimations(); }
                     if (!ownBehavior.canRepairBeforeBroken) { repairLock = true; }
                     AddContributor();
                 }
