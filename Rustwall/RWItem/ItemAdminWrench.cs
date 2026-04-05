@@ -29,7 +29,7 @@ namespace Rustwall.RWItem
 
             if (ber is not null && byplayer is not null && world.Side == EnumAppSide.Server)
             {
-                ber.ownBehavior.DamageOneStage(world, byplayer, ber, blockSel);
+                ber.DamageOneStage(world, byplayer, ber, blockSel);
             }
 
             handling = EnumHandHandling.PreventDefault;

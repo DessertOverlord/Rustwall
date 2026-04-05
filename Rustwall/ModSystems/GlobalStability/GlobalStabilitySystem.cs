@@ -234,14 +234,17 @@ namespace Rustwall.ModSystems.GlobalStability
                     {
                         //Debug.WriteLine("Damaged shit by one stage. Multiplier is: " + damageChanceMultiplier);
                         //Feeding nulls into this function is okay because IPlayer and BlockSel are only used to create sounds; for our purposes, they are not needed.
-                        RBitem.ownBehavior.DamageOneStage(sapi.World, null, RBitem, null);
+
+                        //TEMPORARY -- FOR TESTING
+                        //RBitem.ownBehavior.DamageOneStage(sapi.World, null, RBitem, null);
                     }
                 }
                 else
                 {
                     if (rand.Next((int)(config.ChanceToBreakComplex / damageChanceMultiplier)) == 0)
                     {
-                        RBitem.ownBehavior.DamageOneStage(sapi.World, null, RBitem, null);
+                        //TEMPORARY -- FOR TESTING
+                        //RBitem.ownBehavior.DamageOneStage(sapi.World, null, RBitem, null);
                     }
                 }
             }

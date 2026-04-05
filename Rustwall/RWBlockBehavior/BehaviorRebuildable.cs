@@ -74,7 +74,7 @@ namespace Rustwall.RWBehaviorRebuildable
         {
             handling = EnumHandling.Handled;
             ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
-            var be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityRebuildable;
+            BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityRebuildable;
 
             IServerPlayer serverPlayer = world.Side == EnumAppSide.Server ? (byPlayer as IServerPlayer) : null;
 
@@ -98,7 +98,7 @@ namespace Rustwall.RWBehaviorRebuildable
             }
 
             //if the block is not able to be partially repaired, this resets the repair lock on the block on the next interaction once it breaks fully
-            if (be.repairLock && be.rebuildStage == 0 && be.itemsUsedThisStage == 0) 
+            if (be.repairLock && be.rebuildStage == 0 && be.itemsUsedThisStage == 0)
             {
                 be.repairLock = false;
             }
@@ -113,7 +113,7 @@ namespace Rustwall.RWBehaviorRebuildable
                     if (allWrenchItemStacks.Count <= 0)
                     {
                         Item[] wrenches = world.SearchItems(assetThisStage);
-                        foreach (var item in wrenches) { allWrenchItemStacks.Add(new ItemStack(item));}
+                        foreach (var item in wrenches) { allWrenchItemStacks.Add(new ItemStack(item)); }
                     }
                 }
 
@@ -142,14 +142,14 @@ namespace Rustwall.RWBehaviorRebuildable
                             slot.Itemstack.Item.DamageItem(world, byPlayer.Entity, slot, quantityPerStage[be.rebuildStage]);
                         }
 
-                        return RepairByOneStage(world, slot, be, blockSel, byPlayer);
+                        return be.RepairByOneStage(world, slot, be, blockSel, byPlayer);
                     }
                     //otherwise, subtract just one item
                     else
                     {
-                        return RepairByOneItem(world, slot, be, blockSel, byPlayer);
+                        return be.RepairByOneItem(world, slot, be, blockSel, byPlayer);
                     }
-                } 
+                }
                 else
                 {
                     if (slot.Itemstack.Collectible.Code.PathStartsWith("wrench") && slot.Itemstack.Item.GetRemainingDurability(slot.Itemstack) < quantityPerStage[be.rebuildStage])
@@ -199,14 +199,16 @@ namespace Rustwall.RWBehaviorRebuildable
                     outputText = "Broken";
                 }
 
+                int curStability = be.curStability;
+
                 //Debugging
                 if (world?.Api.Side == EnumAppSide.Client && (world?.Api as ICoreClientAPI)?.Settings.Bool.Get("extendedDebugInfo") == true)
                 {
                     string machineType = canRepairBeforeBroken ? "Simple" : "Complex";
 
-                    outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + be.gracePeriodDuration + " days");
+                    outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock /*+ "\nGrace Period: " + be.gracePeriodDuration + " days"*/);
 
-                    outputText += ("\nCurrent Global Stability Contribution: " + be.curStability + "\nMax Global Stability Contribution: " + be.maxStability);
+                    outputText += ("\nCurrent Global Stability Contribution: " + curStability + "\nMax Global Stability Contribution: " + be.maxStability);
                 }
 
                 return outputText; 
@@ -255,137 +257,8 @@ namespace Rustwall.RWBehaviorRebuildable
 
             return interaction;
         }
-
-        public void DoBreakFully(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
-        {
-            world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
-
-            if (true)
-            {
-                int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "broken")).Id;
-                world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
-
-                //var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-                if (be != null)
-                {
-                    be.RemoveContributor();
-                }
-
-                DeactivateAnimations(world, be);
-
-                be.repairLock = false;
-
-                be.MarkDirty(true);
-            }
-
-            be.rebuildStage = 0;
-            be.itemsUsedThisStage = 0;
-        }
-
-        public bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
-        {
-            if (be.rebuildStage < 0) { return false; }
-
-            if (be.rebuildStage > 0)
-            {
-                world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), be.Pos, -0.25, null, true, 16);
-                be.MarkDirty(true);
-
-                be.rebuildStage--;
-                be.itemsUsedThisStage = 0;
-
-                //We only want to make it appear broken if it is fully broken, not partially damaged.
-                //We want to remove a contributor only if it is fully destroyed.
-                if (be.rebuildStage == 0)
-                {
-
-                    DoBreakFully(world, byPlayer, be, blockSel);
-
-                    /*int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "broken")).Id;
-                    world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
-
-                    //var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-                    if (be != null)
-                    {
-                        be.RemoveContributor();
-                    }
-
-                    be.DeactivateAnimations();
-
-                    be.repairLock = false;*/
-                }
-
-                return true;
-            }
-
-            return false;
-        }
-
-        private bool RepairByOneItem(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
-        {
-            slot.TakeOut(1);
-            world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
-            slot.MarkDirty();
-            be.itemsUsedThisStage++;
-
-            be.MarkDirty(true);
-
-            if (be.itemsUsedThisStage >= quantityPerStage[be.rebuildStage])
-            {
-                be.rebuildStage++;
-                be.itemsUsedThisStage = 0;
-                be.MarkDirty(true);
-            }
-
-            if (be.rebuildStage >= numStages) { DoFullRepair(world, be); }
-
-            return true;
-        }
-
-        private bool RepairByOneStage(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
-        {
-            world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
-
-            slot.MarkDirty();
-            be.itemsUsedThisStage = 0;
-            be.rebuildStage++;
-
-            be.MarkDirty(true);
-
-            if (be.rebuildStage >= be.maxStage)
-            {
-                DoFullRepair(world, be);
-            }
-            else
-            {
-                //be.gracePeriodDuration = config.GracePeriodDurationRepairOneStage;
-                be.gracePeriodExpirationDate = world.Calendar.ElapsedDays + config.GracePeriodDurationRepairOneStage;
-            }
-
-            return true;
-        }
-
-        public void DoFullRepair(IWorldAccessor world, BlockEntityRebuildable be)
-        {
-            int newBlockID = world.GetBlock(block.CodeWithVariant("repairstate", "repaired")).Id;
-            world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
-
-            //var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-            if (be != null)
-            {
-                ActivateAnimations(world, be);
-            }
-
-            if (!canRepairBeforeBroken)
-            {
-                be.repairLock = true;
-            }
-
-            //be.ActivateAnimations();
-            be.gracePeriodExpirationDate = world.Calendar.ElapsedDays + config.GracePeriodDurationRepairFully;
-        }
         
-        private void ActivateAnimations(IWorldAccessor world, BlockEntityRebuildable be)
+        /*private void ActivateAnimations(IWorldAccessor world, BlockEntityRebuildable be)
         {
             if (world.Api.Side == EnumAppSide.Server)
             {
@@ -393,16 +266,16 @@ namespace Rustwall.RWBehaviorRebuildable
                 //activates animations
                 sapi.Network.BroadcastBlockEntityPacket(be.Pos, 1, true);
             }
-        }
+        }*/
 
-        private void DeactivateAnimations(IWorldAccessor world, BlockEntityRebuildable be)
+        /*private void DeactivateAnimations(IWorldAccessor world, BlockEntityRebuildable be)
         {
             if (world.Api.Side == EnumAppSide.Server)
             {
                 ICoreServerAPI sapi = world.Api as ICoreServerAPI;
-                //activates animations
+                //deactivates animations
                 sapi.Network.BroadcastBlockEntityPacket(be.Pos, 1, false);
             }
-        }
+        }*/
     }
 }
