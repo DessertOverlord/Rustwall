@@ -35,14 +35,12 @@ namespace Rustwall.ModSystems.GlobalStability
         private List<BlockPos> previousStabilityContributors { get; set; } = new List<BlockPos>();
         public List<BlockPos> allStableBlockEntities { get; set; } = new List<BlockPos> { };
         private List<BlockPos> previousStableBlockEntities { get; set; } = new List<BlockPos>();
+        private ICoreAPI api;
 
-        //private int ;
         public override void Start(ICoreAPI api)
         {
-            //register our junk
             api.RegisterBlockEntityBehaviorClass("BehaviorGloballyStable", typeof(BEBehaviorGloballyStable));
-            
-            
+            this.api = api;
         }
 
         private void Event_GameWorldSave()
@@ -178,9 +176,8 @@ namespace Rustwall.ModSystems.GlobalStability
                 {
                     data.nextScoringDays = data.nextScoringDays + config.DaysBetweenStormScoring;
                     data.scores.Add(globalStabilityRatio);
-                    Debug.WriteLine("Score of " + globalStabilityRatio + " Added to score list");
+                    sapi.Logger.Audit("Score of " + globalStabilityRatio + " Added to score list");
                 }
-                //data.nextScoringDays = sapi.World.Calendar.TotalDays + config.DaysBetweenStormScoring;
             }
 
             //Assess great decay
@@ -194,7 +191,7 @@ namespace Rustwall.ModSystems.GlobalStability
                 data.nextGreatDecayDays = sapi.World.Calendar.TotalDays + config.DaysBeforeTheGreatDecay;
                 var ringedGenModSys = sapi.ModLoader.GetModSystem<RingedGeneratorSystem>();
                 ringedGenModSys.TriggerGreatDecay(1.0f - averageScore);
-                Debug.WriteLine("Great decay triggered with average score of: " + averageScore);
+                sapi.Logger.Audit("Great decay triggered with average score of: " + averageScore);
             }
 
             //For all contributing blocks, we need to roll the dice on damaging them by a stage.
@@ -204,7 +201,7 @@ namespace Rustwall.ModSystems.GlobalStability
                 // Also check if it's already destroyed -- no reason to run all of this code if it's already broken.
                 // We ALSO want to check if the machine is a complex machine -- if the complex machine is not fully repaired, don't break it.
                 BlockEntityRebuildable RBitem = sapi.World.BlockAccessor.GetBlockEntity(item) as BlockEntityRebuildable;
-                if (RBitem == null || RBitem.rebuildStage == 0 || (!RBitem.ownBehavior.canRepairBeforeBroken && RBitem.repairLock == false)) { continue; }
+                if (RBitem == null || RBitem.rebuildStage == 0 || (!RBitem.canRepairBeforeBroken && RBitem.repairLock == false)) { continue; }
 
                 //Check to see if this item is under a grace period. If so, skip it.
                 if (RBitem.isGracePeriodActive)
@@ -224,21 +221,21 @@ namespace Rustwall.ModSystems.GlobalStability
 
                 Random rand = new Random();
                 //If this item is a simple machine (can be repaired at any time), we need to use a different range of random values
-                if (RBitem.ownBehavior.canRepairBeforeBroken)
+                if (RBitem.canRepairBeforeBroken)
                 {
                     //This gives us a 1/288 chance every 10 seconds to damage the block. In theory, this should mean a block gets damage ~once every in-game day.
                     //Diving by damageChanceMultiplier means that it is 5x more likely to hit the random chance.
                     if (rand.Next((int)(config.ChanceToBreakSimple / damageChanceMultiplier)) == 0)
                     {
                         //Feeding nulls into this function is okay because IPlayer and BlockSel are only used to create sounds; for our purposes, they are not needed.
-                        RBitem.DamageOneStage(sapi.World, null, RBitem, null);
+                        RBitem.DamageOneStage(api.World, null, null);
                     }
                 }
                 else
                 {
                     if (rand.Next((int)(config.ChanceToBreakComplex / damageChanceMultiplier)) == 0)
                     {
-                        RBitem.DamageOneStage(sapi.World, null, RBitem, null);
+                        RBitem.DamageOneStage(api.World, null, null);
                     }
                 }
             }

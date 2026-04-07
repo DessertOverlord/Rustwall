@@ -10,7 +10,7 @@ using Vintagestory.GameContent;
 
 namespace Rustwall.RWBlockEntity.RustwallMachinery
 {
-    public class BlockEntityPumpUnit : BlockEntityRebuildable
+    public class BlockEntityPumpUnit : BlockEntitySimpleRebuildable
     {
         BlockEntityAnimationUtil animUtil
         {

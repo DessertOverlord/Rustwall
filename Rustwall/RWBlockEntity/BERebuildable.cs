@@ -26,7 +26,7 @@ using Vintagestory.GameContent;
 
 namespace Rustwall.RWBlockEntity.BERebuildable
 {
-    public class BlockEntityRebuildable : BlockEntity
+    public abstract class BlockEntityRebuildable : BlockEntity
     {
         /// <summary>
         /// Maximum number of rebuild stages
@@ -53,11 +53,8 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         /// </summary>
         public BehaviorRebuildable ownBehavior;
         /// <summary>
-        /// Duration in game calendar days of the current repair grace period
-        /// </summary>
-        //public double gracePeriodDuration { get { return gracePeriodExpirationDate - sapi.World.Calendar.ElapsedDays; } }
-        /// <summary>
-        /// Simple bool for whether or not the grace period is currently active
+        /// Simple bool for whether or not the grace period is currently active.
+        /// Uses null checks to avoid crashes from server-side or client-side access.
         /// </summary>
         public bool isGracePeriodActive
         {
@@ -77,12 +74,9 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         /// Date in calendar days when the grace period will expire. Easier to calculate with.
         /// </summary>
         public double gracePeriodExpirationDate { get; set; }
-
         public GlobalStabilitySystem globalStabSys;
-
-        //public BlockEntityRebuildable ber;
-        public int curStability { get; private set; } //= 0;
-        public int maxStability { get; private set; } //= 0;
+        public int curStability { get; private set; } 
+        public int maxStability { get; private set; } 
 
         public ICoreServerAPI sapi;
         public ICoreClientAPI capi;
@@ -91,6 +85,26 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         /// items needed to repair a block have changed.
         /// </summary>
         private string curRebID = "";
+        public abstract EnumRebuildableBlockType rebuildableBlockType { get; }
+        public virtual bool canRepairBeforeBroken { 
+            get 
+            {
+                if (rebuildableBlockType == EnumRebuildableBlockType.Simple)
+                {
+                    return true;
+                }
+                else return false;
+            } 
+        
+        }
+
+        public enum EnumRebuildableBlockType
+        {
+            Simple,
+            Complex
+        }
+
+
         
         public bool animatible { get { return GetBehavior<BEBehaviorAnimatable>() is not null; } }
         BlockEntityAnimationUtil animUtil
@@ -105,9 +119,8 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             if (api.Side == EnumAppSide.Server)
             {
                 sapi = api as ICoreServerAPI;
-            }
-
-            if (api.Side == EnumAppSide.Client)
+            } 
+            else if (api.Side == EnumAppSide.Client)
             {
                 capi = api as ICoreClientAPI;
             }
@@ -137,19 +150,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             //determine if the hash above differs from what we had stored previously (the costs for rebuilding have been updated)
             if (curRebID != rebuildableID && curRebID != "")
             {
-                // if they differ, repair all blocks affected fully to prevent weird undefined behavior
-
-                ///TODO: Replace with DoFullRepair from block behavior. Modularity!
-                rebuildStage = maxStage;
-                itemsUsedThisStage = 0;
-                if (!ownBehavior.canRepairBeforeBroken)
-                {
-                    repairLock = true;
-                }
-                
-                //DoFullRepair does not require slot, BlockSel, or ByPlayer for any functionality (I'm too lazy to reorder the args)
-                // I just removed them instead :]
-                DoFullRepair(api.World, this);
+                RepairFully(api.World);
             }
 
             //Global Stability section
@@ -162,7 +163,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                 if (Block.Variant["repairstate"] == "repaired")
                 {
                     rebuildStage = maxStage;
-                    if (!ownBehavior.canRepairBeforeBroken) { repairLock = true; }
+                    if (!canRepairBeforeBroken) { repairLock = true; }
                     AddContributor();
                 }
             }
@@ -172,7 +173,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         {
             sapi.Logger.Error("Animatible Rustwall Machine initialized with BlockEntityRebuildable. Move it to its own BlockEntity for animations to work!");
         }
-       
+
         protected virtual void ActivateAnimations()
         {
             sapi.Logger.Error("Animatible Rustwall Machine initialized with BlockEntityRebuildable. Move it to its own BlockEntity for animations to work!");
@@ -198,7 +199,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
         }
 
-        public void RemoveContributor()
+        protected void RemoveContributor()
         { 
             curStability = 0;
             if (globalStabSys is not null)
@@ -208,7 +209,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             MarkDirty(true);
         }
 
-        public void AddContributor()
+        protected void AddContributor()
         {
             curStability = maxStability;
             if (globalStabSys is not null)
@@ -220,131 +221,15 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
         //Repair / Damage Functions
 
-        public void DoBreakFully(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
-        {
-            world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), be.Pos, -0.25, byPlayer, true, 16);
+        public abstract void DamageFully(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel);
 
-            int newBlockID = world.GetBlock(Block.CodeWithVariant("repairstate", "broken")).Id;
-            world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
+        public abstract bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel);
 
-            if (be != null)
-            {
-                be.RemoveContributor();
-                if (!ownBehavior.canRepairBeforeBroken)
-                {
-                    be.repairLock = false;
-                }
+        public abstract bool RepairByOneItem(IWorldAccessor world, ItemSlot slot, BlockSelection blockSel, IPlayer byPlayer);
 
-                if (be.animatible)
-                {
-                    DeactivateAnimations();
-                }
+        public abstract bool RepairByOneStage(IWorldAccessor world, ItemSlot slot, BlockSelection blockSel, IPlayer byPlayer);
 
-                be.MarkDirty(true);
-            }
-
-            be.rebuildStage = 0;
-            be.itemsUsedThisStage = 0;
-        }
-
-        public bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockEntityRebuildable be, BlockSelection blockSel)
-        {
-            if (be.rebuildStage < 0) { return false; }
-
-            if (be.rebuildStage > 0)
-            {
-                world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), be.Pos, -0.25, null, true, 16);
-
-                be.rebuildStage--;
-                be.itemsUsedThisStage = 0;
-
-                //We only want to make it appear broken if it is fully broken, not partially damaged.
-                //We want to remove a contributor only if it is fully destroyed.
-                if (be.rebuildStage == 0)
-                {
-                    DoBreakFully(world, byPlayer, be, blockSel);
-                }
-
-                be.MarkDirty(true);
-                return true;
-            }
-
-            return false;
-        }
-
-        public bool RepairByOneItem(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
-        {
-            slot.TakeOut(1);
-            world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
-            slot.MarkDirty();
-            be.itemsUsedThisStage++;
-
-            be.MarkDirty(true);
-
-            if (be.itemsUsedThisStage >= ownBehavior.quantityPerStage[be.rebuildStage])
-            {
-                be.rebuildStage++;
-                be.itemsUsedThisStage = 0;
-                be.MarkDirty(true);
-            }
-
-            if (be.rebuildStage >= ownBehavior.numStages) { DoFullRepair(world, be); }
-
-            return true;
-        }
-
-        public bool RepairByOneStage(IWorldAccessor world, ItemSlot slot, BlockEntityRebuildable be, BlockSelection blockSel, IPlayer byPlayer)
-        {
-            world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
-
-            slot.MarkDirty();
-            be.itemsUsedThisStage = 0;
-            be.rebuildStage++;
-
-            if (be.rebuildStage == be.maxStage)
-            {
-                DoFullRepair(world, be);
-            }
-            else
-            {
-                be.gracePeriodExpirationDate = world.Calendar.ElapsedDays + BehaviorRebuildable.config.GracePeriodDurationRepairOneStage;
-            }
-
-            //Simple machines should contribute and be animated 
-            if (be.rebuildStage > 0 && be.ownBehavior.canRepairBeforeBroken)
-            {
-                if (be.animatible)
-                {
-                    ActivateAnimations();
-                }
-            }
-
-            be.MarkDirty(true);
-            return true;
-        }
-
-        public void DoFullRepair(IWorldAccessor world, BlockEntityRebuildable be)
-        {
-            int newBlockID = world.GetBlock(Block.CodeWithVariant("repairstate", "repaired")).Id;
-            world.BlockAccessor.ExchangeBlock(newBlockID, be.Pos);
-
-            //var beb = be.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-            if (be != null)
-            {
-                be.AddContributor();
-                if (!ownBehavior.canRepairBeforeBroken)
-                {
-                    be.repairLock = true;
-                }
-                if (be.animatible)
-                {
-                    ActivateAnimations();
-                }
-                be.MarkDirty(true);
-            }
-
-            be.gracePeriodExpirationDate = world.Calendar.ElapsedDays + BehaviorRebuildable.config.GracePeriodDurationRepairFully;
-        }
+        public abstract void RepairFully(IWorldAccessor world);
 
         public override void ToTreeAttributes(ITreeAttribute tree)
         {

@@ -11,7 +11,10 @@ namespace Rustwall.ModSystems.RebuildableBlock
     {
         public override void Start(ICoreAPI api)
         {
-            api.RegisterBlockEntityClass("BlockEntityRebuildable", typeof(BlockEntityRebuildable));
+            //Deprecated
+            //api.RegisterBlockEntityClass("BlockEntityRebuildable", typeof(BlockEntityRebuildable));
+            api.RegisterBlockEntityClass("BlockEntitySimpleRebuildable", typeof(BlockEntitySimpleRebuildable));
+            api.RegisterBlockEntityClass("BlockEntityComplexRebuildable", typeof(BlockEntityComplexRebuildable));
             api.RegisterBlockEntityClass("BlockEntityPumpUnit", typeof(BlockEntityPumpUnit));
             api.RegisterBlockEntityClass("BlockEntityGearbox", typeof(BlockEntityGearbox));
             api.RegisterBlockBehaviorClass("BehaviorRebuildable", typeof(BehaviorRebuildable));

@@ -9,7 +9,7 @@ using Vintagestory.GameContent;
 
 namespace Rustwall.RWBlockEntity.RustwallMachinery
 {
-    public class BlockEntityGearbox : BlockEntityRebuildable
+    public class BlockEntityGearbox : BlockEntitySimpleRebuildable
     {
         BlockEntityAnimationUtil animUtil
         {

@@ -19,7 +19,7 @@
   "resistance": 8,
   "sidesolid": { "all": false },
   "sideopaque": { "all": false },
-  "entityClass": "BlockEntityRebuildable",
+  "entityClass": "BlockEntitySimpleRebuildable",
   "entityBehaviors": [
     {
       "name": "BehaviorGloballyStable",
@@ -32,7 +32,6 @@
     {
       "name": "BehaviorRebuildable",
       "properties": {
-        "type": "simple",
         "stages": [
           {
             "item": "game:metalplate-electrum",

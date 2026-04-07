@@ -1,28 +1,20 @@
-﻿using Rustwall.RWBlockEntity.BERebuildable;
-using Rustwall.RWEntityBehavior;
+﻿using Rustwall.Configs;
+using Rustwall.ModSystems;
+using Rustwall.RWBlockEntity.BERebuildable;
 using System.Collections.Generic;
 using System.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
-using Vintagestory.API.Util;
 using Vintagestory.API.Server;
-using Vintagestory.GameContent;
-using Vintagestory.Server;
-using Vintagestory.API.Config;
-using System.Diagnostics;
-using Vintagestory;
-using Rustwall.ModSystems.RebuildableBlock;
-using Rustwall.Configs;
-using Rustwall.ModSystems;
+using static Rustwall.RWBlockEntity.BERebuildable.BlockEntityRebuildable;
 
 namespace Rustwall.RWBehaviorRebuildable
 {
     public class BehaviorRebuildable : BlockBehavior
     {
         public int numStages = 0;
-        public bool canRepairBeforeBroken;
         public List<string> itemPerStage { get; private set; } = new List<string>();
         public List<int> quantityPerStage { get; private set; } = new List<int>();
 
@@ -37,30 +29,9 @@ namespace Rustwall.RWBehaviorRebuildable
         public override void Initialize(JsonObject properties)
         {
             base.Initialize(properties);
-            
-            //Replaced. This shit is confusing as hell code-wise.
-            //canRepairBeforeBroken = properties["canRepairBeforeBroken"].AsBool();
-            //canRepairBeforeBroken = properties["type"].AsString() == "simple" ? true : false;
-            
-            string type = properties["type"].AsString();
-
             config = RustwallModSystem.config;
-
-            if (type == "simple")
-            {
-                canRepairBeforeBroken = true;
-            } 
-            else if (type == "complex")
-            {
-                canRepairBeforeBroken = false;
-            } 
-            else
-            {
-                Debug.WriteLine("CRITICAL: Asset loaded with incorrect type: " + block.Code);
-            }
-
             var stages = properties["stages"].AsArray();
-            
+
             //loop through all of the available stages
             foreach (var item in stages)
             {
@@ -142,12 +113,12 @@ namespace Rustwall.RWBehaviorRebuildable
                             slot.Itemstack.Item.DamageItem(world, byPlayer.Entity, slot, quantityPerStage[be.rebuildStage]);
                         }
 
-                        return be.RepairByOneStage(world, slot, be, blockSel, byPlayer);
+                        return be.RepairByOneStage(world, slot, blockSel, byPlayer);
                     }
                     //otherwise, subtract just one item
                     else
                     {
-                        return be.RepairByOneItem(world, slot, be, blockSel, byPlayer);
+                        return be.RepairByOneItem(world, slot, blockSel, byPlayer);
                     }
                 }
                 else
@@ -169,8 +140,6 @@ namespace Rustwall.RWBehaviorRebuildable
         public override string GetPlacedBlockInfo(IWorldAccessor world, BlockPos pos, IPlayer forPlayer)
         {
             BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityRebuildable;
-
-            //var globalStabBehav = be?.GetBehavior<BEBehaviorGloballyStable>();
 
             if (be is null)
             {
@@ -201,10 +170,9 @@ namespace Rustwall.RWBehaviorRebuildable
 
                 int curStability = be.curStability;
 
-                //Debugging
                 if (world?.Api.Side == EnumAppSide.Client && (world?.Api as ICoreClientAPI)?.Settings.Bool.Get("extendedDebugInfo") == true)
                 {
-                    string machineType = canRepairBeforeBroken ? "Simple" : "Complex";
+                    string machineType = be.rebuildableBlockType == EnumRebuildableBlockType.Simple ? "Simple" : "Complex";
                     string graceperiod = be.isGracePeriodActive ? (be.gracePeriodExpirationDate - (world.Api as ICoreClientAPI).World.Calendar.ElapsedDays).ToString("#.##") + " days" : "Inactive";
 
                     outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + graceperiod);
