@@ -12,13 +12,13 @@ using Vintagestory.API.Server;
 
 namespace Rustwall.RWEntityBehavior
 {
-    internal class BEBehaviorGloballyStable : BlockEntityBehavior
+    public class BEBehaviorGloballyStable : BlockEntityBehavior
     {
-        public GlobalStabilitySystem modsys { get; set; }
+       /* public GlobalStabilitySystem modsys { get; set; }
         BlockEntityRebuildable ber;
         public int curStability { get; private set; } = 0;
         public int maxStability { get; private set; } = 0;
-        private ICoreAPI coreAPI;
+        private ICoreAPI coreAPI;*/
         //bool isContributing;
         public BEBehaviorGloballyStable(BlockEntity blockent) : base(blockent)
         {
@@ -28,16 +28,15 @@ namespace Rustwall.RWEntityBehavior
         {
             base.Initialize(api, properties);
 
-            coreAPI = api;
+            //coreAPI = api;
 
-            if (api.Side == EnumAppSide.Server)
+            /*if (api.Side == EnumAppSide.Server)
             {
                 maxStability = properties["value"].AsInt();
                 ber = Blockentity as BlockEntityRebuildable;
 
                 modsys = (api as ICoreServerAPI).ModLoader.GetModSystem<GlobalStabilitySystem>();
                 modsys.allStableBlockEntities.Add(ber.Pos);
-
 
                 int berRepairedBlockID = api.World.GetBlock(Blockentity.Block.CodeWithVariant("repairstate", "repaired")).Id;
 
@@ -46,14 +45,20 @@ namespace Rustwall.RWEntityBehavior
                     curStability = maxStability;
                     modsys.stabilityContributors.Add(ber.Pos);
                 }
-                /*else
+
+                ber.ber = ber;
+                ber.modsys = modsys;
+
+                Blockentity.RegisterGameTickListener(QueryAndUpdateCurrentStability, 5000);
+                else
                 {
                     Debug.WriteLine("It's NOT repaired!");
                 }*/
-            }
+        }
 
             //We need to poll the current stability every so often
             //Blockentity.RegisterGameTickListener(QueryAndUpdateCurrentStability, 5000);
+            
             // ((api as ICoreServerAPI).ModLoader.GetModSystem<GlobalStabilitySystem>())
             //will return null if the BlockEntity is not BlockEntityRebuildable!
 
@@ -70,7 +75,7 @@ namespace Rustwall.RWEntityBehavior
             }*/
 
 
-        }
+        //
 
         /*public void QueryAndUpdateCurrentStability(float dt)
         {
@@ -108,7 +113,7 @@ namespace Rustwall.RWEntityBehavior
                 modsys.stabilityContributors.Add(ber.Pos);
             }
         }*/
-
+        /*
         public void RemoveContributor()
         {
             if (coreAPI.Side == EnumAppSide.Server && ber != null)
@@ -132,9 +137,9 @@ namespace Rustwall.RWEntityBehavior
                 modsys.stabilityContributors.Add(ber.Pos);
             }
         }
-
+        */
         //when the block is deleted, make sure it gets removed ASAP.
-        public override void OnBlockRemoved()
+        /*public override void OnBlockRemoved()
         {
             base.OnBlockRemoved();
             if (coreAPI.Side == EnumAppSide.Server)
@@ -142,6 +147,6 @@ namespace Rustwall.RWEntityBehavior
                 modsys.stabilityContributors.Remove(ber.Pos);
                 modsys.allStableBlockEntities.Remove(ber.Pos);
             }
-        }
+        }*/
     }
 }

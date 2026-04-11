@@ -37,7 +37,7 @@
   "resistance": 8,
   "sidesolid": { "all": false },
   "sideopaque": { "all": false },
-  "entityClass": "BlockEntityRebuildable",
+  "entityClass": "BlockEntityGearbox",
   "entityBehaviors": [
     {
       "name": "BehaviorGloballyStable",
@@ -56,7 +56,6 @@
     {
       "name": "BehaviorRebuildable",
       "properties": {
-        "canRepairBeforeBroken": false,
         "stages": [
           {
             "item": "rustwall:gear-iron",

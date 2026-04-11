@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Vintagestory.API.Datastructures;
 
 namespace Rustwall.Configs
 {
@@ -17,5 +18,9 @@ namespace Rustwall.Configs
         public double TemporalStormDamageMultiplier = 5.0;
         public int ChanceToBreakSimple = 288;
         public int ChanceToBreakComplex = 1440;
+
+        //RebuildableBlock options
+        public double GracePeriodDurationRepairOneStage = 0.2;
+        public double GracePeriodDurationRepairFully = 1.0;
     }
 }

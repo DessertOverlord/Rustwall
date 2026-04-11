@@ -27,9 +27,9 @@ namespace Rustwall.RWItem
             BlockEntityRebuildable ber = world.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(blockSel.Position);
             IPlayer byplayer = (byEntity as EntityPlayer)?.Player;
 
-            if (ber is not null && byplayer is not null && world.Side == EnumAppSide.Server)
+            if (ber is not null && byplayer is not null)
             {
-                ber.ownBehavior.DamageOneStage(world, byplayer, ber, blockSel);
+                ber.DamageOneStage(world, byplayer, blockSel);
             }
 
             handling = EnumHandHandling.PreventDefault;
