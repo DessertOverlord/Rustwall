@@ -37,7 +37,8 @@
   "resistance": 8,
   "sidesolid": { "all": false },
   "sideopaque": { "all": false },
-  "entityClass": "BlockEntityComplexRebuildable",
+  "collisionbox": null,
+  "entityClass": "BlockEntityTriplanarCore",
   "entityBehaviors": [
     {
       "name": "BehaviorGloballyStable",
