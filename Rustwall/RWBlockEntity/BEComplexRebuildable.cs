@@ -67,7 +67,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             if (animatible)
             {
-                DeactivateAnimations();
+                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "deactivate");
             }
 
             MarkDirty(true);
@@ -122,7 +122,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             repairLock = true;
             if (animatible)
             {
-                ActivateAnimations();
+                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "activate");
             }
             MarkDirty(true);
 

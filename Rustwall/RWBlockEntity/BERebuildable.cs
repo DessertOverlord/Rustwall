@@ -184,9 +184,33 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             sapi.Logger.Error("Animatible Rustwall Machine initialized with BlockEntityRebuildable. Move it to its own BlockEntity for animations to work!");
         }
 
-        //Because the behavior calls ActivateAnimations and DeactivateAnimations on the server,
+        //Because the GlobalStabilitySystem calls ActivateAnimations and DeactivateAnimations on the server side,
         //we need to make sure the client does the same because animUtil is not defined server-side.
         //We use network packets to achieve this as it syncs with all players.
+        public override void OnReceivedServerPacket(int packetid, byte[] data)
+        {
+            if (packetid == 1337)
+            {
+                string strData = "";
+                try
+                {
+                    strData = SerializerUtil.Deserialize<string>(data);
+                }
+                catch (Exception e)
+                { 
+                    
+                }
+                
+                if (strData == "activate")
+                {
+                    ActivateAnimations();
+                }
+                else if (strData == "deactivate")
+                {
+                    DeactivateAnimations();
+                }
+            }
+        }
 
         public override void OnBlockRemoved()
         {

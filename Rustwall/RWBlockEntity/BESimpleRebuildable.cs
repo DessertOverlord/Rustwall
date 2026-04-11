@@ -66,7 +66,9 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             if (animatible)
             {
-                DeactivateAnimations();
+                /// We have to use packet broadcasts so that when the ModSystem (running only server-side) calls to damage the block,
+                /// the animation change gets synchronized to the client.
+                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "deactivate");
             }
 
             MarkDirty(true);
@@ -112,9 +114,10 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             //Simple machines should contribute and be animated even if they aren't fully repaired.
             if (rebuildStage > 0)
             {
+                AddContributor();
                 if (animatible)
                 {
-                    ActivateAnimations();
+                    (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "activate");
                 }
             }
 
@@ -129,7 +132,8 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             AddContributor();
             if (animatible)
             {
-                ActivateAnimations();
+                //ActivateAnimations();
+                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "activate");
             }
             MarkDirty(true);
 
