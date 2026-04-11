@@ -24,6 +24,7 @@ namespace Rustwall.RWItem
         public override void OnHeldAttackStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, ref EnumHandHandling handling)
         {
             IWorldAccessor world = byEntity.World;
+            if (blockSel is null) { return; }
             BlockEntityRebuildable ber = world.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(blockSel.Position);
             IPlayer byplayer = (byEntity as EntityPlayer)?.Player;
 
