@@ -136,7 +136,10 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
 
             ownBehavior = Block.BlockBehaviors.ToList().Find(x => x.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable;
-            maxStability = GetBehavior<BEBehaviorGloballyStable>().properties["value"].AsInt();
+            if (GetBehavior<BEBehaviorGloballyStable>() is not null)
+            {
+                maxStability = GetBehavior<BEBehaviorGloballyStable>().properties["value"].AsInt();
+            }
             maxStage = ownBehavior.numStages;
 
             string rebuildableID = "";

@@ -37,7 +37,7 @@
   "resistance": 8,
   "sidesolid": { "all": false },
   "sideopaque": { "all": false },
-  "entityClass": "BlockEntitySimpleRebuildable",
+  "entityClass": "BlockEntityTemporalSail",
   "entityBehaviors": [
     {
       "name": "BehaviorGloballyStable",
