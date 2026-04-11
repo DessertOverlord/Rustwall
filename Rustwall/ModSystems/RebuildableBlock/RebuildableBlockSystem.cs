@@ -18,6 +18,7 @@ namespace Rustwall.ModSystems.RebuildableBlock
             api.RegisterBlockEntityClass("BlockEntityPumpUnit", typeof(BlockEntityPumpUnit));
             api.RegisterBlockEntityClass("BlockEntityGearbox", typeof(BlockEntityGearbox));
             api.RegisterBlockEntityClass("BlockEntityTriplanarCore", typeof(BlockEntityTriplanarCore));
+            api.RegisterBlockEntityClass("BlockEntityTemporalSail", typeof(BlockEntityTemporalSail));
             api.RegisterBlockBehaviorClass("BehaviorRebuildable", typeof(BehaviorRebuildable));
             api.RegisterItemClass("ItemJonasScrap", typeof(ItemJonasScrap));
             api.RegisterItemClass("ItemAdminWrench", typeof(ItemAdminWrench));
