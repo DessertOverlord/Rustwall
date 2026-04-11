@@ -37,6 +37,5 @@ namespace Rustwall.RWBlockEntity.RustwallMachinery
             animUtil?.StopAnimation("active");
             MarkDirty(true);
         }
-
     }
 }
