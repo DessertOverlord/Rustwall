@@ -234,7 +234,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         //SetWorldParams takes the parameters and seed provided and updates the world generator with them.
         private void SetWorldParams(ICoreServerAPI api, Dictionary<string, double> ringGenKVP, int seed)
         {
-            //sapi.WorldManager.SaveGame.Seed = seed;
+            sapi.WorldManager.SaveGame.Seed = seed;
 
             var worldConfig = sapi.World.Config;
 
