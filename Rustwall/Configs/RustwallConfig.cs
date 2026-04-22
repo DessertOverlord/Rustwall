@@ -22,5 +22,71 @@ namespace Rustwall.Configs
         //RebuildableBlock options
         public double GracePeriodDurationRepairOneStage = 0.2;
         public double GracePeriodDurationRepairFully = 1.0;
+
+        public readonly Dictionary<string, double> RandomSettings = new(); 
+        {
+            
+        }
+
+        public readonly Dictionary<string, double> ExampleDefaultWorldConfigSettings = new(); 
+        { 
+            { "item1", 0.5 } 
+        }
+
+        public readonly Dictionary<string, double> WarmOcean = new(); 
+        { 
+        }
+
+        public readonly Dictionary<string, double> ColdOcean = new(); 
+        { 
+        }
+
+        public readonly Dictionary<string, double> RichMountains = new(); 
+        { 
+        }
+
+        public readonly Dictionary<string, double> FertilePlains = new(); 
+        { 
+        }
+
+        public readonly Dictionary<string, double> DenseForest = new(); 
+        { 
+        }
+
+        public readonly Dictionary<string, double> ExtremeHills = new(); 
+        { 
+        }
+
+        //keep in mind that ring 0 is the safezone and is ignored anyways
+        //these are in order, ring 0, ring 1, etc.
+        //leaving emptiness at the end will result in randomization
+        public readonly List<Dictionary<string, double>> = new(); 
+        { 
+            ExampleDefaultWorldConfigSettings
+            FertilePlains,
+            FertilePlains,
+            FertilePlains,
+            FertilePlains,
+            DenseForest,
+            DenseForest,
+            DenseForest,
+            DenseForest,
+            WarmOcean,
+            WarmOcean,
+            WarmOcean,
+            WarmOcean,
+            ExtremeHills,
+            ExtremeHills,
+            ExtremeHills,
+            ExtremeHills,
+            ColdOcean,
+            ColdOcean,
+            ColdOcean,
+            ColdOcean,
+            RichMountains,
+            RichMountains,
+            RichMountains,
+            RichMountains
+        }
     }
 }
