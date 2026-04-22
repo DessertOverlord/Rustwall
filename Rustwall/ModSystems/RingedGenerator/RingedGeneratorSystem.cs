@@ -22,6 +22,7 @@ using Vintagestory.ServerMods.NoObf;
 
 namespace Rustwall.ModSystems.RingedGenerator
 {
+
     internal class RingedGeneratorSystem : RustwallModSystem
     {
         //ICoreServerAPI sapi;
@@ -80,19 +81,31 @@ namespace Rustwall.ModSystems.RingedGenerator
             sapi.Event.MapChunkGeneration(chunkHandler, "standard");
         }
 
+        public int RingNumberFromRegion(int regionX, int regionZ)
+        {
+            return (int)(double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5);
+        }
+
+        public int RingNumberFromChunk(int chunkX, int chunkZ) 
+        {
+            int regionX = chunkX / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
+            int regionZ = chunkZ / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
+            return RingNumberFromRegion(regionX, regionZ);
+        }
+
         private void HandleChunkLoading(IMapChunk mapChunk, int chunkX, int chunkZ)
         {
             if (ringMapSize == -500) { return; }
             int regionX = chunkX / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
             int regionZ = chunkZ / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
-            //HandleChunkLoading would perform the same math... so we just figure out what region the chunk is in and call HandleRegionLoading!
+
             //HandleRegionLoading(null, regionX, regionZ);
         }
 
         private void HandleRegionLoading(IMapRegion region, int regionX, int regionZ, ITreeAttribute chunkGenParams = null)
         {
             if (ringMapSize == -500) { return; }
-            desiredRing = (int)(double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5);
+            desiredRing = RingNumberFromRegion(regionX, regionZ);
             if (curRing != desiredRing)
             {
                 //Debug.WriteLine("Changing ring generator. Old ring was " + curRing + ", new ring is " + desiredRing);
@@ -538,47 +551,23 @@ namespace Rustwall.ModSystems.RingedGenerator
                 });*/
         }
 
-        [HarmonyPatch(typeof(GenDeposits))]
-        [HarmonyPatch("GeneratePartial")]
+        [HarmonyPatch(typeof(GenDeposits), nameof("GeneratePartial"))]
         public static class GenDeposits_GeneratePartial_Patch
         {
-            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            static void Prefix(IServerChunk[] chunks, int chunkX, int chunkZ, int chunkdX, int chunkdZ, ref ___chanceMultiplier)
             {
-                var codes = new List<CodeInstruction>(instructions);
-                int foundLdfld = -1;
-                int foundMul = -1;
-
-
-                for (var i = 0; i < codes.Count; i++)
+                ringNumber = RingedGeneratorSystem.RingNumberFromChunk(chunkX, chunkZ);
+                //testing
+                if (ringNumber > 1) 
                 {
-                    if (codes[i].opcode == OpCodes.Ldfld)
-                    {
-                        //foundLdfld = i;
-                        Debug.WriteLine(codes[i].opcode + " | " + codes[i].operand + " | " + i);
-                    }
-
-                    /*if (codes[i].opcode == OpCodes.Mul && foundLdfld != -1 && foundLdfld == (i - 1))
-                    {
-                        foundMul = i;
-                        
-                    } 
-                    else
-                    {
-                        foundLdfld = -1;
-                    }*/
-
-
-
+                    ___chanceMultiplier = 0;//someListOfValuesOrMathHere[ringNumber];
                 }
-
-
-
-                return codes.AsEnumerable();
+                else 
+                {
+                    ___chanceMultiplier = 3;//someListOfValuesOrMathHere[ringNumber];
+                }
             }
         }
-
-
-
     }
 }
 
