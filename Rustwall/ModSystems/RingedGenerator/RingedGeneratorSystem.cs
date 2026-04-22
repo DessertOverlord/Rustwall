@@ -1,9 +1,12 @@
-﻿using System;
+﻿using HarmonyLib;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Reflection.Emit;
 using System.Reflection.Metadata.Ecma335;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -41,15 +44,19 @@ namespace Rustwall.ModSystems.RingedGenerator
         private double regionMidPoint;
 
         GenMaps mapGenerator;
+        GenDeposits depositGenerator;
 
         protected override void RustwallStartServerSide()
         {
             //if (sapi.WorldManager.SaveGame.IsNew == true) { sapi.Server.ShutDown(); }
             mapGenerator = sapi.ModLoader.GetModSystem<GenMaps>();
+            depositGenerator = sapi.ModLoader.GetModSystem<GenDeposits>();
 
             RegisterChatCommands();
-
-
+            //THERE IS A VERY HIGH CHANCE THIS DOESNT WORK
+            //because the temporal storm system does the same thing -- try moving to RustwallModSystem.
+            var harmony = new Harmony(Mod.Info.ModID);
+            harmony.PatchAll();
 
             sapi.Event.ServerRunPhase(EnumServerRunPhase.GameReady, () => 
             { 
@@ -92,8 +99,8 @@ namespace Rustwall.ModSystems.RingedGenerator
 
                 curRing = desiredRing;
 
-                var tempvar = ringDictList[curRing];
-                var tempvar2 = seedList[curRing];
+                //var tempvar = ringDictList[curRing];
+                //var tempvar2 = seedList[curRing];
 
                 SetWorldParams(sapi, ringDictList[curRing], seedList[curRing]);
             }
@@ -238,6 +245,8 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             var worldConfig = sapi.World.Config;
 
+            //depositGenerator.
+
             LatitudeData latdata = new LatitudeData();
 
             /// We're directly modifying the values that GenMaps.cs uses to instruct the world generator.
@@ -302,7 +311,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             noiseClimate.tempMul = tempModifier;
 
             mapGenerator.climateGen = GenMaps.GetClimateMapGen(seed + 1, noiseClimate);
-
             mapGenerator.upheavelGen = GenMaps.GetGeoUpheavelMapGen(seed + 873, TerraGenConfig.geoUpheavelMapScale);
             mapGenerator.oceanGen = GenMaps.GetOceanMapGen(seed + 1873, landcover, TerraGenConfig.oceanMapScale, oceanscale, mapGenerator.requireLandAt, false);
             mapGenerator.forestGen = GenMaps.GetForestMapGen(seed + 2, TerraGenConfig.forestMapScale);
@@ -471,88 +479,6 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         private void RegisterChatCommands()
         {
-            /*sapi.ChatCommands.Create("regreg")
-                .WithDescription("I UNNO")
-                .RequiresPrivilege(Privilege.controlserver)
-                .RequiresPlayer()
-                .WithArgs()
-                .HandleWith((args) =>
-                {
-
-                    Debug.WriteLine("Attempting to pause and reload chunk generation");
-
-                    if (sapi.Server.PauseThread("chunkdbthread"))
-                    {
-                        IServerPlayer player = (IServerPlayer)args.Caller.Player;
-                        sapi.Assets.Reload(new AssetLocation("worldgen/"));
-                        var patchLoader = sapi.ModLoader.GetModSystem<ModJsonPatchLoader>();
-                        patchLoader.ApplyPatches("worldgen/");
-
-                        sapi.Event.TriggerInitWorldGen();
-
-                        var regionVec3Pos = args.Caller.Player.WorldData.EntityPlayer.Pos.XYZInt;
-                        int regionX = regionVec3Pos.X / sapi.WorldManager.RegionSize;
-                        int regionZ = regionVec3Pos.Z / sapi.WorldManager.RegionSize;
-                        List<Vec2i> coords = new List<Vec2i>();
-                        int chunksInRegion = (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
-                        int chunkX = regionX * chunksInRegion;
-                        int chunkZ = regionZ * chunksInRegion;
-
-                        for (int x = chunkX; x < (chunkX + chunksInRegion); x++)
-                        {
-                            for (int z = chunkZ; z < (chunkZ + chunksInRegion); z++)
-                            {
-                                coords.Add(new Vec2i(x, z));
-                            }
-                        }
-
-                        foreach (Vec2i coord in coords)
-                        {
-                            sapi.WorldManager.DeleteChunkColumn(coord.X, coord.Y);
-                        }
-                        sapi.WorldManager.DeleteMapRegion(regionX, regionZ);
-
-                        int leftToLoad = coords.Count;
-                        bool sent = false;
-                        sapi.WorldManager.SendChunks = false;
-
-                        foreach (Vec2i coord in coords)
-                        {
-                            sapi.WorldManager.LoadChunkColumnPriority(coord.X, coord.Y, new ChunkLoadOptions()
-                            {
-                                OnLoaded = () =>
-                                {
-                                    leftToLoad--;
-
-                                    if (leftToLoad <= 0 && !sent)
-                                    {
-                                        sent = true;
-
-                                        player.CurrentChunkSentRadius = 0;
-                                        sapi.WorldManager.SendChunks = true;
-
-                                        foreach (Vec2i ccoord in coords)
-                                        {
-                                            for (int cy = 0; cy < sapi.WorldManager.MapSizeY / GlobalConstants.ChunkSize; cy++)
-                                            {
-                                                sapi.WorldManager.BroadcastChunk(ccoord.X, cy, ccoord.Y, true);
-                                            }
-                                        }
-                                    }
-                                },
-                            });
-                        }
-                    }
-                    else
-                    {
-                        Debug.WriteLine("Unable to pause chunk generation");
-                    }
-
-                    sapi.Server.ResumeThread("chunkdbthread");
-
-                    return TextCommandResult.Success("deleted some stuff?");
-                });*/
-
             sapi.ChatCommands.Create("rustwall")
                 .RequiresPrivilege(Privilege.controlserver)
                 .RequiresPlayer()
@@ -611,6 +537,48 @@ namespace Rustwall.ModSystems.RingedGenerator
                     return TextCommandResult.Success("Values: " + result);
                 });*/
         }
+
+        [HarmonyPatch(typeof(GenDeposits))]
+        [HarmonyPatch("GeneratePartial")]
+        public static class GenDeposits_GeneratePartial_Patch
+        {
+            static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> instructions)
+            {
+                var codes = new List<CodeInstruction>(instructions);
+                int foundLdfld = -1;
+                int foundMul = -1;
+
+
+                for (var i = 0; i < codes.Count; i++)
+                {
+                    if (codes[i].opcode == OpCodes.Ldfld)
+                    {
+                        //foundLdfld = i;
+                        Debug.WriteLine(codes[i].opcode + " | " + codes[i].operand + " | " + i);
+                    }
+
+                    /*if (codes[i].opcode == OpCodes.Mul && foundLdfld != -1 && foundLdfld == (i - 1))
+                    {
+                        foundMul = i;
+                        
+                    } 
+                    else
+                    {
+                        foundLdfld = -1;
+                    }*/
+
+
+
+                }
+
+
+
+                return codes.AsEnumerable();
+            }
+        }
+
+
+
     }
 }
 

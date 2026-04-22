@@ -42,8 +42,8 @@ namespace Rustwall.ModSystems.TemporalStormHandler
             RegisterChatCommands();
 
             // Initialize Harmony for our postfix
-            var harmony = new Harmony(Mod.Info.ModID);
-            harmony.PatchAll();
+            //var harmony = new Harmony(Mod.Info.ModID);
+            //harmony.PatchAll();
 
             // Add our listeners to their events so they get triggered
             sapi.Event.OnEntityDeath += Event_OnEntityDeath;
