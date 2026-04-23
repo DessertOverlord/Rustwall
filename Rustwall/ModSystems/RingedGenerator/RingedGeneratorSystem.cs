@@ -551,12 +551,13 @@ namespace Rustwall.ModSystems.RingedGenerator
                 });*/
         }
 
-        [HarmonyPatch(typeof(GenDeposits), nameof("GeneratePartial"))]
+        [HarmonyPatch(typeof(GenDeposits), nameof(GenDeposits.GeneratePartial))]
         public static class GenDeposits_GeneratePartial_Patch
         {
-            static void Prefix(IServerChunk[] chunks, int chunkX, int chunkZ, int chunkdX, int chunkdZ, ref ___chanceMultiplier)
+            static void Prefix(IServerChunk[] chunks, int chunkX, int chunkZ, int chunkdX, int chunkdZ, ref float ___chanceMultiplier, ICoreAPI ___api)
             {
-                ringNumber = RingedGeneratorSystem.RingNumberFromChunk(chunkX, chunkZ);
+                RingedGeneratorSystem ringModSys = ___api.ModLoader.GetModSystem<RingedGeneratorSystem>();
+                int ringNumber = ringModSys.RingNumberFromChunk(chunkX, chunkZ);
                 //testing
                 if (ringNumber > 1) 
                 {
