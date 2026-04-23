@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using Cairo;
+using HarmonyLib;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -92,10 +93,18 @@ namespace Rustwall.ModSystems.RingedGenerator
             int regionZ = chunkZ / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
             return RingNumberFromRegion(regionX, regionZ);
         }
+        
+        public int RingNumberFromWorldPos(int posX, int posZ)
+        {
+            int regionX = posX / sapi.WorldManager.RegionSize;
+            int regionZ = posZ / sapi.WorldManager.RegionSize;
+            return RingNumberFromRegion(regionX, regionZ);
+        }
 
         private void HandleChunkLoading(IMapChunk mapChunk, int chunkX, int chunkZ)
         {
             if (ringMapSize == -500) { return; }
+
             int regionX = chunkX / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
             int regionZ = chunkZ / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
 
@@ -108,7 +117,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             desiredRing = RingNumberFromRegion(regionX, regionZ);
             if (curRing != desiredRing)
             {
-                //Debug.WriteLine("Changing ring generator. Old ring was " + curRing + ", new ring is " + desiredRing);
+                Debug.WriteLine("Changing ring generator. Old ring was " + curRing + ", new ring is " + desiredRing);
 
                 curRing = desiredRing;
 
@@ -254,7 +263,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         //SetWorldParams takes the parameters and seed provided and updates the world generator with them.
         private void SetWorldParams(ICoreServerAPI api, Dictionary<string, double> ringGenKVP, int seed)
         {
-            sapi.WorldManager.SaveGame.Seed = seed;
+            //sapi.WorldManager.SaveGame.Seed = seed;
 
             var worldConfig = sapi.World.Config;
 
@@ -333,7 +342,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             mapGenerator.geologicprovinceGen = GenMaps.GetGeologicProvinceMapGen(seed + 3, sapi);
             mapGenerator.landformsGen = GenMaps.GetLandformMapGen(seed + 4, noiseClimate, sapi, landformScale); ;
         }
-
+        
         //Turns off chunk generation and sending to clients, reloads all of the worldgen parameters (seed, multipliers), and then re-enables everything.
         // Necessary any time we change what ring we're generating.
         private void RestartChunkGenerator()
@@ -496,6 +505,17 @@ namespace Rustwall.ModSystems.RingedGenerator
                 .RequiresPrivilege(Privilege.controlserver)
                 .RequiresPlayer()
                 .WithDescription("Manage rustwall-specific functions")
+                .BeginSubCommand("whatringhere")
+                .WithArgs()
+                .HandleWith((args) => 
+                {
+                    var callerPos = args.Caller.Pos;
+                    var ringNumber = RingNumberFromWorldPos((int)callerPos.X, (int)callerPos.Z);
+
+
+                    return TextCommandResult.Success("Ring number at region coords is: " + ringNumber);
+                })
+
 
                 .BeginSubCommand("delete")
 
@@ -552,7 +572,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         }
 
         [HarmonyPatch(typeof(GenDeposits), nameof(GenDeposits.GeneratePartial))]
-        public static class GenDeposits_GeneratePartial_Patch
+        class GenDeposits_GeneratePartial_Patch
         {
             static void Prefix(IServerChunk[] chunks, int chunkX, int chunkZ, int chunkdX, int chunkdZ, ref float ___chanceMultiplier, ICoreAPI ___api)
             {

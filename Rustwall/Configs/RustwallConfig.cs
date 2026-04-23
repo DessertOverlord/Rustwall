@@ -34,7 +34,7 @@ namespace Rustwall.Configs
         };
 
         public static readonly Dictionary<string, double> WarmOcean = new()
-        { 
+        {
         };
 
         public static readonly Dictionary<string, double> ColdOcean = new()
