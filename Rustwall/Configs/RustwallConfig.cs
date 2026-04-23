@@ -11,7 +11,7 @@ namespace Rustwall.Configs
     {
         //TemporalStorm options
         public double TemporalStormDaysRemovedPerKill = 0.0417;
-        
+
         //GlobalStability options
         public double DaysBetweenStormScoring = 30.0;
         public double DaysBeforeTheGreatDecay = 180.0;
@@ -23,46 +23,46 @@ namespace Rustwall.Configs
         public double GracePeriodDurationRepairOneStage = 0.2;
         public double GracePeriodDurationRepairFully = 1.0;
 
-        public readonly Dictionary<string, double> RandomSettings = new(); 
+        public static readonly Dictionary<string, double> RandomSettings = new()
         {
-            
-        }
 
-        public readonly Dictionary<string, double> ExampleDefaultWorldConfigSettings = new(); 
-        { 
-            { "item1", 0.5 } 
-        }
+        };
 
-        public readonly Dictionary<string, double> WarmOcean = new(); 
-        { 
-        }
+        public static readonly Dictionary<string, double> ExampleDefaultWorldConfigSettings = new()
+        {
+            { "item1", 0.5 }
+        };
 
-        public readonly Dictionary<string, double> ColdOcean = new(); 
+        public static readonly Dictionary<string, double> WarmOcean = new()
         { 
-        }
+        };
 
-        public readonly Dictionary<string, double> RichMountains = new(); 
+        public static readonly Dictionary<string, double> ColdOcean = new()
         { 
-        }
+        };
 
-        public readonly Dictionary<string, double> FertilePlains = new(); 
+        public static readonly Dictionary<string, double> RichMountains = new()
         { 
-        }
+        };
 
-        public readonly Dictionary<string, double> DenseForest = new(); 
+        public static readonly Dictionary<string, double> FertilePlains = new()
         { 
-        }
+        };
 
-        public readonly Dictionary<string, double> ExtremeHills = new(); 
+        public static readonly Dictionary<string, double> DenseForest = new()
         { 
-        }
+        };
+
+        public static readonly Dictionary<string, double> ExtremeHills = new()
+        { 
+        };
 
         //keep in mind that ring 0 is the safezone and is ignored anyways
         //these are in order, ring 0, ring 1, etc.
         //leaving emptiness at the end will result in randomization
-        public readonly List<Dictionary<string, double>> = new(); 
-        { 
-            ExampleDefaultWorldConfigSettings
+        public readonly List<Dictionary<string, double>> RingTemplate = new()
+        {
+            ExampleDefaultWorldConfigSettings,
             FertilePlains,
             FertilePlains,
             FertilePlains,
@@ -87,6 +87,6 @@ namespace Rustwall.Configs
             RichMountains,
             RichMountains,
             RichMountains
-        }
+        };
     }
 }
