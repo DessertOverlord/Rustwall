@@ -5,8 +5,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Reflection.Metadata.Ecma335;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using Vintagestory.API.Client;
@@ -45,6 +47,11 @@ namespace Rustwall.ModSystems.RingedGenerator
         private static int ringMapSize;
         private double regionMidPoint;
 
+        public override double ExecuteOrder()
+        {
+            return -0.1;
+        }
+
         GenMaps mapGenerator;
         GenDeposits depositGenerator;
 
@@ -60,7 +67,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             var harmony = new Harmony(Mod.Info.ModID);
             harmony.PatchAll();
 
-            sapi.Event.ServerRunPhase(EnumServerRunPhase.GameReady, () => 
+            sapi.Event.ServerRunPhase(EnumServerRunPhase.WorldReady, () => 
             { 
                 // This calculates map size relative to the resolution of the rings
                 // It also checks to make sure the world is a square; if it is rectangular, the ring generator doesn't initialize
@@ -71,7 +78,13 @@ namespace Rustwall.ModSystems.RingedGenerator
                 //sapi.Event.SaveGameLoaded += InitRingedWorldGenerator;
 
                 InitRingedWorldGenerator();
+
             });
+
+            sapi.Event.InitWorldGenerator(() =>
+            {
+                
+            }, "standard");
 
             //Add the region method to the MapRegionGeneration event, causing it to be called any time the engine wants to generate a new region
             MapRegionGeneratorDelegate regionHandler = HandleRegionLoading;
@@ -80,6 +93,8 @@ namespace Rustwall.ModSystems.RingedGenerator
             //Add the chunk method to MapChunkGeneration; this is triggered any time a new chunk column is requested.
             MapChunkGeneratorDelegate chunkHandler = HandleChunkLoading;
             sapi.Event.MapChunkGeneration(chunkHandler, "standard");
+
+
         }
 
         public int RingNumberFromRegion(int regionX, int regionZ)
@@ -109,6 +124,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             int regionZ = chunkZ / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
 
             //HandleRegionLoading(null, regionX, regionZ);
+            
         }
 
         private void HandleRegionLoading(IMapRegion region, int regionX, int regionZ, ITreeAttribute chunkGenParams = null)
@@ -124,7 +140,9 @@ namespace Rustwall.ModSystems.RingedGenerator
                 //var tempvar = ringDictList[curRing];
                 //var tempvar2 = seedList[curRing];
 
-                SetWorldParams(sapi, ringDictList[curRing], seedList[curRing]);
+                region.SetModdata("pos", new Vec2i(regionX, regionZ));
+
+                SetWorldParams(region, ringDictList[curRing], seedList[curRing]);
             }
         }
 
@@ -261,19 +279,27 @@ namespace Rustwall.ModSystems.RingedGenerator
         }
 
         //SetWorldParams takes the parameters and seed provided and updates the world generator with them.
-        private void SetWorldParams(ICoreServerAPI api, Dictionary<string, double> ringGenKVP, int seed)
+        private void SetWorldParams(IMapRegion mapRegion, Dictionary<string, double> ringGenKVP, int seed)
         {
-            //sapi.WorldManager.SaveGame.Seed = seed;
+            //StopChunkGeneration();
 
+            sapi.WorldManager.SaveGame.Seed = seed;
             var worldConfig = sapi.World.Config;
-
-            //depositGenerator.
 
             LatitudeData latdata = new LatitudeData();
 
             /// We're directly modifying the values that GenMaps.cs uses to instruct the world generator.
             /// We do NOT need to change any noiseSize vars because they are computed off of a hardcoded value and a region size value, 
             /// neither of which we are changing.
+
+            int noiseSizeOcean = sapi.WorldManager.RegionSize / TerraGenConfig.oceanMapScale;
+            int noiseSizeUpheavel = sapi.WorldManager.RegionSize / TerraGenConfig.climateMapScale;
+            int noiseSizeClimate = sapi.WorldManager.RegionSize / TerraGenConfig.climateMapScale;
+            int noiseSizeForest = sapi.WorldManager.RegionSize / TerraGenConfig.forestMapScale;
+            int noiseSizeShrubs = sapi.WorldManager.RegionSize / TerraGenConfig.shrubMapScale;
+            int noiseSizeGeoProv = sapi.WorldManager.RegionSize / TerraGenConfig.geoProvMapScale;
+            int noiseSizeLandform = sapi.WorldManager.RegionSize / TerraGenConfig.landformMapScale;
+            int noiseSizeBeach = sapi.WorldManager.RegionSize / TerraGenConfig.beachMapScale;
 
             float tempModifier = (float)ringGenKVP["globalTemperature"];
             float rainModifier = (float)ringGenKVP["globalPrecipitation"];
@@ -327,11 +353,9 @@ namespace Rustwall.ModSystems.RingedGenerator
                     break;
             }
 
-
-
             noiseClimate.rainMul = rainModifier;
             noiseClimate.tempMul = tempModifier;
-
+            
             mapGenerator.climateGen = GenMaps.GetClimateMapGen(seed + 1, noiseClimate);
             mapGenerator.upheavelGen = GenMaps.GetGeoUpheavelMapGen(seed + 873, TerraGenConfig.geoUpheavelMapScale);
             mapGenerator.oceanGen = GenMaps.GetOceanMapGen(seed + 1873, landcover, TerraGenConfig.oceanMapScale, oceanscale, mapGenerator.requireLandAt, false);
@@ -340,12 +364,17 @@ namespace Rustwall.ModSystems.RingedGenerator
             mapGenerator.flowerGen= GenMaps.GetForestMapGen(seed + 223, TerraGenConfig.forestMapScale);
             mapGenerator.beachGen = GenMaps.GetBeachMapGen(seed + 2273, TerraGenConfig.beachMapScale);
             mapGenerator.geologicprovinceGen = GenMaps.GetGeologicProvinceMapGen(seed + 3, sapi);
-            mapGenerator.landformsGen = GenMaps.GetLandformMapGen(seed + 4, noiseClimate, sapi, landformScale); ;
+            mapGenerator.landformsGen = GenMaps.GetLandformMapGen(seed + 4, noiseClimate, sapi, landformScale);
+
+
+
+
         }
-        
+
         //Turns off chunk generation and sending to clients, reloads all of the worldgen parameters (seed, multipliers), and then re-enables everything.
         // Necessary any time we change what ring we're generating.
-        private void RestartChunkGenerator()
+        // Deprecated
+        /*private void RestartChunkGenerator()
         {
             // This was built using the logic for /wgen regen as a template. The command paused the chunkdbthread before doing any of this type of stuff,
             // but this mod seems to function fine without doing that... hopefully it wasn't important :^)
@@ -364,7 +393,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             StartChunkGeneration();
             //sapi.WorldManager.AutoGenerateChunks = true;
             //sapi.WorldManager.SendChunks = true;
-        }
+        }*/
 
         private void StopChunkGeneration()
         {
@@ -372,6 +401,10 @@ namespace Rustwall.ModSystems.RingedGenerator
             sapi.WorldManager.SendChunks = false;
         }
 
+        /// <summary>
+        /// Deprecated
+        /// </summary>
+        [Obsolete]
         private void ReloadWorldgenAssets()
         {
             //sapi.Assets.Reload(new AssetLocation("worldgen/"));
@@ -515,8 +548,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
                     return TextCommandResult.Success("Ring number at region coords is: " + ringNumber);
                 })
-
-
+                .EndSubCommand()
                 .BeginSubCommand("delete")
 
                     .BeginSubCommand("ring")
@@ -571,7 +603,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 });*/
         }
 
-        [HarmonyPatch(typeof(GenDeposits), nameof(GenDeposits.GeneratePartial))]
+        /*[HarmonyPatch(typeof(GenDeposits), nameof(GenDeposits.GeneratePartial))]
         class GenDeposits_GeneratePartial_Patch
         {
             static void Prefix(IServerChunk[] chunks, int chunkX, int chunkZ, int chunkdX, int chunkdZ, ref float ___chanceMultiplier, ICoreAPI ___api)
@@ -587,6 +619,81 @@ namespace Rustwall.ModSystems.RingedGenerator
                 {
                     ___chanceMultiplier = 3;//someListOfValuesOrMathHere[ringNumber];
                 }
+            }
+        }*/
+
+        [HarmonyPatch]
+        class GenTerra_OnChunkColumnGen_Patch
+        {
+            public static MethodInfo TargetMethod()
+            {
+                Type[] methodParams =
+                [
+                    typeof(IChunkColumnGenerateRequest)
+                ];
+
+                //var typename = AccessTools.TypeByName("Vintagestory.Server.ServerSystemSupplyChunks");
+
+                var output = AccessTools.Method(typeof(GenTerra), "OnChunkColumnGen");
+
+                return output;
+            }
+
+            public static void Postfix(IChunkColumnGenerateRequest request, 
+                NewNormalizedSimplexFractalNoise ___terrainNoise,
+                int ___terrainGenOctaves,
+                ICoreServerAPI ___api,
+                float ___noiseScale,
+                SimplexNoise ___distort2dx,
+                SimplexNoise ___distort2dz,
+                NormalizedSimplexNoise ___geoUpheavalNoise
+                
+                )
+            {
+                var ringsys = ___api.ModLoader.GetModSystem<RingedGeneratorSystem>();
+                int ringNum = ringsys.RingNumberFromChunk(request.ChunkX, request.ChunkZ);
+                int seed = ringsys.seedList[ringNum];
+                //___api.WorldManager.SaveGame.Seed = ringsys.seedList[ringNum];
+
+                double[] scaleAdjustedFreqs(double[] vs, float horizontalScale)
+                {
+                    for (int i = 0; i < vs.Length; i++)
+                    {
+                        vs[i] /= horizontalScale;
+                    }
+
+                    return vs;
+                }
+
+                ___terrainNoise = NewNormalizedSimplexFractalNoise.FromDefaultOctaves
+                    (
+                        ___terrainGenOctaves, 0.0005 * NewSimplexNoiseLayer.OldToNewFrequency / ___noiseScale, 0.9, seed
+                    );
+                ___distort2dx = new SimplexNoise
+                    (
+                        new double[] { 55, 40, 30, 10 },
+                        scaleAdjustedFreqs(new double[] { 1 / 5.0, 1 / 2.50, 1 / 1.250, 1 / 0.65 }, ___noiseScale),
+                        seed + 9876 + 0
+                    );
+                ___distort2dz = new SimplexNoise
+                    (
+                        new double[] { 55, 40, 30, 10 },
+                        scaleAdjustedFreqs(new double[] { 1 / 5.0, 1 / 2.50, 1 / 1.250, 1 / 0.65 }, ___noiseScale),
+                        seed + 9876 + 2
+                    );
+                ___geoUpheavalNoise = new NormalizedSimplexNoise
+                    (
+                        new double[] { 55, 40, 30, 15, 7, 4 },
+                        scaleAdjustedFreqs(new double[] {
+                        1.0 / 5.5,
+                        1.1 / 2.75,
+                        1.2 / 1.375,
+                        1.2 / 0.715,
+                        1.2 / 0.45,
+                        1.2 / 0.25
+                        }, ___noiseScale),
+                        seed + 9876 + 1
+                    );
             }
         }
     }
