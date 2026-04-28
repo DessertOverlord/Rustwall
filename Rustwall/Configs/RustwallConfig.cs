@@ -23,6 +23,8 @@ namespace Rustwall.Configs
         public double GracePeriodDurationRepairOneStage = 0.2;
         public double GracePeriodDurationRepairFully = 1.0;
 
+        //RingedGenerator options
+        public int ringWidth = 1;
         public static readonly Dictionary<string, double> DefaultWorldConfigSettings = new()
         {
                 { "landformScale", 1 },
@@ -77,7 +79,7 @@ namespace Rustwall.Configs
             */
         //"name-[string]", 0 -- identifier for the area. The number at the end is meaningless.
         //omitting any worldconfig option will have it use the default.
-        public readonly List<Dictionary<string, double>> RingTemplate = new()
+        public readonly List<Dictionary<string, double>> RingTemplates = new()
         {
             new Dictionary<string, double> 
             {

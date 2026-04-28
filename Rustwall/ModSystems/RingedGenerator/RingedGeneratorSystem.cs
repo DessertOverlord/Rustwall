@@ -29,6 +29,8 @@ namespace Rustwall.ModSystems.RingedGenerator
     {
         public SeedDependentWorldGenParameters(ICoreServerAPI sapi, int seed, Dictionary<string, double> ringGeneratorWorldParameters)
         {
+            World_seed = seed;
+
             ///Here we handle the stuff that GenMaps would normally handle
             var worldConfig = sapi.World.Config;
             LatitudeData latdata = new LatitudeData();
@@ -160,6 +162,8 @@ namespace Rustwall.ModSystems.RingedGenerator
                 );
         }
 
+        int World_seed;
+
         MapLayerBase GenMaps_climateGen;
         MapLayerBase GenMaps_upheavelGen;
         MapLayerBase GenMaps_oceanGen;
@@ -194,8 +198,10 @@ namespace Rustwall.ModSystems.RingedGenerator
         private readonly List<double> WorldgenDefaultParams = new List<double> { 1, 1, 1, 0, 0.975, 1, 0.3, 0.05 };
         private static int curRing = 0;
         private static int desiredRing = 0;
-        private static int ringMapSize;
         private double regionMidPoint;
+        GenMaps mapGenerator;
+        GenDeposits depositGenerator;
+        public int LeftOverRings { get; private set; }
 
         public List<SeedDependentWorldGenParameters> RingWorldMaps { get; private set; }
 
@@ -205,8 +211,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             return -0.1;
         }
 
-        GenMaps mapGenerator;
-        GenDeposits depositGenerator;
+
 
         protected override void RustwallStartServerSide()
         {
@@ -222,17 +227,26 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             sapi.Event.ServerRunPhase(EnumServerRunPhase.WorldReady, () => 
             { 
+                this.ringWidth = config.ringWidth;
                 // This calculates map size relative to the resolution of the rings
                 // It also checks to make sure the world is a square; if it is rectangular, the ring generator doesn't initialize
-                ringMapSize = sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ ? (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2 : -500;
-                regionMidPoint = ((ringMapSize + ringMapSize - 1) / 2.0);
-                ringDictList = new List<Dictionary<string, double>>(ringMapSize / ringWidth);
-                RingWorldMaps = new List<SeedDependentWorldGenParameters>(ringMapSize / ringWidth);
+                if (sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ) 
+                {
+                    int NumberOfRingsWithWidthOfOne = (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2;
+                    LeftOverRings = NumberOfRingsWithWidthOfOne % ringWidth;
+                    NumberOfRings = LeftOverRings == 0 ? (NumberOfRingsWithWidthOfOne / ringWidth) : (((NumberOfRingsWithWidthOfOne / ringWidth) - LeftOverRings) / ringWidth)
+                }
+                else 
+                {
+                    NumberOfRings = -500
+                }
+
+                regionMidPoint = ((NumberOfRings + NumberOfRings - 1) / 2.0);
+                ringDictList = new List<Dictionary<string, double>>(NumberOfRings / ringWidth);
+                RingWorldMaps = new List<SeedDependentWorldGenParameters>(NumberOfRings / ringWidth);
             });
 
             sapi.Event.InitWorldGenerator(() => InitRingedWorldGenerator(), "standard");
-
-            
 
             //Add the region method to the MapRegionGeneration event, causing it to be called any time the engine wants to generate a new region
             MapRegionGeneratorDelegate regionHandler = HandleRegionLoading;
@@ -264,7 +278,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         private void HandleChunkLoading(IMapChunk mapChunk, int chunkX, int chunkZ)
         {
-            if (ringMapSize == -500) { return; }
+            if (NumberOfRings == -500) { return; }
 
             int regionX = chunkX / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
             int regionZ = chunkZ / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
@@ -275,7 +289,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         private void HandleRegionLoading(IMapRegion region, int regionX, int regionZ, ITreeAttribute chunkGenParams = null)
         {
-            if (ringMapSize == -500) { return; }
+            if (NumberOfRings == -500) { return; }
             desiredRing = RingNumberFromRegion(regionX, regionZ);
             if (curRing != desiredRing)
             {
@@ -295,7 +309,18 @@ namespace Rustwall.ModSystems.RingedGenerator
         //Initialize and load the worldgen parameters
         private void InitRingedWorldGenerator()
         {
-            //If this is the first world load, we need some fresh params
+            //pull in list of stuff from config
+            List<Dictionary<string, int>>() presetRingConfigs = config.RingTemplates;
+
+            int TemplatedRings = presetRingConfigs.Count();
+
+            //if the template is empty, everything is random
+            if (TemplatedRings == 0) 
+            {
+                //If this is the first world load, we need some fresh params
+
+            }
+
             if (sapi.WorldManager.SaveGame.IsNew)
             {
                 CreateWorldgenValues();
@@ -307,20 +332,23 @@ namespace Rustwall.ModSystems.RingedGenerator
                 //this could happen if the world is improperly saved after the initial world load.
                 //HOPEfully this should never arise.
                 if (seedData != null)
-                { 
+                {
                     seedList = SerializerUtil.Deserialize<List<int>>(seedData); 
-                } 
+                }
                 else 
-                { 
+                {
                     CreateWorldgenValues(); 
                 }
 
-                for (int i = 0; i <= ringMapSize; i++)
+                for (int i = 0; i <= NumberOfRings; i++)
                 {
                     byte[] data = sapi.WorldManager.SaveGame.GetData("rustwallRingData_" + i);
                     ringDictList.Add(SerializerUtil.Deserialize<Dictionary<string, double>>(data));
                 }
             }
+
+
+
         }
 
         //Initialize first-time world generator values
@@ -337,14 +365,14 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             // and this adds the rest of them -- note -1 because we already added 1 with the previous loop
             // it needs to be less than or equal to because I want exactly 25 (minus the first one already added), not 24. Otherwise shit goes sideways!
-            for (int i = 1; i <= ringMapSize; i++)
+            for (int i = 1; i <= NumberOfRings; i++)
             {
                 RandomizeParams(out Dictionary<string, double> newParams, out int seed, EnumDistribution.NARROWINVERSEGAUSSIAN);
                 seedList.Add(seed);
                 ringDictList.Add(newParams);
             }
 
-            for (int i = 1; i <= ringMapSize; i++)
+            for (int i = 1; i <= NumberOfRings; i++)
             {
                 RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, seedList[i], ringDictList[i]));
             }
@@ -629,7 +657,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 toRing = 1;
             }
 
-            if (toRing > ringMapSize)
+            if (toRing > NumberOfRings)
             {
                 Debug.WriteLine("Rustwall error: requested deletion exceeds size of ring map. Try a smaller value.");
                 return;
@@ -641,15 +669,15 @@ namespace Rustwall.ModSystems.RingedGenerator
                 return;
             }
 
-            if (fromRing >= ringMapSize)
+            if (fromRing >= NumberOfRings)
             {
-                fromRing = ringMapSize - 1;
+                fromRing = NumberOfRings - 1;
                 Debug.WriteLine("Rustwall error: fromRing exceeded size of ring map. This will crash the fuck out of the server");
             }
 
-            if (toRing >= ringMapSize)
+            if (toRing >= NumberOfRings)
             {
-                toRing = ringMapSize - 1;
+                toRing = NumberOfRings - 1;
                 Debug.WriteLine("Rustwall error: toRing exceeded size of ring map. This will crash the fuck out of the server");
             }
 
@@ -662,8 +690,8 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         public void TriggerGreatDecay(float stabRatio)
         {
-            int fromRing = (int)(ringMapSize - (ringMapSize * stabRatio));
-            int toRing = ringMapSize;
+            int fromRing = (int)(NumberOfRings - (NumberOfRings * stabRatio));
+            int toRing = NumberOfRings;
 
 
 
