@@ -28,9 +28,26 @@ namespace Rustwall.Configs
 
         };
 
-        public static readonly Dictionary<string, double> ExampleDefaultWorldConfigSettings = new()
+        public class idkwhatthiswilldo
         {
-            { "item1", 0.5 }
+            public int somevalue = 2;
+        }
+
+        public readonly List<idkwhatthiswilldo> testhing = new()
+        {
+            new idkwhatthiswilldo {}
+        };
+
+        public static readonly Dictionary<string, double> DefaultWorldConfigSettings = new()
+        {
+                { "landformScale", 1 },
+                { "globalTemperature", 1 },
+                { "globalPrecipitation", 1 },
+                { "globalForestation", 0 },
+                { "landcover", 0.975 },
+                { "oceanscale", 1 },
+                { "upheavelCommonness", 0.3 },
+                { "geologicActivity", 0.05 }
         };
 
         public static readonly Dictionary<string, double> WarmOcean = new()
@@ -62,7 +79,7 @@ namespace Rustwall.Configs
         //leaving emptiness at the end will result in randomization
         public readonly List<Dictionary<string, double>> RingTemplate = new()
         {
-            ExampleDefaultWorldConfigSettings,
+            DefaultWorldConfigSettings,
             FertilePlains,
             FertilePlains,
             FertilePlains,
