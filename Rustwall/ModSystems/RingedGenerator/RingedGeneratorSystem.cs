@@ -1,5 +1,6 @@
 ﻿using Cairo;
 using HarmonyLib;
+using ProtoBuf;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -25,11 +26,13 @@ using Vintagestory.ServerMods.NoObf;
 
 namespace Rustwall.ModSystems.RingedGenerator
 {
+    [ProtoContract(ImplicitFields = ImplicitFields.AllPublic, SkipConstructor = true)]
     public class SeedDependentWorldGenParameters
     {
         public SeedDependentWorldGenParameters(ICoreServerAPI sapi, int seed, Dictionary<string, double> ringGeneratorWorldParameters)
         {
-            World_seed = seed;
+            World_Seed = seed;
+            inputParams = ringGeneratorWorldParameters;
 
             ///Here we handle the stuff that GenMaps would normally handle
             var worldConfig = sapi.World.Config;
@@ -104,6 +107,9 @@ namespace Rustwall.ModSystems.RingedGenerator
             GenMaps_climateGen = GenMaps.GetClimateMapGen(seed + 1, noiseClimate);
             GenMaps_upheavelGen = GenMaps.GetGeoUpheavelMapGen(seed + 873, TerraGenConfig.geoUpheavelMapScale);
 
+            //this is a bit ugly and not accurate but GenMaps shits itself without this because
+            //requireLandAt is not defined in GenMaps at initialization, but I can't load any later
+            //because otherwise HandleRegionLoading is registered too late.
             List<XZ> requireLandAt = new() { new XZ(0, 0) };
 
             GenMaps_oceanGen = GenMaps.GetOceanMapGen(seed + 1873, landcover, TerraGenConfig.oceanMapScale, oceanscale, requireLandAt, false);
@@ -137,47 +143,46 @@ namespace Rustwall.ModSystems.RingedGenerator
                 );
             GenTerra_distort2dx = new SimplexNoise
                 (
-                    new double[] { 55, 40, 30, 10 },
-                    scaleAdjustedFreqs(new double[] { 1 / 5.0, 1 / 2.50, 1 / 1.250, 1 / 0.65 }, noiseScale),
+                    [55, 40, 30, 10],
+                    scaleAdjustedFreqs([1 / 5.0, 1 / 2.50, 1 / 1.250, 1 / 0.65], noiseScale),
                     seed + 9876 + 0
                 );
             GenTerra_distort2dz = new SimplexNoise
                 (
-                    new double[] { 55, 40, 30, 10 },
-                    scaleAdjustedFreqs(new double[] { 1 / 5.0, 1 / 2.50, 1 / 1.250, 1 / 0.65 }, noiseScale),
+                    [55, 40, 30, 10],
+                    scaleAdjustedFreqs([1 / 5.0, 1 / 2.50, 1 / 1.250, 1 / 0.65], noiseScale),
                     seed + 9876 + 2
                 );
             GenTerra_geoUpheavalNoise = new NormalizedSimplexNoise
                 (
-                    new double[] { 55, 40, 30, 15, 7, 4 },
-                    scaleAdjustedFreqs(new double[] {
+                    [55, 40, 30, 15, 7, 4],
+                    scaleAdjustedFreqs([
                         1.0 / 5.5,
                         1.1 / 2.75,
                         1.2 / 1.375,
                         1.2 / 0.715,
                         1.2 / 0.45,
                         1.2 / 0.25
-                    }, noiseScale),
+                    ], noiseScale),
                     seed + 9876 + 1
                 );
         }
 
-        int World_seed;
-
-        MapLayerBase GenMaps_climateGen;
-        MapLayerBase GenMaps_upheavelGen;
-        MapLayerBase GenMaps_oceanGen;
-        MapLayerBase GenMaps_forestGen;
-        MapLayerBase GenMaps_bushGen;
-        MapLayerBase GenMaps_flowerGen;
-        MapLayerBase GenMaps_beachGen;
-        MapLayerBase GenMaps_geologicprovinceGen;
-        MapLayerBase GenMaps_landformsGen;
-
-        NewNormalizedSimplexFractalNoise GenTerra_terrainNoise;
-        SimplexNoise GenTerra_distort2dx;
-        SimplexNoise GenTerra_distort2dz;
-        NormalizedSimplexNoise GenTerra_geoUpheavalNoise;
+        public Dictionary<string, double> inputParams { get; private set; }
+        public int World_Seed { get; private set; }
+        public MapLayerBase GenMaps_climateGen { get; private set; }
+        public MapLayerBase GenMaps_upheavelGen { get; private set; }
+        public MapLayerBase GenMaps_oceanGen { get; private set; }
+        public MapLayerBase GenMaps_forestGen { get; private set; }
+        public MapLayerBase GenMaps_bushGen { get; private set; }
+        public MapLayerBase GenMaps_flowerGen { get; private set; }
+        public MapLayerBase GenMaps_beachGen { get; private set; }
+        public MapLayerBase GenMaps_geologicprovinceGen { get; private set; }
+        public MapLayerBase GenMaps_landformsGen { get; private set; }
+        public NewNormalizedSimplexFractalNoise GenTerra_terrainNoise { get; private set; }
+        public SimplexNoise GenTerra_distort2dx { get; private set; }
+        public SimplexNoise GenTerra_distort2dz { get; private set; }
+        public NormalizedSimplexNoise GenTerra_geoUpheavalNoise { get; private set; }
     }
 
     internal class RingedGeneratorSystem : RustwallModSystem
@@ -187,11 +192,6 @@ namespace Rustwall.ModSystems.RingedGenerator
         private int ringWidth;
         private int safeZoneSize;
         public int NumberOfRings { get; private set; }
-
-        // each dictionary holds the parameters for one ring's worldgen. organized into a list for scalability
-        private List<Dictionary<string, double>> ringDictList { get; set; }
-        // seedlist performs the same thing as above, just holding all of the seeds.
-        private List<int> seedList { get; set; } = new List<int>() ;
         // this list is all of the settings we want to mess with. Can be added to easily.
         private readonly List<string> WorldgenParamsToScramble = new List<string> { "landformScale", "globalTemperature", "globalPrecipitation", "globalForestation", "landcover", "oceanscale", "upheavelCommonness", "geologicActivity" };
         // The default parameters for each of the associated parameters to scramble. ORDER MATTERS!
@@ -242,7 +242,6 @@ namespace Rustwall.ModSystems.RingedGenerator
                 }
 
                 regionMidPoint = ((RegionMapSizeX + RegionMapSizeX - 1) / 2.0);
-                ringDictList = new List<Dictionary<string, double>>(NumberOfRings);
                 RingWorldMaps = new List<SeedDependentWorldGenParameters>(NumberOfRings);
             });
 
@@ -262,24 +261,6 @@ namespace Rustwall.ModSystems.RingedGenerator
                 int safezonediff = Math.Abs(ringWidth - safeZoneSize);
 
                 int safeZoneRing = (int)(((double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5)) / safeZoneSize);
-                
-                int ringRing = -1;
-                if (regionX - regionMidPoint > 0 && regionZ - regionMidPoint > 0)
-                {
-                    ringRing = (int)(((double.Max(Math.Abs(regionX + safezonediff - regionMidPoint), Math.Abs(regionZ + safezonediff - regionMidPoint)) - 0.5)) / ringWidth);
-                }
-                else if (regionX - regionMidPoint > 0 && regionZ - regionMidPoint < 0)
-                {
-                    ringRing = (int)(((double.Max(Math.Abs(regionX + safezonediff - regionMidPoint), Math.Abs(regionZ - safezonediff - regionMidPoint)) - 0.5)) / ringWidth);
-                }
-                else if (regionX - regionMidPoint < 0 && regionZ - regionMidPoint < 0)
-                {
-                    ringRing = (int)(((double.Max(Math.Abs(regionX - safezonediff - regionMidPoint), Math.Abs(regionZ - safezonediff - regionMidPoint)) - 0.5)) / ringWidth);
-                }
-                else if (regionX - regionMidPoint < 0 && regionZ - regionMidPoint > 0)
-                {
-                    ringRing = (int)(((double.Max(Math.Abs(regionX - safezonediff - regionMidPoint), Math.Abs(regionZ + safezonediff - regionMidPoint)) - 0.5)) / ringWidth);
-                }
 
                 if (safeZoneRing == 0)
                 {
@@ -287,6 +268,26 @@ namespace Rustwall.ModSystems.RingedGenerator
                 }
                 else
                 {
+                    //TODO: this could be made cleaner by calculating the regionX and regionZ offsets separately
+                    int ringRing = -1;
+
+                    if (regionX - regionMidPoint > 0 && regionZ - regionMidPoint > 0)
+                    {
+                        ringRing = (int)((double.Max(Math.Abs(regionX + safezonediff - regionMidPoint), Math.Abs(regionZ + safezonediff - regionMidPoint)) - 0.5) / ringWidth);
+                    }
+                    else if (regionX - regionMidPoint > 0 && regionZ - regionMidPoint < 0)
+                    {
+                        ringRing = (int)((double.Max(Math.Abs(regionX + safezonediff - regionMidPoint), Math.Abs(regionZ - safezonediff - regionMidPoint)) - 0.5) / ringWidth);
+                    }
+                    else if (regionX - regionMidPoint < 0 && regionZ - regionMidPoint < 0)
+                    {
+                        ringRing = (int)((double.Max(Math.Abs(regionX - safezonediff - regionMidPoint), Math.Abs(regionZ - safezonediff - regionMidPoint)) - 0.5) / ringWidth);
+                    }
+                    else if (regionX - regionMidPoint < 0 && regionZ - regionMidPoint > 0)
+                    {
+                        ringRing = (int)((double.Max(Math.Abs(regionX - safezonediff - regionMidPoint), Math.Abs(regionZ + safezonediff - regionMidPoint)) - 0.5) / ringWidth);
+                    }
+
                     return ringRing;
                 }
             }
@@ -334,9 +335,12 @@ namespace Rustwall.ModSystems.RingedGenerator
                 //var tempvar = ringDictList[curRing];
                 //var tempvar2 = seedList[curRing];
 
-                region.SetModdata("pos", new Vec2i(regionX, regionZ));
+                //region.SetModdata("pos", new Vec2i(regionX, regionZ));
 
-                SetWorldParams(region, ringDictList[curRing], seedList[curRing]);
+                SetWorldParams(RingWorldMaps[curRing]);
+
+                //Deprecated -- prefer using RingWorldMaps
+                //SetWorldParams(region, ringDictList[curRing], seedList[curRing]);
             }
         }
 
@@ -362,43 +366,24 @@ namespace Rustwall.ModSystems.RingedGenerator
             // if it isn't, just load what's already there (hopefully...)
             else
             {
-                byte[] seedData = sapi.WorldManager.SaveGame.GetData("rustwallRingSeeds");
-                //this could happen if the world is improperly saved after the initial world load.
-                //HOPEfully this should never arise.
-                if (seedData != null)
-                {
-                    seedList = SerializerUtil.Deserialize<List<int>>(seedData); 
-                }
-                else 
-                {
-                    CreateWorldgenValues(); 
-                }
-
-                for (int i = 0; i <= NumberOfRings; i++)
-                {
-                    byte[] data = sapi.WorldManager.SaveGame.GetData("rustwallRingData_" + i);
-                    ringDictList.Add(SerializerUtil.Deserialize<Dictionary<string, double>>(data));
-                }
+                LoadWorldgenData();
             }
-
-
-
         }
 
         //Initialize first-time world generator values
         private void CreateWorldgenValues()
         {
             //Initialize seedList and ringDictList, and loop through them to populate values
-            seedList.Add(sapi.WorldManager.SaveGame.Seed);
-            ringDictList.Add(new Dictionary<string, double>());
+            //seedList.Add(sapi.WorldManager.SaveGame.Seed);
+            List<int> seedList = new List<int>(NumberOfRings) { sapi.WorldManager.SaveGame.Seed };
+            List<Dictionary<string, double>> ringDictList = new List<Dictionary<string, double>>(NumberOfRings) { new Dictionary<string, double>() };
             //This adds the default worldgen params to spawn (ring 0)
             for (int i = 0; i < WorldgenParamsToScramble.Count(); i++)
             {
                 ringDictList[0].Add(WorldgenParamsToScramble[i], WorldgenDefaultParams[i]);
             }
 
-            // and this adds the rest of them -- note -1 because we already added 1 with the previous loop
-            // it needs to be less than or equal to because I want exactly 25 (minus the first one already added), not 24. Otherwise shit goes sideways!
+            // it needs to be less than or equal to because I want exactly 26 (minus the first one already added), not 25. Otherwise shit goes sideways!
             for (int i = 1; i <= NumberOfRings; i++)
             {
                 RandomizeParams(out Dictionary<string, double> newParams, out int seed, EnumDistribution.NARROWINVERSEGAUSSIAN);
@@ -406,7 +391,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 ringDictList.Add(newParams);
             }
 
-            for (int i = 1; i <= NumberOfRings; i++)
+            for (int i = 0; i <= NumberOfRings; i++)
             {
                 RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, seedList[i], ringDictList[i]));
             }
@@ -417,11 +402,21 @@ namespace Rustwall.ModSystems.RingedGenerator
         private void StoreWorldgenData()
         {
             // this stores the generated seeds and params into the savegame, making them persistent
-            sapi.WorldManager.SaveGame.StoreData("rustwallRingSeeds", SerializerUtil.Serialize(seedList));
-            for (int i = 0; i < ringDictList.Count; i++)
+            sapi.WorldManager.SaveGame.StoreData("rustwallRingMaps", SerializerUtil.Serialize(RingWorldMaps));
+        }
+
+        private void LoadWorldgenData()
+        {
+            byte[] mapData = sapi.WorldManager.SaveGame.GetData("rustwallRingMaps");
+            //this could happen if the world is improperly saved after the initial world load.
+            //HOPEfully this should never arise.
+            if (mapData != null)
             {
-                //note that each array must be saved separately -- nested arrays of different sizes are not supported for serialization
-                sapi.WorldManager.SaveGame.StoreData("rustwallRingData_" + i, SerializerUtil.Serialize(ringDictList[i]));
+                RingWorldMaps = SerializerUtil.Deserialize<List<SeedDependentWorldGenParameters>>(mapData);
+            }
+            else
+            {
+                CreateWorldgenValues();
             }
         }
 
@@ -470,10 +465,13 @@ namespace Rustwall.ModSystems.RingedGenerator
         {
             RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, dist);
 
+            RingWorldMaps[ringNumber] = new SeedDependentWorldGenParameters(sapi, newSeed, newParams);
+
+            /*
             ringDictList[ringNumber].Clear();
             ringDictList[ringNumber].AddRange(newParams);
 
-            seedList[ringNumber] = newSeed;
+            seedList[ringNumber] = newSeed;*/
 
         }
 
@@ -486,6 +484,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         }
 
         //SetWorldParams takes the parameters and seed provided and updates the world generator with them.
+        [Obsolete]
         private void SetWorldParams(IMapRegion mapRegion, Dictionary<string, double> ringGenKVP, int seed)
         {
             //StopChunkGeneration();
@@ -575,6 +574,20 @@ namespace Rustwall.ModSystems.RingedGenerator
             mapGenerator.geologicprovinceGen = GenMaps.GetGeologicProvinceMapGen(seed + 3, sapi);
             mapGenerator.landformsGen = GenMaps.GetLandformMapGen(seed + 4, noiseClimate, sapi, landformScale);
         }
+
+        private void SetWorldParams(SeedDependentWorldGenParameters worldParams)
+        {
+            mapGenerator.climateGen = worldParams.GenMaps_climateGen;
+            mapGenerator.upheavelGen = worldParams.GenMaps_upheavelGen;
+            mapGenerator.oceanGen = worldParams.GenMaps_oceanGen;
+            mapGenerator.forestGen = worldParams.GenMaps_forestGen;
+            mapGenerator.bushGen = worldParams.GenMaps_bushGen;
+            mapGenerator.flowerGen = worldParams.GenMaps_flowerGen;
+            mapGenerator.beachGen = worldParams.GenMaps_beachGen;
+            mapGenerator.geologicprovinceGen = worldParams.GenMaps_geologicprovinceGen;
+            mapGenerator.landformsGen = worldParams.GenMaps_landformsGen;
+        }
+
 
         //Turns off chunk generation and sending to clients, reloads all of the worldgen parameters (seed, multipliers), and then re-enables everything.
         // Necessary any time we change what ring we're generating.
@@ -838,14 +851,13 @@ namespace Rustwall.ModSystems.RingedGenerator
                     typeof(IChunkColumnGenerateRequest)
                 ];
 
-                //var typename = AccessTools.TypeByName("Vintagestory.Server.ServerSystemSupplyChunks");
-
                 var output = AccessTools.Method(typeof(GenTerra), "OnChunkColumnGen");
 
                 return output;
             }
 
-            public static void Postfix(IChunkColumnGenerateRequest request, 
+            public static void Postfix(
+                IChunkColumnGenerateRequest request,
                 int ___terrainGenOctaves,
                 ICoreServerAPI ___api,
                 float ___noiseScale,
@@ -853,7 +865,42 @@ namespace Rustwall.ModSystems.RingedGenerator
                 SimplexNoise ___distort2dx,
                 SimplexNoise ___distort2dz,
                 NormalizedSimplexNoise ___geoUpheavalNoise
-                
+                )
+            {
+                var ringsys = ___api.ModLoader.GetModSystem<RingedGeneratorSystem>();
+                int ringNum = ringsys.RingNumberFromChunk(request.ChunkX, request.ChunkZ);
+                //int seed = ringsys.seedList[ringNum];
+                ___terrainNoise = ringsys.RingWorldMaps[ringNum].GenTerra_terrainNoise;
+                ___distort2dx = ringsys.RingWorldMaps[ringNum].GenTerra_distort2dx;
+                ___distort2dz = ringsys.RingWorldMaps[ringNum].GenTerra_distort2dx;
+                ___geoUpheavalNoise = ringsys.RingWorldMaps[ringNum].GenTerra_geoUpheavalNoise;
+            }
+        //Deprecated patch
+        /*
+        [HarmonyPatch]
+        class GenTerra_OnChunkColumnGen_Patch
+        {
+            public static MethodInfo TargetMethod()
+            {
+                Type[] methodParams =
+                [
+                    typeof(IChunkColumnGenerateRequest)
+                ];
+
+                var output = AccessTools.Method(typeof(GenTerra), "OnChunkColumnGen");
+
+                return output;
+            }
+
+            public static void Postfix(
+                IChunkColumnGenerateRequest request, 
+                int ___terrainGenOctaves,
+                ICoreServerAPI ___api,
+                float ___noiseScale,
+                NewNormalizedSimplexFractalNoise ___terrainNoise,
+                SimplexNoise ___distort2dx,
+                SimplexNoise ___distort2dz,
+                NormalizedSimplexNoise ___geoUpheavalNoise
                 )
             {
                 var ringsys = ___api.ModLoader.GetModSystem<RingedGeneratorSystem>();
@@ -900,7 +947,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                         }, ___noiseScale),
                         seed + 9876 + 1
                     );
-            }
+            }*/
         }
     }
 }
