@@ -25,6 +25,7 @@ namespace Rustwall.Configs
 
         //RingedGenerator options
         public int ringWidth = 1;
+        public int safeZoneSize = 1;
         public static readonly Dictionary<string, double> DefaultWorldConfigSettings = new()
         {
                 { "landformScale", 1 },

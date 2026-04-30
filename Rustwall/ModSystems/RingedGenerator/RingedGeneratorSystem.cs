@@ -184,7 +184,10 @@ namespace Rustwall.ModSystems.RingedGenerator
     {
         //ICoreServerAPI sapi;
         // ringsize must be an even number (? haven't tried an odd number yet) and determines how wide each ring is.
-        private static int ringWidth = 1;
+        private int ringWidth;
+        private int safeZoneSize;
+        public int NumberOfRings { get; private set; }
+
         // each dictionary holds the parameters for one ring's worldgen. organized into a list for scalability
         private List<Dictionary<string, double>> ringDictList { get; set; }
         // seedlist performs the same thing as above, just holding all of the seeds.
@@ -211,8 +214,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             return -0.1;
         }
 
-
-
         protected override void RustwallStartServerSide()
         {
             //if (sapi.WorldManager.SaveGame.IsNew == true) { sapi.Server.ShutDown(); }
@@ -220,46 +221,79 @@ namespace Rustwall.ModSystems.RingedGenerator
             depositGenerator = sapi.ModLoader.GetModSystem<GenDeposits>();
 
             RegisterChatCommands();
-            //THERE IS A VERY HIGH CHANCE THIS DOESNT WORK
-            //because the temporal storm system does the same thing -- try moving to RustwallModSystem.
-            var harmony = new Harmony(Mod.Info.ModID);
-            harmony.PatchAll();
 
             sapi.Event.ServerRunPhase(EnumServerRunPhase.WorldReady, () => 
             { 
-                this.ringWidth = config.ringWidth;
+                ringWidth = config.ringWidth;
+                safeZoneSize = config.safeZoneSize;
+                int RegionMapSizeX = -1;
+
                 // This calculates map size relative to the resolution of the rings
                 // It also checks to make sure the world is a square; if it is rectangular, the ring generator doesn't initialize
-                if (sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ) 
+                if (sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ)
                 {
-                    int NumberOfRingsWithWidthOfOne = (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2;
-                    LeftOverRings = NumberOfRingsWithWidthOfOne % ringWidth;
-                    NumberOfRings = LeftOverRings == 0 ? (NumberOfRingsWithWidthOfOne / ringWidth) : (((NumberOfRingsWithWidthOfOne / ringWidth) - LeftOverRings) / ringWidth)
+                    RegionMapSizeX = (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2;
+                    LeftOverRings = RegionMapSizeX % ringWidth;
+                    NumberOfRings = LeftOverRings == 0 ? (RegionMapSizeX / ringWidth) : ((RegionMapSizeX - LeftOverRings) / ringWidth);
                 }
                 else 
                 {
-                    NumberOfRings = -500
+                    NumberOfRings = -500;
                 }
 
-                regionMidPoint = ((NumberOfRings + NumberOfRings - 1) / 2.0);
-                ringDictList = new List<Dictionary<string, double>>(NumberOfRings / ringWidth);
-                RingWorldMaps = new List<SeedDependentWorldGenParameters>(NumberOfRings / ringWidth);
+                regionMidPoint = ((RegionMapSizeX + RegionMapSizeX - 1) / 2.0);
+                ringDictList = new List<Dictionary<string, double>>(NumberOfRings);
+                RingWorldMaps = new List<SeedDependentWorldGenParameters>(NumberOfRings);
             });
 
             sapi.Event.InitWorldGenerator(() => InitRingedWorldGenerator(), "standard");
 
             //Add the region method to the MapRegionGeneration event, causing it to be called any time the engine wants to generate a new region
-            MapRegionGeneratorDelegate regionHandler = HandleRegionLoading;
-            sapi.Event.MapRegionGeneration(regionHandler, "standard");
+            sapi.Event.MapRegionGeneration(HandleRegionLoading, "standard");
 
             //Add the chunk method to MapChunkGeneration; this is triggered any time a new chunk column is requested.
-            MapChunkGeneratorDelegate chunkHandler = HandleChunkLoading;
-            sapi.Event.MapChunkGeneration(chunkHandler, "standard");
+            sapi.Event.MapChunkGeneration(HandleChunkLoading, "standard");
         }
 
         public int RingNumberFromRegion(int regionX, int regionZ)
         {
-            return (int)((double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5) / ringWidth);
+            if (safeZoneSize != ringWidth)
+            {
+                int safezonediff = Math.Abs(ringWidth - safeZoneSize);
+
+                int safeZoneRing = (int)(((double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5)) / safeZoneSize);
+                
+                int ringRing = -1;
+                if (regionX - regionMidPoint > 0 && regionZ - regionMidPoint > 0)
+                {
+                    ringRing = (int)(((double.Max(Math.Abs(regionX + safezonediff - regionMidPoint), Math.Abs(regionZ + safezonediff - regionMidPoint)) - 0.5)) / ringWidth);
+                }
+                else if (regionX - regionMidPoint > 0 && regionZ - regionMidPoint < 0)
+                {
+                    ringRing = (int)(((double.Max(Math.Abs(regionX + safezonediff - regionMidPoint), Math.Abs(regionZ - safezonediff - regionMidPoint)) - 0.5)) / ringWidth);
+                }
+                else if (regionX - regionMidPoint < 0 && regionZ - regionMidPoint < 0)
+                {
+                    ringRing = (int)(((double.Max(Math.Abs(regionX - safezonediff - regionMidPoint), Math.Abs(regionZ - safezonediff - regionMidPoint)) - 0.5)) / ringWidth);
+                }
+                else if (regionX - regionMidPoint < 0 && regionZ - regionMidPoint > 0)
+                {
+                    ringRing = (int)(((double.Max(Math.Abs(regionX - safezonediff - regionMidPoint), Math.Abs(regionZ + safezonediff - regionMidPoint)) - 0.5)) / ringWidth);
+                }
+
+                if (safeZoneRing == 0)
+                {
+                    return safeZoneRing;
+                }
+                else
+                {
+                    return ringRing;
+                }
+            }
+            else
+            {
+                return (int)(((double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5)) / ringWidth);
+            }
         }
 
         public int RingNumberFromChunk(int chunkX, int chunkZ) 
@@ -310,7 +344,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         private void InitRingedWorldGenerator()
         {
             //pull in list of stuff from config
-            List<Dictionary<string, int>>() presetRingConfigs = config.RingTemplates;
+            List<Dictionary<string, double>> presetRingConfigs = config.RingTemplates;
 
             int TemplatedRings = presetRingConfigs.Count();
 
@@ -774,6 +808,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 });*/
         }
 
+        //[HarmonyPatchCategory("RingedGeneratorSystem")]
         [HarmonyPatch(typeof(GenDeposits), nameof(GenDeposits.GeneratePartial))]
         class GenDeposits_GeneratePartial_Patch
         {
