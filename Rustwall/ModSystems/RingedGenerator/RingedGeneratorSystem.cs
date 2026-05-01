@@ -271,6 +271,13 @@ namespace Rustwall.ModSystems.RingedGenerator
                     //TODO: this could be made cleaner by calculating the regionX and regionZ offsets separately
                     int ringRing = -1;
 
+                    //because regionX or Z cannot have decimal values and the midpoint always contains 0.5 (because there's an even number)
+                    var regionXOffset = regionX - regionMidPoint > 0 ? regionX + safezonediff : regionX - safezonediff;
+                    var regionZOffset = regionZ - regionMidPoint > 0 ? regionZ + safezonediff : regionZ - safezonediff;
+
+                    ringRing = (int)((double.Max(Math.Abs(regionXOffset - regionMidPoint), Math.Abs(regionZOffset - regionMidPoint)) - 0.5) / ringWidth);
+
+                    /*
                     if (regionX - regionMidPoint > 0 && regionZ - regionMidPoint > 0)
                     {
                         ringRing = (int)((double.Max(Math.Abs(regionX + safezonediff - regionMidPoint), Math.Abs(regionZ + safezonediff - regionMidPoint)) - 0.5) / ringWidth);
@@ -286,7 +293,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                     else if (regionX - regionMidPoint < 0 && regionZ - regionMidPoint > 0)
                     {
                         ringRing = (int)((double.Max(Math.Abs(regionX - safezonediff - regionMidPoint), Math.Abs(regionZ + safezonediff - regionMidPoint)) - 0.5) / ringWidth);
-                    }
+                    }*/
 
                     return ringRing;
                 }
