@@ -24,7 +24,7 @@ namespace Rustwall.Configs
         public double GracePeriodDurationRepairFully = 1.0;
 
         //RingedGenerator options
-        public int ringWidth = 1;
+        public int ringWidth = 2;
         public int safeZoneSize = 1;
         public static readonly Dictionary<string, double> DefaultWorldConfigSettings = new()
         {
@@ -96,8 +96,19 @@ namespace Rustwall.Configs
             },
             new Dictionary<string, double> 
             {
-                { "name-fertile_plains", 1 },
-                { "repeat", 3 },
+                { "name-fertile_plains_cool", 1 },
+                { "landformScale", 3 },
+                { "globalTemperature", 1.5 },
+                { "globalPrecipitation", 5 },
+                { "globalForestation", -1 },
+                { "landcover", 0.975 },
+                { "oceanscale", 1 },
+                { "upheavelCommonness", 0 },
+                { "geologicActivity", 0 }
+            },
+            new Dictionary<string, double>
+            {
+                { "name-fertile_plains_warm", 1 },
                 { "landformScale", 3 },
                 { "globalTemperature", 1.5 },
                 { "globalPrecipitation", 5 },
@@ -110,7 +121,7 @@ namespace Rustwall.Configs
             new Dictionary<string, double> 
             {
                 { "name-dense_forest", 1 },
-                { "repeat", 3 },
+                { "repeat", 1 },
                 { "landformScale", 1.0 },
                 { "globalTemperature", 1 },
                 { "globalPrecipitation", 1 },
@@ -123,7 +134,7 @@ namespace Rustwall.Configs
             new Dictionary<string, double> 
             {
                 { "name-warm_ocean", 1 },
-                { "repeat", 3 },
+                { "repeat", 1 },
                 { "landformScale", 1.0 },
                 { "globalTemperature", 2 },
                 { "globalPrecipitation", 4 },
@@ -136,7 +147,7 @@ namespace Rustwall.Configs
             new Dictionary<string, double> 
             {
                 { "name-extreme_hills", 1 },
-                { "repeat", 3 },
+                { "repeat", 1 },
                 { "landformScale", 0.5 },
                 { "globalTemperature", 1 },
                 { "globalPrecipitation", 1 },
@@ -149,7 +160,7 @@ namespace Rustwall.Configs
             new Dictionary<string, double> 
             {
                 { "name-cold_ocean", 1 },
-                { "repeat", 3 },
+                { "repeat", 1 },
                 { "landformScale", 1.0 },
                 { "globalTemperature", 0.25 },
                 { "globalPrecipitation", 4 },
@@ -162,7 +173,7 @@ namespace Rustwall.Configs
             new Dictionary<string, double> 
             {
                 { "name-rich_mountains", 1 },
-                { "repeat", 3 },
+                { "repeat", 1 },
                 { "landformScale", 0.5 },
                 { "globalTemperature", 1 },
                 { "globalPrecipitation", 1 },
