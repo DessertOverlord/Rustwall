@@ -85,10 +85,10 @@ namespace Rustwall.ModSystems.RingedGenerator
                     }
 
                     noiseClimate = new NoiseClimateRealistic(
-                        seed, 
-                        (double)sapi.WorldManager.MapSizeZ / TerraGenConfig.climateMapScale / TerraGenConfig.climateMapSubScale, 
-                        latdata.polarEquatorDistance, 
-                        spawnMinTemp, 
+                        seed,
+                        (double)sapi.WorldManager.MapSizeZ / TerraGenConfig.climateMapScale / TerraGenConfig.climateMapSubScale,
+                        latdata.polarEquatorDistance,
+                        spawnMinTemp,
                         spawnMaxTemp
                         );
                     (noiseClimate as NoiseClimateRealistic).GeologicActivityStrength = (float)ringGeneratorWorldParameters["geologicActivity"];
@@ -168,6 +168,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 );
         }
 
+        public string Ring_Name { get; set; }
         public Dictionary<string, double> World_Params { get; private set; }
         public int World_Seed { get; private set; }
         public MapLayerBase GenMaps_climateGen { get; private set; }
@@ -356,21 +357,80 @@ namespace Rustwall.ModSystems.RingedGenerator
         //Initialize and load the worldgen parameters
         private void InitRingedWorldGenerator()
         {
-            //pull in list of stuff from config
-            List<Dictionary<string, double>> presetRingConfigs = config.RingTemplates;
-
-            int TemplatedRings = presetRingConfigs.Count();
-
-            //if the template is empty, everything is random
-            if (TemplatedRings == 0) 
-            {
-                //If this is the first world load, we need some fresh params
-
-            }
-
+            //First, check if this is a brand new world...
             if (sapi.WorldManager.SaveGame.IsNew)
             {
-                CreateWorldgenValues();
+                //If so, we need some new world configuration values.
+                //We'll pull in a list of templates from the config
+                List<Dictionary<string, double>> presetRingConfigs = config.RingTemplates;
+                int TemplatedRings = presetRingConfigs.Count();
+                //if the template contains something, then let's look into it
+                ///Templates are constructed in a predefined manner:
+                ///name
+                ///repeat (may or may not be present)
+                ///world config values OR a single entry for "random" with a distribution type
+                if (TemplatedRings >= 0)
+                {
+                    foreach (var template in presetRingConfigs)
+                    {
+                        string name = "";
+                        int repeatNum = 0;
+                        bool random = false;
+                        EnumDistribution randomType = EnumDistribution.NARROWINVERSEGAUSSIAN;
+                        int remains = -1;
+                        //Dictionary<string, double> ringDict;
+                        foreach (KeyValuePair<string, double> kvp in template)
+                        {
+                            if (kvp.Key.StartsWith("name-"))
+                            {
+                                name = kvp.Key;
+                                template.Remove(kvp.Key);
+                                continue;
+                            }
+                            else if (kvp.Key.Equals("repeat"))
+                            {
+                                repeatNum = (int)kvp.Value;
+                                template.Remove(kvp.Key);
+                                continue;
+                            }
+                            else if (kvp.Key.Equals("random"))
+                            {
+                                random = true;
+                                int randomTypeAsInt = (int)kvp.Value;
+                                randomType = (EnumDistribution)randomTypeAsInt;
+                                template.Remove(kvp.Key);
+                                continue;
+                            }
+                        }
+
+                        RandomizeParams(out Dictionary<string, double> newParams, out int seed, randomType);
+
+                        foreach (var item in newParams)
+                        {
+                            if (!template.ContainsKey(item.Key))
+                            {
+                                template.AddItem(item);
+                            }
+                        }
+
+                        for (int i = 0; i <= repeatNum; i++)
+                        {
+                            if (random)
+                            {
+                                RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, seed, newParams));
+                            }
+                            else
+                            {
+                                RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, seed, template));
+                            }
+                        }
+                    }
+                }
+                //and if it contains nothing, just go for full random
+                else
+                {
+                    CreateWorldgenValues();
+                }
             }
             // if it isn't, just load what's already there (hopefully...)
             else
