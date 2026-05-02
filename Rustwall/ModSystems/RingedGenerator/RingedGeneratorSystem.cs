@@ -32,7 +32,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         public SeedDependentWorldGenParameters(ICoreServerAPI sapi, int seed, Dictionary<string, double> ringGeneratorWorldParameters)
         {
             World_Seed = seed;
-            inputParams = ringGeneratorWorldParameters;
+            World_Params = ringGeneratorWorldParameters;
 
             ///Here we handle the stuff that GenMaps would normally handle
             var worldConfig = sapi.World.Config;
@@ -168,7 +168,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 );
         }
 
-        public Dictionary<string, double> inputParams { get; private set; }
+        public Dictionary<string, double> World_Params { get; private set; }
         public int World_Seed { get; private set; }
         public MapLayerBase GenMaps_climateGen { get; private set; }
         public MapLayerBase GenMaps_upheavelGen { get; private set; }
@@ -410,18 +410,38 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         private void StoreWorldgenData()
         {
-            // this stores the generated seeds and params into the savegame, making them persistent
-            sapi.WorldManager.SaveGame.StoreData("rustwallRingMaps", SerializerUtil.Serialize(RingWorldMaps));
+            //this stores the generated seeds and params into the savegame, making them persistent
+            List<int> seedList = [];
+            //yes i couldve used a for loop but foreach is so nice okay?
+            foreach (var item in RingWorldMaps)
+            {
+                seedList.Add(item.World_Seed);
+                sapi.WorldManager.SaveGame.StoreData("rustwallRingData_" + RingWorldMaps.IndexOf(item), SerializerUtil.Serialize(item.World_Params));
+            }
+            sapi.WorldManager.SaveGame.StoreData("rustwallRingSeeds", SerializerUtil.Serialize(seedList));
         }
 
         private void LoadWorldgenData()
         {
-            byte[] mapData = sapi.WorldManager.SaveGame.GetData("rustwallRingMaps");
+            byte[] seedData = sapi.WorldManager.SaveGame.GetData("rustwallRingSeeds");
             //this could happen if the world is improperly saved after the initial world load.
             //HOPEfully this should never arise.
-            if (mapData != null)
+            if (seedData != null)
             {
-                RingWorldMaps = SerializerUtil.Deserialize<List<SeedDependentWorldGenParameters>>(mapData);
+                List<int> seedList = SerializerUtil.Deserialize<List<int>>(seedData);
+                foreach (var item in seedList)
+                {
+                    byte[] ringData = sapi.WorldManager.SaveGame.GetData("rustwallRingData_" + seedList.IndexOf(item));
+                    if (ringData != null)
+                    {
+                        Dictionary<string, double> ringDict = SerializerUtil.Deserialize<Dictionary<string, double>>(ringData);
+                        RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, item, ringDict));
+                    }
+                    else
+                    {
+                        sapi.Logger.Error("Failed to load worldgen data for ring " + seedList.IndexOf(item) + ". Ring generator may not work as intended.");
+                    }
+                }
             }
             else
             {
