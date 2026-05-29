@@ -48,16 +48,16 @@ namespace Rustwall.ModSystems.RingedGenerator
             int noiseSizeLandform = sapi.WorldManager.RegionSize / TerraGenConfig.landformMapScale;
             int noiseSizeBeach = sapi.WorldManager.RegionSize / TerraGenConfig.beachMapScale;
             */
-
-            GenMaps_noiseSizeOcean = sapi.WorldManager.RegionSize / TerraGenConfig.oceanMapScale;
-            GenMaps_noiseSizeUpheavel = sapi.WorldManager.RegionSize / TerraGenConfig.climateMapScale;
-            GenMaps_noiseSizeClimate = sapi.WorldManager.RegionSize / TerraGenConfig.climateMapScale;
-            GenMaps_noiseSizeForest = sapi.WorldManager.RegionSize / TerraGenConfig.forestMapScale;
-            GenMaps_noiseSizeShrubs = sapi.WorldManager.RegionSize / TerraGenConfig.shrubMapScale;
-            GenMaps_noiseSizeGeoProv = sapi.WorldManager.RegionSize / TerraGenConfig.geoProvMapScale;
-            GenMaps_noiseSizeLandform = sapi.WorldManager.RegionSize / TerraGenConfig.landformMapScale;
-            GenMaps_noiseSizeBeach = sapi.WorldManager.RegionSize / TerraGenConfig.beachMapScale;
-
+/*
+            noiseSizeOcean = sapi.WorldManager.RegionSize / TerraGenConfig.oceanMapScale;
+            noiseSizeUpheavel = sapi.WorldManager.RegionSize / TerraGenConfig.climateMapScale;
+            noiseSizeClimate = sapi.WorldManager.RegionSize / TerraGenConfig.climateMapScale;
+            noiseSizeForest = sapi.WorldManager.RegionSize / TerraGenConfig.forestMapScale;
+            noiseSizeShrubs = sapi.WorldManager.RegionSize / TerraGenConfig.shrubMapScale;
+            noiseSizeGeoProv = sapi.WorldManager.RegionSize / TerraGenConfig.geoProvMapScale;
+            noiseSizeLandform = sapi.WorldManager.RegionSize / TerraGenConfig.landformMapScale;
+            noiseSizeBeach = sapi.WorldManager.RegionSize / TerraGenConfig.beachMapScale;
+*/
             float tempModifier = (float)ringGeneratorWorldParameters["globalTemperature"];
             float rainModifier = (float)ringGeneratorWorldParameters["globalPrecipitation"];
             float upheavelCommonness = (float)ringGeneratorWorldParameters["upheavelCommonness"];
@@ -147,7 +147,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
                 return vs;
             }
-
+/*
             GenTerra_terrainNoise = NewNormalizedSimplexFractalNoise.FromDefaultOctaves
                 (
                     terrainGenOctaves, 0.0005 * NewSimplexNoiseLayer.OldToNewFrequency / noiseScale, 0.9, seed
@@ -176,7 +176,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                         1.2 / 0.25
                     ], noiseScale),
                     seed + 9876 + 1
-                );
+                );*/
         }
 
         public string Ring_Name { get; set; }
@@ -191,10 +191,11 @@ namespace Rustwall.ModSystems.RingedGenerator
         public MapLayerBase GenMaps_beachGen { get; private set; }
         public MapLayerBase GenMaps_geologicprovinceGen { get; private set; }
         public MapLayerBase GenMaps_landformsGen { get; private set; }
-        public NewNormalizedSimplexFractalNoise GenTerra_terrainNoise { get; private set; }
+        /*public NewNormalizedSimplexFractalNoise GenTerra_terrainNoise { get; private set; }
         public SimplexNoise GenTerra_distort2dx { get; private set; }
         public SimplexNoise GenTerra_distort2dz { get; private set; }
-        public NormalizedSimplexNoise GenTerra_geoUpheavalNoise { get; private set; }
+        public NormalizedSimplexNoise GenTerra_geoUpheavalNoise { get; private set; }*/
+/*
         public int GenMaps_noiseSizeOcean { get; private set; }
         public int GenMaps_noiseSizeUpheavel { get; private set; }
         public int GenMaps_noiseSizeClimate { get; private set; }
@@ -202,7 +203,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         public int GenMaps_noiseSizeShrubs { get; private set; }
         public int GenMaps_noiseSizeGeoProv { get; private set; }
         public int GenMaps_noiseSizeLandform { get; private set; }
-        public int GenMaps_noiseSizeBeach { get; private set; }
+        public int GenMaps_noiseSizeBeach { get; private set; }*/
     }
 
     internal class RingedGeneratorSystem : RustwallModSystem
@@ -272,6 +273,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             sapi.Event.MapRegionGeneration(HandleRegionLoading, "standard");
 
             //Add the chunk method to MapChunkGeneration; this is triggered any time a new chunk column is requested.
+            // We are now managing everything by manipulating the maps stored in the region; no need to handle chunk loading.
             //sapi.Event.MapChunkGeneration(HandleChunkLoading, "standard");
         }
 
@@ -568,7 +570,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         //RandomDoubleInRange does what it says, giving a random double between minVal and maxVal.
         // I can probably eliminate this function entirely at some point but I can't be assed.
-        private double RandomDoubleInRange(ICoreServerAPI api, double minVal, double maxVal)
+        private double RandomDoubleInRange(double minVal, double maxVal)
         {
             return sapi.World.Rand.NextDouble() * (maxVal - minVal) + minVal;
         }
@@ -591,7 +593,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 case EnumDistribution.UNIFORM:
                     for (int i = 0; i < WorldgenParamsToScramble.Count; i++)
                     {
-                        newParams.Add(WorldgenParamsToScramble[i], RandomDoubleInRange(sapi, WorldgenMinParams[i], WorldgenMaxParams[i]));
+                        newParams.Add(WorldgenParamsToScramble[i], RandomDoubleInRange(WorldgenMinParams[i], WorldgenMaxParams[i]));
                     }
                     break;
                 case EnumDistribution.NARROWINVERSEGAUSSIAN:
@@ -612,13 +614,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, dist);
 
             RingWorldMaps[ringNumber] = new SeedDependentWorldGenParameters(sapi, newSeed, newParams);
-
-            /*
-            ringDictList[ringNumber].Clear();
-            ringDictList[ringNumber].AddRange(newParams);
-
-            seedList[ringNumber] = newSeed;*/
-
         }
 
         private void RandomizeRingRange(int fromRing, int toRing, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
@@ -630,35 +625,9 @@ namespace Rustwall.ModSystems.RingedGenerator
         }
 
         //SetWorldParams takes the parameters and seed provided and updates the world generator with them.
+        [Obsolete]
         private void SetWorldParams(SeedDependentWorldGenParameters worldParams, IMapRegion mapRegion, Vec2i regionCoords)
         {
-
-
-
-            //mapRegion.ShrubMap.Data = [.. newData];
-
-            /*if (regionCoords.X == 25)
-            {
-                int[] newData = new int[mapRegion.ForestMap.Size];
-                newData.Fill(255);
-                mapRegion.ForestMap.Data = newData;
-            }
-            else
-            {
-                mapRegion.ForestMap.Data = worldParams.GenMaps_forestGen.GenLayer(regionCoords.X * nSzForest, regionCoords.Y * nSzForest, nSzForest + 1, nSzForest + 1);
-            }*/
-
-            /*
-            mapGenerator.climateGen = worldParams.GenMaps_climateGen;
-            mapGenerator.upheavelGen = worldParams.GenMaps_upheavelGen;
-            mapGenerator.oceanGen = worldParams.GenMaps_oceanGen;
-            mapGenerator.forestGen = worldParams.GenMaps_forestGen;
-            mapGenerator.bushGen = worldParams.GenMaps_bushGen;
-            mapGenerator.flowerGen = worldParams.GenMaps_flowerGen;
-            mapGenerator.beachGen = worldParams.GenMaps_beachGen;
-            mapGenerator.geologicprovinceGen = worldParams.GenMaps_geologicprovinceGen;
-            mapGenerator.landformsGen = worldParams.GenMaps_landformsGen;
-            */
         }
 
         private void StopChunkGeneration()
@@ -776,8 +745,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             int fromRing = (int)(NumberOfRings - (NumberOfRings * stabRatio));
             int toRing = NumberOfRings;
 
-
-
             TriggerGreatDecay(fromRing, toRing);
         }
 
@@ -877,113 +844,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                     .EndSubCommand()
 
                 .EndSubCommand();
-
-            /*sapi.ChatCommands.Create("PrintWorldConfig")
-                .WithDescription("Does what it says on the tin.")
-                .RequiresPrivilege(Privilege.controlserver)
-                .RequiresPlayer()
-                .WithArgs()
-                .HandleWith((args) =>
-                {
-
-                    var worldconfig = sapi.WorldManager.SaveGame.WorldConfiguration;
-                    //var worldconfig = sapi.World.Config;
-                    string result = "";
-                    foreach (var item in WorldgenParamsToScramble)
-                    {
-                        result += worldconfig.GetDouble(item) != null ? item + ": " + worldconfig.GetDouble(item) + "\n" : item + "null value\n";
-                    }
-
-                    return TextCommandResult.Success("Values: " + result);
-                });*/
         }
-
-
-        //Intercept GenTerra and change the noise generators it uses based on the ring we're in.
-        /*[HarmonyPatch]
-        class GenTerra_OnChunkColumnGen_Patch
-        {
-            public static MethodInfo TargetMethod()
-            {
-                Type[] methodParams =
-                [
-                    typeof(IChunkColumnGenerateRequest)
-                ];
-
-                var output = AccessTools.Method(typeof(GenTerra), "OnChunkColumnGen");
-
-                return output;
-            }
-
-            public static void Postfix(
-                IChunkColumnGenerateRequest request,
-                int ___terrainGenOctaves,
-                ICoreServerAPI ___api,
-                float ___noiseScale,
-                NewNormalizedSimplexFractalNoise ___terrainNoise,
-                SimplexNoise ___distort2dx,
-                SimplexNoise ___distort2dz,
-                NormalizedSimplexNoise ___geoUpheavalNoise
-                )
-            {
-                var ringsys = ___api.ModLoader.GetModSystem<RingedGeneratorSystem>();
-                int ringNum = ringsys.RingNumberFromChunk(request.ChunkX, request.ChunkZ);
-                //int seed = ringsys.seedList[ringNum];
-                ___terrainNoise = ringsys.RingWorldMaps[ringNum].GenTerra_terrainNoise;
-                ___distort2dx = ringsys.RingWorldMaps[ringNum].GenTerra_distort2dx;
-                ___distort2dz = ringsys.RingWorldMaps[ringNum].GenTerra_distort2dx;
-                ___geoUpheavalNoise = ringsys.RingWorldMaps[ringNum].GenTerra_geoUpheavalNoise;
-            }
-        }*/
-
-        //GenDeposits handles ore and other deposits such as high fert soil and clay.
-        /*[HarmonyPatch(typeof(GenDeposits), nameof(GenDeposits.GeneratePartial))]
-        class GenDeposits_GeneratePartial_Patch
-        {
-            static void Prefix(IServerChunk[] chunks, int chunkX, int chunkZ, int chunkdX, int chunkdZ, ref float ___chanceMultiplier, ICoreAPI ___api)
-            {
-                RingedGeneratorSystem ringModSys = ___api.ModLoader.GetModSystem<RingedGeneratorSystem>();
-                int ringNumber = ringModSys.RingNumberFromChunk(chunkX, chunkZ);
-                //testing
-                if (ringNumber > 1)
-                {
-                    ___chanceMultiplier = 0;//someListOfValuesOrMathHere[ringNumber];
-                }
-                else
-                {
-                    ___chanceMultiplier = 3;//someListOfValuesOrMathHere[ringNumber];
-                }
-            }
-        }*/
-
-        //Intercept the worldgen function that determines forest density and change the forestation multiplier based on the ring we're in.
-        /*[HarmonyPatch]
-        class GenVegetationAndPatches_OnChunkColumnGen_Patch
-        {
-            public static MethodInfo TargetMethod()
-            {
-                Type[] methodParams =
-                [
-                    typeof(IChunkColumnGenerateRequest)
-                ];
-
-                var output = AccessTools.Method(typeof(GenVegetationAndPatches), "OnChunkColumnGen");
-
-                return output;
-            }
-
-            public static void Postfix(
-                IChunkColumnGenerateRequest request,
-                ICoreServerAPI ___sapi,
-                float ___forestMod
-                )
-            {
-                var ringsys = ___sapi.ModLoader.GetModSystem<RingedGeneratorSystem>();
-                int ringNum = ringsys.RingNumberFromChunk(request.ChunkX, request.ChunkZ);
-
-                ___forestMod = (float)ringsys.RingWorldMaps[ringNum].World_Params["globalForestation"];
-            }
-        }*/
     }
 }
 
