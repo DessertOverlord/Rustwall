@@ -294,29 +294,12 @@ namespace Rustwall.ModSystems.RingedGenerator
                     int ringRing = -1;
 
                     //because regionX or Z cannot have decimal values and the midpoint always contains 0.5 (because there's an even number)
-                    //regionX and regionZ can never be equal, therefore only evaling greater and less than is okay.
+                    //regionX and regionZ can never be equal to the midpoint, therefore only evaling greater and less than is okay.
                     var regionXOffset = regionX - regionMidPoint > 0 ? regionX + safezonediff : regionX - safezonediff;
                     var regionZOffset = regionZ - regionMidPoint > 0 ? regionZ + safezonediff : regionZ - safezonediff;
 
+                    //Region offsets are relative to the center of the map and tell us how far we are from the center point.
                     ringRing = (int)((double.Max(Math.Abs(regionXOffset - regionMidPoint), Math.Abs(regionZOffset - regionMidPoint)) - 0.5) / ringWidth);
-
-                    /*
-                    if (regionX - regionMidPoint > 0 && regionZ - regionMidPoint > 0)
-                    {
-                        ringRing = (int)((double.Max(Math.Abs(regionX + safezonediff - regionMidPoint), Math.Abs(regionZ + safezonediff - regionMidPoint)) - 0.5) / ringWidth);
-                    }
-                    else if (regionX - regionMidPoint > 0 && regionZ - regionMidPoint < 0)
-                    {
-                        ringRing = (int)((double.Max(Math.Abs(regionX + safezonediff - regionMidPoint), Math.Abs(regionZ - safezonediff - regionMidPoint)) - 0.5) / ringWidth);
-                    }
-                    else if (regionX - regionMidPoint < 0 && regionZ - regionMidPoint < 0)
-                    {
-                        ringRing = (int)((double.Max(Math.Abs(regionX - safezonediff - regionMidPoint), Math.Abs(regionZ - safezonediff - regionMidPoint)) - 0.5) / ringWidth);
-                    }
-                    else if (regionX - regionMidPoint < 0 && regionZ - regionMidPoint > 0)
-                    {
-                        ringRing = (int)((double.Max(Math.Abs(regionX - safezonediff - regionMidPoint), Math.Abs(regionZ + safezonediff - regionMidPoint)) - 0.5) / ringWidth);
-                    }*/
 
                     return ringRing;
                 }
