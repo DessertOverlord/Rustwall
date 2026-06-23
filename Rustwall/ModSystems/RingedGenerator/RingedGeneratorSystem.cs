@@ -231,13 +231,11 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         public override double ExecuteOrder()
         {
-            //return -0.1;
             return 1;
         }
 
         protected override void RustwallStartServerSide()
         {
-            //if (sapi.WorldManager.SaveGame.IsNew == true) { sapi.Server.ShutDown(); }
             mapGenerator = sapi.ModLoader.GetModSystem<GenMaps>();
             depositGenerator = sapi.ModLoader.GetModSystem<GenDeposits>();
 
@@ -268,11 +266,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             sapi.Event.InitWorldGenerator(() => InitRingedWorldGenerator(), "standard");
 
-            //Add the region method to the MapRegionGeneration event, causing it to be called any time the engine wants to generate a new region
             sapi.Event.MapRegionGeneration(HandleRegionLoading, "standard");
-
-            //Add the chunk method to MapChunkGeneration; this is triggered any time a new chunk column is requested.
-            //sapi.Event.MapChunkGeneration(HandleChunkLoading, "standard");
         }
 
         public int RingNumberFromRegion(int regionX, int regionZ)
@@ -289,8 +283,6 @@ namespace Rustwall.ModSystems.RingedGenerator
                 }
                 else
                 {
-                    //TODO: this could be made cleaner by calculating the regionX and regionZ offsets separately
-                    //DONE: Looks much better!
                     int ringRing = -1;
 
                     //because regionX or Z cannot have decimal values and the midpoint always contains 0.5 (because there's an even number)
@@ -299,24 +291,6 @@ namespace Rustwall.ModSystems.RingedGenerator
                     var regionZOffset = regionZ - regionMidPoint > 0 ? regionZ + safezonediff : regionZ - safezonediff;
 
                     ringRing = (int)((double.Max(Math.Abs(regionXOffset - regionMidPoint), Math.Abs(regionZOffset - regionMidPoint)) - 0.5) / ringWidth);
-
-                    /*
-                    if (regionX - regionMidPoint > 0 && regionZ - regionMidPoint > 0)
-                    {
-                        ringRing = (int)((double.Max(Math.Abs(regionX + safezonediff - regionMidPoint), Math.Abs(regionZ + safezonediff - regionMidPoint)) - 0.5) / ringWidth);
-                    }
-                    else if (regionX - regionMidPoint > 0 && regionZ - regionMidPoint < 0)
-                    {
-                        ringRing = (int)((double.Max(Math.Abs(regionX + safezonediff - regionMidPoint), Math.Abs(regionZ - safezonediff - regionMidPoint)) - 0.5) / ringWidth);
-                    }
-                    else if (regionX - regionMidPoint < 0 && regionZ - regionMidPoint < 0)
-                    {
-                        ringRing = (int)((double.Max(Math.Abs(regionX - safezonediff - regionMidPoint), Math.Abs(regionZ - safezonediff - regionMidPoint)) - 0.5) / ringWidth);
-                    }
-                    else if (regionX - regionMidPoint < 0 && regionZ - regionMidPoint > 0)
-                    {
-                        ringRing = (int)((double.Max(Math.Abs(regionX - safezonediff - regionMidPoint), Math.Abs(regionZ + safezonediff - regionMidPoint)) - 0.5) / ringWidth);
-                    }*/
 
                     return ringRing;
                 }
@@ -339,17 +313,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             int regionX = posX / sapi.WorldManager.RegionSize;
             int regionZ = posZ / sapi.WorldManager.RegionSize;
             return RingNumberFromRegion(regionX, regionZ);
-        }
-
-        private void HandleChunkLoading(IMapChunk mapChunk, int chunkX, int chunkZ)
-        {
-            if (NumberOfRings == -500) { return; }
-
-            int regionX = chunkX / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
-            int regionZ = chunkZ / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
-
-            //HandleRegionLoading(null, regionX, regionZ);
-            
         }
 
         private void HandleRegionLoading(IMapRegion region, int regionX, int regionZ, ITreeAttribute chunkGenParams = null)
