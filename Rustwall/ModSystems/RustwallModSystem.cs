@@ -1,8 +1,9 @@
-﻿using Vintagestory.API.Common;
-using Vintagestory.API.Server;
-using System.Diagnostics;
+﻿using HarmonyLib;
 using Rustwall.Configs;
 using System;
+using System.Diagnostics;
+using Vintagestory.API.Common;
+using Vintagestory.API.Server;
 
 namespace Rustwall.ModSystems
 {
@@ -16,6 +17,9 @@ namespace Rustwall.ModSystems
             sapi = api;
             LoadConfig();
             RustwallStartServerSide();
+            //loads ALL harmony patches
+            var harmony = new Harmony(Mod.Info.ModID);
+            harmony.PatchAll();
         }
 
         protected abstract void RustwallStartServerSide();

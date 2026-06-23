@@ -42,9 +42,6 @@ namespace Rustwall.ModSystems.TemporalStormHandler
             RegisterChatCommands();
 
             // Initialize Harmony for our postfix
-            var harmony = new Harmony(Mod.Info.ModID);
-            harmony.PatchAll();
-
             // Add our listeners to their events so they get triggered
             sapi.Event.OnEntityDeath += Event_OnEntityDeath;
             sapi.Event.SaveGameLoaded += Event_SaveGameLoaded;
@@ -148,6 +145,7 @@ namespace Rustwall.ModSystems.TemporalStormHandler
     }
 
     //We also need to patch the prepareNextStorm function so that we can intercept the configuration of the next temporal storm as it is made
+    //[HarmonyPatchCategory("TemporalStormHandlerSystem")]
     [HarmonyPatch(typeof(SystemTemporalStability), "prepareNextStorm")]
     internal static class Patch_prepareNextStorm
     {
