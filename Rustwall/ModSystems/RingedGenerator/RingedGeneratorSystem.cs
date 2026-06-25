@@ -254,6 +254,10 @@ namespace Rustwall.ModSystems.RingedGenerator
                 {
                     RegionMapSizeX = (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2;
                     LeftOverRings = RegionMapSizeX % ringWidth;
+                    //I suspect that this function will count 1 ring short due to how LeftOverRings is computed. This method shaves off the excess
+                    //rings before computing the number of total rings in the map, which would leave the rings at the outside edge unaccounted for.
+                    //I think instead it should be ((RegionMapSizeX + (ringWidth - LeftOverRings) / ringWidth).
+                    // This should theoretically always leave an even division of the RegionMap into rings and account for that extra territory at the edge.
                     NumberOfRings = LeftOverRings == 0 ? (RegionMapSizeX / ringWidth) : ((RegionMapSizeX - LeftOverRings) / ringWidth);
                 }
                 else 
@@ -641,7 +645,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             int chSize = sapi.WorldManager.ChunkSize;
             int chunksInRegion = (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
 
-
+            //This calculation does not account for the new ring / safezone width features
             for (int i = fromRing; i <= toRing; i++)
             {
                 int toRegionX = (int)(i + regionMidPoint + 0.5);
@@ -660,19 +664,56 @@ namespace Rustwall.ModSystems.RingedGenerator
                 }
             }
 
+            //This assume safezonesize = 1!!!!! revise later!!
+            List<Vec2i> illegalDeletionRegions = new List<Vec2i>()
+            {
+                new Vec2i(regionMidPoint + 0.5, regionMidPoint + 0.5);
+                new Vec2i(regionMidPoint + 0.5, regionMidPoint - 0.5);
+                new Vec2i(regionMidPoint - 0.5, regionMidPoint - 0.5);
+                new Vec2i(regionMidPoint - 0.5, regionMidPoint + 0.5);
+            } 
+
             foreach (var i in regionCoordsToDelete)
             {
-                sapi.WorldManager.DeleteMapRegion(i.X, i.Y);
+                sapi.WorldManager.TestMapRegionExists(i.X, i.Y, 
+                (bool exists) => 
+                {
+                    if (exists) 
+                    {
+                        sapi.WorldManager.DeleteMapRegion(i.X, i.Y);
+                    }
+                    else 
+                    {
+                        //syntax might be wrong
+                        sapi.Logger.Info("Deletion requested for MapRegion {0}, {1}, but it doesn't exist. Skipping.", i.X, i.Y);
+                    }
+                });
 
                 for (int j = i.X * chunksInRegion; j < (i.X * chunksInRegion) + chunksInRegion; j++)
                 {
                     for (int k = i.Y * chunksInRegion; k < (i.Y * chunksInRegion) + chunksInRegion; k++)
                     {
-                        sapi.WorldManager.DeleteChunkColumn(j, k);
+                        sapi.WorldManager.TestMapChunkExists(j, k, 
+                        (bool exists) => 
+                        {
+                            if (exists) 
+                            {
+                                sapi.WorldManager.DeleteChunkColumn(j, k);
+                            }
+                            else 
+                            {
+                                //syntax might be wrong
+                                sapi.Logger.Info("Deletion requested for MapChunk {0}, {1}, but it doesn't exist. Skipping.", j, k);
+                            }
+                        });
                     }
                 }
             }
         }
+        
+        
+
+
 
         public void TriggerGreatDecay(int fromRing, int toRing)
         {
