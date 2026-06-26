@@ -645,13 +645,31 @@ namespace Rustwall.ModSystems.RingedGenerator
             int chSize = sapi.WorldManager.ChunkSize;
             int chunksInRegion = (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
 
+            int FromInsideRegionX = (int);
+            int ToInsideRegionX = (int);
+            int FromOutsideRegionX = (int);
+            int ToOutsideRegionX = (int);
+
+            int FromInsideRegionZ = (int);
+            int ToInsideRegionZ = (int);
+            int FromOutsideRegionZ = (int);
+            int ToOutsideRegionZ = (int);
+
             //This calculation does not account for the new ring / safezone width features
             for (int i = fromRing; i <= toRing; i++)
             {
-                int toRegionX = (int)(i + regionMidPoint + 0.5);
-                var toRegionZ = (int)(i + regionMidPoint + 0.5);
-                var fromRegionX = (int)(regionMidPoint - i - 0.5);
-                var fromRegionZ = (int)(regionMidPoint - i - 0.5);
+                //int toRegionX = (int)(i + regionMidPoint + 0.5);
+                //var toRegionZ = (int)(i + regionMidPoint + 0.5);
+                //var fromRegionX = (int)(regionMidPoint - i - 0.5);
+                //var fromRegionZ = (int)(regionMidPoint - i - 0.5);
+
+
+
+
+
+
+
+
                 for (int j = fromRegionX; j <= toRegionX; j++)
                 {
                     regionCoordsToDelete.Add(new Vec2i(j, fromRegionZ));
@@ -663,15 +681,6 @@ namespace Rustwall.ModSystems.RingedGenerator
                     regionCoordsToDelete.Add(new Vec2i(toRegionX, j));
                 }
             }
-
-            //This assume safezonesize = 1!!!!! revise later!!
-            List<Vec2i> illegalDeletionRegions = new List<Vec2i>()
-            {
-                new Vec2i(regionMidPoint + 0.5, regionMidPoint + 0.5);
-                new Vec2i(regionMidPoint + 0.5, regionMidPoint - 0.5);
-                new Vec2i(regionMidPoint - 0.5, regionMidPoint - 0.5);
-                new Vec2i(regionMidPoint - 0.5, regionMidPoint + 0.5);
-            } 
 
             foreach (var i in regionCoordsToDelete)
             {
@@ -685,7 +694,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                     else 
                     {
                         //syntax might be wrong
-                        sapi.Logger.Info("Deletion requested for MapRegion {0}, {1}, but it doesn't exist. Skipping.", i.X, i.Y);
+                        sapi.Logger.Notification("Deletion requested for MapRegion {0}, {1}, but it doesn't exist. Skipping.", i.X, i.Y);
                     }
                 });
 
@@ -703,7 +712,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                             else 
                             {
                                 //syntax might be wrong
-                                sapi.Logger.Info("Deletion requested for MapChunk {0}, {1}, but it doesn't exist. Skipping.", j, k);
+                                sapi.Logger.Notification("Deletion requested for MapChunk {0}, {1}, but it doesn't exist. Skipping.", j, k);
                             }
                         });
                     }
