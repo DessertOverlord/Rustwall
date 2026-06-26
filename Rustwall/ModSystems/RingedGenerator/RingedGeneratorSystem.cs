@@ -644,32 +644,58 @@ namespace Rustwall.ModSystems.RingedGenerator
             List<Vec2i> regionCoordsToDelete = new List<Vec2i>();
             int chSize = sapi.WorldManager.ChunkSize;
             int chunksInRegion = (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
+            int DeletionZoneWidthInRegions = (toRing - fromRing) * ringWidth
 
-            int FromInsideRegionX = (int);
-            int ToInsideRegionX = (int);
-            int FromOutsideRegionX = (int);
-            int ToOutsideRegionX = (int);
+            /// This is a square, so we can simplify the math by using the same calculations for X and Z. 
+            /// We're calculating the inside boundary of the deletion zone.
+            /// First we take the midpoint and add or subtract 0.5, placing us inside the regions on either side of the midpoint.
+            /// Then, we add or subtract the size of the safezone, putting us on the coordinate immediately outside of the safezone.
+            /// Finally, we are taking the starting ring number and subtracting one (because we're already in ring 1), 
+            /// then multiplying by the ring width.
+            /// This offset is relative to ring 1. Using this allows us to move the inside boundary further out if we're not regenerating
+            /// rings near the center (almost always the case for natural regeneration).
+            int FromInsideRegionXorZ = (int)(regionMidPoint - 0.5 - safeZoneSize - ((fromRing - 1) * ringWidth));
+            int ToInsideRegionXorZ = (int)(regionMidPoint + 0.5 + safeZoneSize + ((fromRing - 1) * ringWidth));
 
-            int FromInsideRegionZ = (int);
-            int ToInsideRegionZ = (int);
-            int FromOutsideRegionZ = (int);
-            int ToOutsideRegionZ = (int);
+            /// Here we're taking the inside bound and adding in the size of the deletion zone in regions
+            /// to create an outside bound. Note the - 1 -- We want to be on the inside edge of the outermost bound, not
+            /// the outside edge, or else we'll encroach on the next ring outward.
+            int FromOutsideRegionXorZ = (int)(FromInsideRegionXorZ - (DeletionZoneWidthInRegions - 1));
+            int ToOutsideRegionXorZ = (int)(FromInsideRegionXorZ + (DeletionZoneWidthInRegions - 1));
+
+            /// Note less or equal == we want to include the regions along the "to" coordinate
+            /// This gets the largest sections of the zone to delete.
+            for (int i = FromOutsideRegionXorZ; i <= ToOutsideRegionXorZ; i++) 
+            {
+                for (int j = FromOutsideRegionXorZ; j <= FromInsideRegionXorZ; j++)
+                {
+                    regionCoordsToDelete.Add(new Vec2i(i, j));
+                }
+
+                for (int j = ToInsideRegionXorZ; j <= ToOutsideRegionXorZ; j++) 
+                {
+                    regionCoordsToDelete.Add(new Vec2i(i, j));
+                }
+            }
+
+            /// Here we get the remaining "slices" in the middle of the area.
+            for (int i = FromInsideRegionXorZ; i <= ToInsideRegionXorZ; i++) 
+            {
+                for (int j = FromOutsideRegionXorZ; j <= FromInsideRegionXorZ; j++)
+                {
+                    regionCoordsToDelete.Add(new Vec2i(i, j));
+                }
+
+                for (int j = ToInsideRegionXorZ; j <= ToOutsideRegionXorZ; j++)
+                {
+                    regionCoordsToDelete.Add(new Vec2i(i, j));
+                } 
+            }
 
             //This calculation does not account for the new ring / safezone width features
-            for (int i = fromRing; i <= toRing; i++)
+            //Deprecated
+            /*for (int i = fromRing; i <= toRing; i++)
             {
-                //int toRegionX = (int)(i + regionMidPoint + 0.5);
-                //var toRegionZ = (int)(i + regionMidPoint + 0.5);
-                //var fromRegionX = (int)(regionMidPoint - i - 0.5);
-                //var fromRegionZ = (int)(regionMidPoint - i - 0.5);
-
-
-
-
-
-
-
-
                 for (int j = fromRegionX; j <= toRegionX; j++)
                 {
                     regionCoordsToDelete.Add(new Vec2i(j, fromRegionZ));
@@ -680,7 +706,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                     regionCoordsToDelete.Add(new Vec2i(fromRegionX, j));
                     regionCoordsToDelete.Add(new Vec2i(toRegionX, j));
                 }
-            }
+            }*/
 
             foreach (var i in regionCoordsToDelete)
             {
