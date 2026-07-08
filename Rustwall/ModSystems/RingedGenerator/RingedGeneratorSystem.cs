@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.JavaScript;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -253,12 +254,13 @@ namespace Rustwall.ModSystems.RingedGenerator
                 if (sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ)
                 {
                     RegionMapSizeX = (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2;
+                    int RegionMapSizeXWithoutSafeZone = RegionMapSizeX - safeZoneSize;
                     LeftOverRings = RegionMapSizeX % ringWidth;
                     //I suspect that this function will count 1 ring short due to how LeftOverRings is computed. This method shaves off the excess
                     //rings before computing the number of total rings in the map, which would leave the rings at the outside edge unaccounted for.
                     //I think instead it should be ((RegionMapSizeX + (ringWidth - LeftOverRings) / ringWidth).
                     // This should theoretically always leave an even division of the RegionMap into rings and account for that extra territory at the edge.
-                    NumberOfRings = LeftOverRings == 0 ? (RegionMapSizeX / ringWidth) : ((RegionMapSizeX - LeftOverRings) / ringWidth);
+                    NumberOfRings = LeftOverRings == 0 ? (RegionMapSizeX / ringWidth) + 1 : ((RegionMapSizeX - LeftOverRings) / ringWidth) + 2;
                 }
                 else 
                 {
@@ -644,24 +646,47 @@ namespace Rustwall.ModSystems.RingedGenerator
             List<Vec2i> regionCoordsToDelete = new List<Vec2i>();
             int chSize = sapi.WorldManager.ChunkSize;
             int chunksInRegion = (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
-            int DeletionZoneWidthInRegions = (toRing - fromRing) * ringWidth
+            int DeletionZoneWidthInRegions = ((toRing - fromRing) + 1) * ringWidth;
+
+            /// Here we calculate the boundaries of the safezone.
+            int FromOutsideSafezoneRegionXorZ = (int)(regionMidPoint - 0.5 - (safeZoneSize - 1));
+            int ToOutsideSafezoneRegionXorZ = (int)(regionMidPoint + 0.5 + (safeZoneSize - 1));
+
+            /// And here we adjust the starting ring number to be at least 1, because the previous calculation gives us the coordinates for the safezone.
+            /// If we truly are deleting the safezone, we will add those coordinates into the deletion pool later on.
+            int fromRingAdj = fromRing <= 0 ? 1 : fromRing;
 
             /// This is a square, so we can simplify the math by using the same calculations for X and Z. 
             /// We're calculating the inside boundary of the deletion zone.
-            /// First we take the midpoint and add or subtract 0.5, placing us inside the regions on either side of the midpoint.
-            /// Then, we add or subtract the size of the safezone, putting us on the coordinate immediately outside of the safezone.
-            /// Finally, we are taking the starting ring number and subtracting one (because we're already in ring 1), 
-            /// then multiplying by the ring width.
-            /// This offset is relative to ring 1. Using this allows us to move the inside boundary further out if we're not regenerating
-            /// rings near the center (almost always the case for natural regeneration).
-            int FromInsideRegionXorZ = (int)(regionMidPoint - 0.5 - safeZoneSize - ((fromRing - 1) * ringWidth));
-            int ToInsideRegionXorZ = (int)(regionMidPoint + 0.5 + safeZoneSize + ((fromRing - 1) * ringWidth));
+            /// We start with the outermost region that is inside of the safezone and move one region outward in either direction.
+            /// We take the adjusted starting ring number and subtract one because we're already in ring 1, so we need to offset ourselves.
+            /// We then multiply by the ring width to get the total number of regions to move our **inside point** outward.
+            int FromInsideRegionXorZ = (int)(FromOutsideSafezoneRegionXorZ - 1 - ((fromRingAdj - 1) * ringWidth));
+            int ToInsideRegionXorZ = (int)(ToOutsideSafezoneRegionXorZ + 1 + ((fromRingAdj - 1) * ringWidth));
+
+            /// Compute the maximum possible region coordinate. We are already assuming by the ring generator being active that the world is a square.
+            int MaxRegionCoordinate = (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) - 1;
 
             /// Here we're taking the inside bound and adding in the size of the deletion zone in regions
             /// to create an outside bound. Note the - 1 -- We want to be on the inside edge of the outermost bound, not
-            /// the outside edge, or else we'll encroach on the next ring outward.
-            int FromOutsideRegionXorZ = (int)(FromInsideRegionXorZ - (DeletionZoneWidthInRegions - 1));
-            int ToOutsideRegionXorZ = (int)(FromInsideRegionXorZ + (DeletionZoneWidthInRegions - 1));
+            /// the outside edge, or else we'll encroach on the next ring outward (or go outside of the map).
+            /// The conditionals give us guardrails in case the ring map size is not divisible by the safezone size and ring size together 
+            /// (e.g., safezone size of 2 and ring size of 2).
+            /// In this case, we could accidentally pass in region coordinates that don't exist.
+            int FromOutsideRegionXorZ = (int)(FromInsideRegionXorZ - (DeletionZoneWidthInRegions - 1)) < 0 ? 0 : (int)(FromInsideRegionXorZ - (DeletionZoneWidthInRegions - 1));
+            int ToOutsideRegionXorZ = (int)(ToInsideRegionXorZ + (DeletionZoneWidthInRegions - 1)) > MaxRegionCoordinate ? MaxRegionCoordinate : (int)(ToInsideRegionXorZ + (DeletionZoneWidthInRegions - 1));
+
+            /// Note this will only trigger if 0 gets passed through. This is usually impossible, so we must REALLY mean it!
+            if (fromRing == 0)
+            {
+                for (int i = FromOutsideSafezoneRegionXorZ; i <= ToOutsideSafezoneRegionXorZ; i++)
+                {
+                    for (int j = FromOutsideSafezoneRegionXorZ; j <= ToOutsideSafezoneRegionXorZ; j++)
+                    {
+                        regionCoordsToDelete.Add(new Vec2i(i, j));
+                    }
+                }
+            }
 
             /// Note less or equal == we want to include the regions along the "to" coordinate
             /// This gets the largest sections of the zone to delete.
@@ -679,77 +704,34 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
 
             /// Here we get the remaining "slices" in the middle of the area.
-            for (int i = FromInsideRegionXorZ; i <= ToInsideRegionXorZ; i++) 
+            for (int i = FromInsideRegionXorZ + 1; i < ToInsideRegionXorZ; i++) 
             {
                 for (int j = FromOutsideRegionXorZ; j <= FromInsideRegionXorZ; j++)
                 {
-                    regionCoordsToDelete.Add(new Vec2i(i, j));
+                    regionCoordsToDelete.Add(new Vec2i(j, i));
                 }
 
                 for (int j = ToInsideRegionXorZ; j <= ToOutsideRegionXorZ; j++)
                 {
-                    regionCoordsToDelete.Add(new Vec2i(i, j));
+                    regionCoordsToDelete.Add(new Vec2i(j, i));
                 } 
             }
 
-            //This calculation does not account for the new ring / safezone width features
-            //Deprecated
-            /*for (int i = fromRing; i <= toRing; i++)
-            {
-                for (int j = fromRegionX; j <= toRegionX; j++)
-                {
-                    regionCoordsToDelete.Add(new Vec2i(j, fromRegionZ));
-                    regionCoordsToDelete.Add(new Vec2i(j, toRegionZ));
-                }
-                for (int j = fromRegionZ; j <= toRegionZ; j++)
-                {
-                    regionCoordsToDelete.Add(new Vec2i(fromRegionX, j));
-                    regionCoordsToDelete.Add(new Vec2i(toRegionX, j));
-                }
-            }*/
-
             foreach (var i in regionCoordsToDelete)
             {
-                sapi.WorldManager.TestMapRegionExists(i.X, i.Y, 
-                (bool exists) => 
-                {
-                    if (exists) 
-                    {
-                        sapi.WorldManager.DeleteMapRegion(i.X, i.Y);
-                    }
-                    else 
-                    {
-                        //syntax might be wrong
-                        sapi.Logger.Notification("Deletion requested for MapRegion {0}, {1}, but it doesn't exist. Skipping.", i.X, i.Y);
-                    }
-                });
+                sapi.WorldManager.DeleteMapRegion(i.X, i.Y);
 
                 for (int j = i.X * chunksInRegion; j < (i.X * chunksInRegion) + chunksInRegion; j++)
                 {
                     for (int k = i.Y * chunksInRegion; k < (i.Y * chunksInRegion) + chunksInRegion; k++)
                     {
-                        sapi.WorldManager.TestMapChunkExists(j, k, 
-                        (bool exists) => 
-                        {
-                            if (exists) 
-                            {
-                                sapi.WorldManager.DeleteChunkColumn(j, k);
-                            }
-                            else 
-                            {
-                                //syntax might be wrong
-                                sapi.Logger.Notification("Deletion requested for MapChunk {0}, {1}, but it doesn't exist. Skipping.", j, k);
-                            }
-                        });
+                        sapi.WorldManager.DeleteChunkColumn(j, k);
                     }
                 }
             }
+            return;
         }
         
-        
-
-
-
         public void TriggerGreatDecay(int fromRing, int toRing)
         {
             //We are not allowed to regen ring 0 (the innermost safe zone). This hardcodes that in even if players let the stability get to 0
