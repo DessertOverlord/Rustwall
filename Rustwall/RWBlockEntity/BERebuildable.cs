@@ -52,6 +52,11 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         /// Easy way to access this BE's own behavior
         /// </summary>
         public BehaviorRebuildable ownBehavior;
+        ///
+        /// 
+        /// 
+        public double gracePeriodAddtlTimeOneStage { get; private set; } = 0;
+
         /// <summary>
         /// Simple bool for whether or not the grace period is currently active.
         /// Uses null checks to avoid crashes from server-side or client-side access.
@@ -119,7 +124,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             if (api.Side == EnumAppSide.Server)
             {
                 sapi = api as ICoreServerAPI;
-            } 
+            }
             else if (api.Side == EnumAppSide.Client)
             {
                 capi = api as ICoreClientAPI;

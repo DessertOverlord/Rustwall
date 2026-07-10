@@ -15,11 +15,16 @@ namespace Rustwall.ModSystems
         public override void StartServerSide(ICoreServerAPI api)
         {
             sapi = api;
-            LoadConfig();
+            //LoadConfig();
             RustwallStartServerSide();
             //loads ALL harmony patches
             var harmony = new Harmony(Mod.Info.ModID);
             harmony.PatchAll();
+        }
+
+        public override void Start(ICoreAPI api)
+        {
+            LoadConfigShared(api);
         }
 
         protected abstract void RustwallStartServerSide();
@@ -43,5 +48,26 @@ namespace Rustwall.ModSystems
                 sapi.StoreModConfig(config, configName);
             }
         }
+
+        protected void LoadConfigShared(ICoreAPI api)
+        {
+            try
+            {
+                config = api.LoadModConfig<RustwallConfig>(configName);
+            }
+            catch (Exception)
+            {
+                api.Logger.Error("Exception loading Rustwall config at " + configName);
+            }
+
+            if (config == null)
+            {
+                api.Logger.Error("Rustwall config not loaded correctly, initializing default.");
+
+                config = new RustwallConfig();
+                api.StoreModConfig(config, configName);
+            }
+        }
+
     }
 }
