@@ -108,10 +108,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
             else
             {
-                if (world.Api.Side == EnumAppSide.Server) 
-                {
-                    gracePeriodExpirationDate = world.Calendar.ElapsedDays + BehaviorRebuildable.config.GracePeriodDurationRepairOneStage;
-                }
+                gracePeriodExpirationDate = world.Calendar.ElapsedDays + BehaviorRebuildable.config.GracePeriodDurationRepairOneStage;
             }
 
             //Simple machines should contribute and be animated even if they aren't fully repaired.
