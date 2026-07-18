@@ -1,28 +1,14 @@
-﻿using Microsoft.Win32.SafeHandles;
-using Rustwall.ModSystems.GlobalStability;
-using Rustwall.ModSystems.RebuildableBlock;
+﻿using Rustwall.ModSystems.GlobalStability;
 using Rustwall.RWBehaviorRebuildable;
 using Rustwall.RWEntityBehavior;
 using System;
-using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Runtime.ConstrainedExecution;
-using System.Runtime.InteropServices.Marshalling;
-using System.Text;
-using System.Threading.Tasks;
-using Vintagestory;
 using Vintagestory.API.Client;
-
-
-//using Rustwall.RWBlockBehavior;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
-using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
 using Vintagestory.GameContent;
-
 
 namespace Rustwall.RWBlockEntity.BERebuildable
 {
@@ -109,7 +95,11 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             Complex
         }
 
-
+        public enum EnumRebuildableBlockPacket
+        {
+            ActivateAnimations = 1337,
+            DeactivateAnimations = 1338
+        }
         
         public bool animatible { get { return GetBehavior<BEBehaviorAnimatable>() is not null; } }
         BlockEntityAnimationUtil animUtil
@@ -194,26 +184,14 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         //We use network packets to achieve this as it syncs with all players.
         public override void OnReceivedServerPacket(int packetid, byte[] data)
         {
-            if (packetid == 1337)
+            switch (packetid)
             {
-                string strData = "";
-                try
-                {
-                    strData = SerializerUtil.Deserialize<string>(data);
-                }
-                catch (Exception e)
-                { 
-                    
-                }
-                
-                if (strData == "activate")
-                {
+                case (int)EnumRebuildableBlockPacket.ActivateAnimations:
                     ActivateAnimations();
-                }
-                else if (strData == "deactivate")
-                {
+                    break;
+                case (int)EnumRebuildableBlockPacket.DeactivateAnimations:
                     DeactivateAnimations();
-                }
+                    break;
             }
         }
 

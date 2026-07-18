@@ -67,7 +67,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             if (animatible)
             {
-                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "deactivate");
+                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.DeactivateAnimations);
             }
 
             MarkDirty(true);
@@ -105,7 +105,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
             else
             {
-                gracePeriodExpirationDate = world.Calendar.ElapsedDays + BehaviorRebuildable.config.GracePeriodDurationRepairOneStage;
+                gracePeriodExpirationDate = world.Calendar.ElapsedDays + ownBehavior.config.GracePeriodDurationRepairOneStage;
             }
 
             MarkDirty(true);
@@ -122,11 +122,11 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             repairLock = true;
             if (animatible)
             {
-                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "activate");
+                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.ActivateAnimations);
             }
             MarkDirty(true);
 
-            gracePeriodExpirationDate = world.Calendar.ElapsedDays + BehaviorRebuildable.config.GracePeriodDurationRepairFully;
+            gracePeriodExpirationDate = world.Calendar.ElapsedDays + ownBehavior.config.GracePeriodDurationRepairFully;
         }
     }
 }

@@ -18,9 +18,9 @@ namespace Rustwall.RWBehaviorRebuildable
         public List<string> itemPerStage { get; private set; } = new List<string>();
         public List<int> quantityPerStage { get; private set; } = new List<int>();
 
-        private static List<ItemStack> allWrenchItemStacks = [];
+        private static List<ItemStack> allWrenchItemStacks = new List<ItemStack>();
 
-        public static RustwallConfig config;
+        public RustwallConfig config;
 
         public BehaviorRebuildable(Block block) : base(block)
         {
@@ -43,7 +43,7 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ref EnumHandling handling)
         {
-            handling = EnumHandling.Handled;
+            handling = EnumHandling.PreventSubsequent;
             ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
             BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityRebuildable;
 

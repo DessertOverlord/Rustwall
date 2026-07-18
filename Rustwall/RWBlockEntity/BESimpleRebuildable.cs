@@ -68,7 +68,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             {
                 /// We have to use packet broadcasts so that when the ModSystem (running only server-side) calls to damage the block,
                 /// the animation change gets synchronized to the client.
-                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "deactivate");
+                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.DeactivateAnimations);
             }
 
             MarkDirty(true);
@@ -98,6 +98,8 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         {
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
 
+            //world.Api.Logger.Event("RepairByOneStage executed on" + world.Api.Side);
+
             slot.MarkDirty();
             itemsUsedThisStage = 0;
             rebuildStage++;
@@ -108,7 +110,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
             else
             {
-                gracePeriodExpirationDate = world.Calendar.ElapsedDays + BehaviorRebuildable.config.GracePeriodDurationRepairOneStage;
+                gracePeriodExpirationDate = world.Calendar.ElapsedDays + ownBehavior.config.GracePeriodDurationRepairOneStage;
             }
 
             //Simple machines should contribute and be animated even if they aren't fully repaired.
@@ -117,7 +119,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                 AddContributor();
                 if (animatible)
                 {
-                    (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "activate");
+                    (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.ActivateAnimations);
                 }
             }
 
@@ -133,11 +135,11 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             if (animatible)
             {
                 //ActivateAnimations();
-                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "activate");
+                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.ActivateAnimations);
             }
             MarkDirty(true);
 
-            gracePeriodExpirationDate = world.Calendar.ElapsedDays + BehaviorRebuildable.config.GracePeriodDurationRepairFully;
+            gracePeriodExpirationDate = world.Calendar.ElapsedDays + ownBehavior.config.GracePeriodDurationRepairFully;
         }
     }
 }
