@@ -30,6 +30,30 @@ namespace Rustwall.RWBlockEntity.BERebuildable
     {
         public override EnumRebuildableBlockType rebuildableBlockType { get { return EnumRebuildableBlockType.Simple; } }
 
+        public override void Initialize(ICoreAPI api)
+        {
+            base.Initialize(api);
+
+            if (Block.Variant["repairstate"] == "repaired")
+            {
+                rebuildStage = maxStage;
+            }
+
+            if (rebuildStage > 0)
+            {
+                AddContributor();
+            }
+
+            if (animatible)
+            {
+                InitAnimations(api);
+                if (rebuildStage > 0)
+                {
+                    ActivateAnimations();
+                }
+            }
+        }
+
         public override bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
         {
             if (rebuildStage < 0) { return false; }
@@ -68,7 +92,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             {
                 /// We have to use packet broadcasts so that when the ModSystem (running only server-side) calls to damage the block,
                 /// the animation change gets synchronized to the client.
-                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "deactivate");
+                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.DeactivateAnimations);
             }
 
             MarkDirty(true);
@@ -98,6 +122,8 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         {
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
 
+            world.Api.Logger.Event("RepairByOneStage executed on " + world.Api.Side);
+
             slot.MarkDirty();
             itemsUsedThisStage = 0;
             rebuildStage++;
@@ -108,7 +134,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
             else
             {
-                gracePeriodExpirationDate = world.Calendar.ElapsedDays + BehaviorRebuildable.config.GracePeriodDurationRepairOneStage;
+                gracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairOneStage;
             }
 
             //Simple machines should contribute and be animated even if they aren't fully repaired.
@@ -117,7 +143,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                 AddContributor();
                 if (animatible)
                 {
-                    (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "activate");
+                    (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.ActivateAnimations);
                 }
             }
 
@@ -133,11 +159,11 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             if (animatible)
             {
                 //ActivateAnimations();
-                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, 1337, "activate");
+                (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.ActivateAnimations);
             }
             MarkDirty(true);
 
-            gracePeriodExpirationDate = world.Calendar.ElapsedDays + BehaviorRebuildable.config.GracePeriodDurationRepairFully;
+            gracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairFully;
         }
     }
 }

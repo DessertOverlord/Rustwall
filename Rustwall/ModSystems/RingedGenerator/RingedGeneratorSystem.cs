@@ -1,6 +1,8 @@
 ﻿using Cairo;
 using HarmonyLib;
 using ProtoBuf;
+using Rustwall.RWBehaviorRebuildable;
+using Rustwall.RWBlockEntity.BERebuildable;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -798,9 +800,9 @@ namespace Rustwall.ModSystems.RingedGenerator
                 .RequiresPlayer()
                 .WithDescription("Manage rustwall-specific functions")
                 .BeginSubCommand("info")
-                .BeginSubCommand("number")
+                    .BeginSubCommand("number")
                     .WithArgs()
-                    .HandleWith((args) => 
+                    .HandleWith((args) =>
                     {
                         var callerPos = args.Caller.Pos;
                         var ringNumber = RingNumberFromWorldPos((int)callerPos.X, (int)callerPos.Z);
@@ -832,7 +834,8 @@ namespace Rustwall.ModSystems.RingedGenerator
                         //var ringNumber = RingNumberFromWorldPos((int)callerPos.X, (int)callerPos.Z);
                         int regionSize = sapi.WorldManager.RegionSize;
 
-                        bool allmax = ((Func<bool>)(() => { 
+                        bool allmax = ((Func<bool>)(() =>
+                        {
                             int[] data = sapi.WorldManager.GetMapRegion((int)args.Caller.Pos.X / regionSize, (int)args.Caller.Pos.Z / regionSize).ForestMap.Data.ToArray();
                             IMapRegion mapRegion = sapi.WorldManager.GetMapRegion((int)args.Caller.Pos.X / regionSize, (int)args.Caller.Pos.Z / regionSize);
                             foreach (int item in data)
@@ -848,7 +851,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                         return TextCommandResult.Success("all values in this region's forest map are 255: " + allmax);
                     })
                     .EndSubCommand()
-                .EndSubCommand()
+                    .EndSubCommand()
                 .BeginSubCommand("delete")
 
                     .BeginSubCommand("ring")
@@ -881,6 +884,83 @@ namespace Rustwall.ModSystems.RingedGenerator
                     })
                     .EndSubCommand()
 
+                    .BeginSubCommand("blockentity")
+                    .WithArgs(sapi.ChatCommands.Parsers.WorldPosition("position"))
+                    .HandleWith((args) =>
+                    {
+
+                        Vec3d pos = (Vec3d)(args[0]);
+
+                        var be = sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(new BlockPos((int)pos.X, (int)pos.Y, (int)pos.Z));
+                        sapi.World.BlockAccessor.RemoveBlockEntity(be.Pos);
+                        be.MarkDirty(true);
+
+                        return TextCommandResult.Success("delete sumn");
+                    })
+                    .EndSubCommand()
+
+                .EndSubCommand()
+                .BeginSubCommand("repair")
+                    .BeginSubCommand("blockentities")
+                    .WithArgs(sapi.ChatCommands.Parsers.WorldPosition("frompos"), sapi.ChatCommands.Parsers.WorldPosition("topos"))
+                    .HandleWith((args) =>
+                    {
+                        string output = "";
+
+                        Vec3d fromPosd = (Vec3d)args[0];
+                        Vec3i fromPos = new Vec3i((int)fromPosd.X, (int)fromPosd.Y, (int)fromPosd.Z);
+
+                        Vec3d toPosd = (Vec3d)args[1];
+                        Vec3i toPos = new Vec3i((int)toPosd.X, (int)toPosd.Y, (int)toPosd.Z);
+
+                        if (fromPos.X > toPos.X)
+                        {
+                            (fromPos.X, toPos.X) = (toPos.X, fromPos.X);
+                        }
+                        if (fromPos.Y > toPos.Y)
+                        {
+                            (fromPos.Y, toPos.Y) = (toPos.Y, fromPos.Y);
+                        }
+                        if (fromPos.Z > toPos.Z)
+                        {
+                            (fromPos.Z, toPos.Z) = (toPos.Z, fromPos.Z);
+                        }
+
+
+
+                        for (int x = fromPos.X; x <= toPos.X; x++)
+                        {
+                            for (int y = fromPos.Y; y <= toPos.Y; y++)
+                            {
+                                for (int z = fromPos.Z; z <= toPos.Z; z++)
+                                {
+                                    BlockPos targetpos = new BlockPos(x, y, z);
+                                    var targetblock = sapi.World.BlockAccessor.GetBlock(targetpos);
+
+                                    if (
+                                        targetblock.Code.Domain == "rustwall" && 
+                                        (targetblock.BlockBehaviors.ToList().Find(item => item.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable) is not null &&
+                                        (sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(targetpos) is null)
+                                        )
+                                    {
+                                        output += "Found " + targetblock.Code + " at " + targetpos + "\n";
+
+                                        sapi.World.BlockAccessor.SetBlock(0, targetpos);
+                                        sapi.World.BlockAccessor.SetBlock(targetblock.Id, targetpos);
+
+                                        var maybefixedbe = sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(targetpos);
+
+                                        if (maybefixedbe is not null)
+                                        {
+                                            output += "Successfully repaired BERebuildable at " + targetpos + "\n";
+                                            maybefixedbe.MarkDirty(true);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        return TextCommandResult.Success(output);
+                    })
                 .EndSubCommand();
         }
     }

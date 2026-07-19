@@ -2,6 +2,7 @@
 using Rustwall.ModSystems;
 using Rustwall.RWBlockEntity.BERebuildable;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -18,9 +19,9 @@ namespace Rustwall.RWBehaviorRebuildable
         public List<string> itemPerStage { get; private set; } = new List<string>();
         public List<int> quantityPerStage { get; private set; } = new List<int>();
 
-        private static List<ItemStack> allWrenchItemStacks = [];
+        private static List<ItemStack> allWrenchItemStacks = new List<ItemStack>();
 
-        public static RustwallConfig config;
+        //public RustwallConfig config;
 
         public BehaviorRebuildable(Block block) : base(block)
         {
@@ -29,7 +30,6 @@ namespace Rustwall.RWBehaviorRebuildable
         public override void Initialize(JsonObject properties)
         {
             base.Initialize(properties);
-            config = RustwallModSystem.config;
             var stages = properties["stages"].AsArray();
 
             //loop through all of the available stages
@@ -43,7 +43,7 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public override bool OnBlockInteractStart(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel, ref EnumHandling handling)
         {
-            handling = EnumHandling.Handled;
+            handling = EnumHandling.PreventSubsequent;
             ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
             BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityRebuildable;
 
@@ -113,7 +113,9 @@ namespace Rustwall.RWBehaviorRebuildable
                             slot.Itemstack.Item.DamageItem(world, byPlayer.Entity, slot, quantityPerStage[be.rebuildStage]);
                         }
 
-                        return be.RepairByOneStage(world, slot, blockSel, byPlayer);
+                        bool result = be.RepairByOneStage(world, slot, blockSel, byPlayer);
+
+                        return result;
                     }
                     //otherwise, subtract just one item
                     else
@@ -132,6 +134,54 @@ namespace Rustwall.RWBehaviorRebuildable
                         serverPlayer?.SendIngameError("rustwall:interact-wrongitem");
                     }
                 }
+            }
+
+
+            /// Debug section
+            if (slot.Itemstack.Collectible.Code == "game:peatbrick" && serverPlayer is not null)
+            {
+                if (be is null)
+                {
+                    Debug.WriteLine("Undefined");
+                }
+                else
+                {
+                    string outputText = "";
+                    if (be.rebuildStage == be.maxStage)
+                    {
+                        outputText = "Operational";
+                    }
+                    else if (be.rebuildStage > 0)
+                    {
+                        if (be.repairLock)
+                        {
+                            outputText = "Operational";
+                        }
+                        else
+                        {
+                            outputText = "Damaged";
+                        }
+                    }
+                    else
+                    {
+                        outputText = "Broken";
+                    }
+
+                    int curStability = be.curStability;
+
+                    //if (world?.Api.Side == EnumAppSide.Client && (world?.Api as ICoreClientAPI)?.Settings.Bool.Get("extendedDebugInfo") == true)
+                    {
+                        string machineType = be.rebuildableBlockType == EnumRebuildableBlockType.Simple ? "Simple" : "Complex";
+                        string graceperiod = be.isGracePeriodActive ? (be.gracePeriodExpirationDate - (world.Api as ICoreServerAPI).World.Calendar.ElapsedDays).ToString("#.##") + " days" : "Inactive";
+
+                        outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + graceperiod);
+
+                        outputText += ("\nCurrent Global Stability Contribution: " + curStability + "\nMax Global Stability Contribution: " + be.maxStability);
+                    }
+
+                    Debug.WriteLine(outputText);
+                }
+
             }
 
             return true;
