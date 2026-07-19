@@ -30,6 +30,30 @@ namespace Rustwall.RWBlockEntity.BERebuildable
     {
         public override EnumRebuildableBlockType rebuildableBlockType { get { return EnumRebuildableBlockType.Simple; } }
 
+        public override void Initialize(ICoreAPI api)
+        {
+            base.Initialize(api);
+
+            if (Block.Variant["repairstate"] == "repaired")
+            {
+                rebuildStage = maxStage;
+            }
+
+            if (rebuildStage > 0)
+            {
+                AddContributor();
+            }
+
+            if (animatible)
+            {
+                InitAnimations(api);
+                if (rebuildStage > 0)
+                {
+                    ActivateAnimations();
+                }
+            }
+        }
+
         public override bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
         {
             if (rebuildStage < 0) { return false; }
@@ -98,7 +122,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         {
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
 
-            //world.Api.Logger.Event("RepairByOneStage executed on" + world.Api.Side);
+            world.Api.Logger.Event("RepairByOneStage executed on " + world.Api.Side);
 
             slot.MarkDirty();
             itemsUsedThisStage = 0;
@@ -110,7 +134,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
             else
             {
-                gracePeriodExpirationDate = world.Calendar.ElapsedDays + ownBehavior.config.GracePeriodDurationRepairOneStage;
+                gracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairOneStage;
             }
 
             //Simple machines should contribute and be animated even if they aren't fully repaired.
@@ -139,7 +163,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
             MarkDirty(true);
 
-            gracePeriodExpirationDate = world.Calendar.ElapsedDays + ownBehavior.config.GracePeriodDurationRepairFully;
+            gracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairFully;
         }
     }
 }

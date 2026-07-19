@@ -10,22 +10,22 @@ namespace Rustwall.ModSystems
     public abstract class RustwallModSystem : ModSystem
     {
         protected ICoreServerAPI sapi;
-        public static RustwallConfig config;
+        public RustwallConfig config;
         private readonly string configName = "rustwall.json";
         public override void StartServerSide(ICoreServerAPI api)
         {
             sapi = api;
-            //LoadConfig();
+            LoadConfig();
             RustwallStartServerSide();
             //loads ALL harmony patches
             var harmony = new Harmony(Mod.Info.ModID);
             harmony.PatchAll();
         }
 
-        public override void Start(ICoreAPI api)
+        /*public override void Start(ICoreAPI api)
         {
             LoadConfigShared(api);
-        }
+        }*/
 
         protected abstract void RustwallStartServerSide();
 

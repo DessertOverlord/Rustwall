@@ -30,6 +30,31 @@ namespace Rustwall.RWBlockEntity.BERebuildable
     {
         public override EnumRebuildableBlockType rebuildableBlockType { get { return EnumRebuildableBlockType.Complex; } }
 
+        public override void Initialize(ICoreAPI api)
+        {
+            base.Initialize(api);
+            
+            if (Block.Variant["repairstate"] == "repaired")
+            {
+                rebuildStage = maxStage;
+            }
+
+            if (isFullyRepaired)
+            {
+                AddContributor(); 
+                repairLock = true;
+            }
+
+            if (animatible)
+            {
+                InitAnimations(api);
+                if (isFullyRepaired)
+                {
+                    ActivateAnimations();
+                }
+            }
+        }
+
         public override bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
         {
             if (rebuildStage < 0) { return false; }
@@ -105,7 +130,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
             else
             {
-                gracePeriodExpirationDate = world.Calendar.ElapsedDays + ownBehavior.config.GracePeriodDurationRepairOneStage;
+                gracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairOneStage;
             }
 
             MarkDirty(true);
@@ -125,8 +150,8 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                 (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.ActivateAnimations);
             }
             MarkDirty(true);
-
-            gracePeriodExpirationDate = world.Calendar.ElapsedDays + ownBehavior.config.GracePeriodDurationRepairFully;
+                
+            gracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairFully;
         }
     }
 }

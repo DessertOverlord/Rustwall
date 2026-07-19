@@ -1,7 +1,9 @@
-﻿using Rustwall.ModSystems.GlobalStability;
+﻿using Rustwall.ModSystems;
+using Rustwall.ModSystems.GlobalStability;
 using Rustwall.RWBehaviorRebuildable;
 using Rustwall.RWEntityBehavior;
 using System;
+using System.Diagnostics;
 using System.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -65,6 +67,8 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         /// Date in calendar days when the grace period will expire. Easier to calculate with.
         /// </summary>
         public double gracePeriodExpirationDate { get; set; }
+        public double GracePeriodDurationRepairOneStage { get; private set; }
+        public double GracePeriodDurationRepairFully { get; private set; }
         public GlobalStabilitySystem globalStabSys;
         public int curStability { get; private set; } 
         public int maxStability { get; private set; } 
@@ -121,14 +125,15 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
 
             //Must be done client-side
-            if (animatible)
+            /// TODO: Correct for complex vs simple machines -- damaged simple machines should still animate!
+            /*if (animatible)
             {
                 InitAnimations(api);
                 if (Block.Variant["repairstate"] == "repaired")
                 {
                     ActivateAnimations();
                 }
-            }
+            }*/
 
             ownBehavior = Block.BlockBehaviors.ToList().Find(x => x.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable;
             maxStability = GetBehavior<BEBehaviorGloballyStable>().properties["value"].AsInt();
@@ -152,15 +157,13 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             if (api.Side == EnumAppSide.Server)
             {
-                globalStabSys = (api as ICoreServerAPI).ModLoader.GetModSystem<GlobalStabilitySystem>();
+                globalStabSys = sapi.ModLoader.GetModSystem<GlobalStabilitySystem>();
                 globalStabSys.allStableBlockEntities.Add(Pos);
 
-                if (Block.Variant["repairstate"] == "repaired")
-                {
-                    rebuildStage = maxStage;
-                    if (!canRepairBeforeBroken) { repairLock = true; }
-                    AddContributor();
-                }
+                RustwallModSystem rwmodsys = sapi.ModLoader.GetModSystem<RustwallModSystem>();
+
+                GracePeriodDurationRepairOneStage = rwmodsys.config.GracePeriodDurationRepairOneStage;
+                GracePeriodDurationRepairFully = rwmodsys.config.GracePeriodDurationRepairFully;
             }
         }
 
@@ -179,9 +182,9 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             sapi.Logger.Error("Animatible Rustwall Machine initialized with BlockEntityRebuildable. Move it to its own BlockEntity for animations to work!");
         }
 
-        //Because the GlobalStabilitySystem calls ActivateAnimations and DeactivateAnimations on the server side,
-        //we need to make sure the client does the same because animUtil is not defined server-side.
-        //We use network packets to achieve this as it syncs with all players.
+        /// Because the GlobalStabilitySystem calls ActivateAnimations and DeactivateAnimations on the server side,
+        /// we need to make sure the client does the same because animUtil is not defined server-side.
+        /// We use network packets to achieve this as it syncs with all players.
         public override void OnReceivedServerPacket(int packetid, byte[] data)
         {
             switch (packetid)
@@ -253,6 +256,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
 
             tree.SetString("rebuildableItemsHash", rebuildableID);
+            tree.SetDouble("gracePeriodExpirationDate", gracePeriodExpirationDate);
         }
 
         public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
@@ -263,6 +267,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             itemsUsedThisStage = tree.GetAsInt("itemsUsedThisStage");
             repairLock = tree.GetAsBool("repairLock") || false;
             curRebID = tree.GetString("rebuildableItemsHash");
+            gracePeriodExpirationDate = tree.GetDouble("gracePeriodExpirationDate");
         }
     }
 }
