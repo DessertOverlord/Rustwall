@@ -44,40 +44,40 @@ namespace Rustwall.Configs
         //keywords:
         //"repeat", [int] -- repeat these settings this many times (for instance, repeat:3 would make a total of 4 rings)
         //"random", [int] -- randomize this ring using the int as an identifier for EnumDistribution.
-            /*
-            UNIFORM = 0
-            Select completely random numbers within avg-var until avg+var
-            
-            TRIANGLE = 1
-            Select random numbers with numbers near avg being the most commonly selected ones, following a triangle curve
+        /*
+        UNIFORM = 0
+        Select completely random numbers within avg-var until avg+var
 
-            GAUSSIAN = 2
-            Select random numbers with numbers near avg being the more commonly selected ones, following a gaussian curve
-            
-            NARROWGAUSSIAN = 3
-            Select random numbers with numbers near avg being the much more commonly selected ones, following a narrow gaussian curve
+        TRIANGLE = 1
+        Select random numbers with numbers near avg being the most commonly selected ones, following a triangle curve
 
-            INVERSEGAUSSIAN = 4
-            Select random numbers with numbers near avg being the less commonly selected ones, following an upside down gaussian curve
+        GAUSSIAN = 2
+        Select random numbers with numbers near avg being the more commonly selected ones, following a gaussian curve
 
-            NARROWINVERSEGAUSSIAN = 5
-            Select random numbers with numbers near avg being the much less commonly selected ones, following an upside down gaussian curve
+        NARROWGAUSSIAN = 3
+        Select random numbers with numbers near avg being the much more commonly selected ones, following a narrow gaussian curve
 
-            INVEXP = 6
-            Select random numbers in the form of avg + var, with numbers near avg being preferred
+        INVERSEGAUSSIAN = 4
+        Select random numbers with numbers near avg being the less commonly selected ones, following an upside down gaussian curve
 
-            STRONGINVEXP = 7
-            Select random numbers in the form of avg + var, with numbers near avg being strongly preferred
+        NARROWINVERSEGAUSSIAN = 5
+        Select random numbers with numbers near avg being the much less commonly selected ones, following an upside down gaussian curve
 
-            STRONGERINVEXP = 8
-            Select random numbers in the form of avg + var, with numbers near avg being very strongly preferred
+        INVEXP = 6
+        Select random numbers in the form of avg + var, with numbers near avg being preferred
 
-            DIRAC = 9
-            Select completely random numbers within avg-var until avg+var only ONCE and then always 0
+        STRONGINVEXP = 7
+        Select random numbers in the form of avg + var, with numbers near avg being strongly preferred
 
-            VERYNARROWGAUSSIAN = 10
-            Select random numbers with numbers near avg being the much much more commonly selected ones, following an even narrower gaussian curve
-            */
+        STRONGERINVEXP = 8
+        Select random numbers in the form of avg + var, with numbers near avg being very strongly preferred
+
+        DIRAC = 9
+        Select completely random numbers within avg-var until avg+var only ONCE and then always 0
+
+        VERYNARROWGAUSSIAN = 10
+        Select random numbers with numbers near avg being the much much more commonly selected ones, following an even narrower gaussian curve
+        */
         //"name-[string]", 0 -- identifier for the area. The number at the end is meaningless.
         //omitting any worldconfig option will have it use the default.
         public readonly List<Dictionary<string, double>> RingTemplates = new()
@@ -184,5 +184,22 @@ namespace Rustwall.Configs
                 { "geologicActivity", 0.40 }
             },
         };
+        /*
+        public readonly List<Dictionary<string, int>> RingTemplates = new()
+        {
+            new Dictionary<string, int>
+            {
+                { "name-safezone", 1 },
+                { "beachData", 255 },
+                { "biomeData", 255 },
+                { "rainfallData", 255 },
+                { "temperatureData", 255 },
+                { "forestData", 255 },
+                { "geoprovData", 255 },
+                { "landformData", 255 },
+            },
+        };*/
+
+
     }
 }

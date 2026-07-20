@@ -121,9 +121,11 @@ namespace Rustwall.ModSystems.RingedGenerator
             GenMaps_climateGen = GenMaps.GetClimateMapGen(seed + 1, noiseClimate);
             GenMaps_upheavelGen = GenMaps.GetGeoUpheavelMapGen(seed + 873, TerraGenConfig.geoUpheavelMapScale);
 
-            //this is a bit ugly and not accurate but GenMaps shits itself without this because
-            //requireLandAt is not defined in GenMaps at initialization, but I can't load any later
-            //because otherwise HandleRegionLoading is registered too late.
+            /// this is a bit ugly and not accurate but GenMaps shits itself without this because
+            /// requireLandAt is not defined in GenMaps at initialization, but I can't load any later
+            /// because otherwise HandleRegionLoading is registered too late.
+            ///
+            /// REVIEW: This is probably not true any more because I am loading later in the process
             List<XZ> requireLandAt = new() { new XZ(0, 0) };
 
             GenMaps_oceanGen = GenMaps.GetOceanMapGen(seed + 1873, landcover, TerraGenConfig.oceanMapScale, oceanscale, requireLandAt, false);
@@ -133,53 +135,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             GenMaps_beachGen = GenMaps.GetBeachMapGen(seed + 2273, TerraGenConfig.beachMapScale);
             GenMaps_geologicprovinceGen = GenMaps.GetGeologicProvinceMapGen(seed + 3, sapi);
             GenMaps_landformsGen = GenMaps.GetLandformMapGen(seed + 4, noiseClimate, sapi, landformScale);
-
-            //Down here, we're moving to the parameters usually handled by GenTerra
-            //This is a magic number that is hardcoded in 1.GenTerra. Hopefully it never changes...?
-            int terrainGenOctaves = 9;
-            float noiseScale;
-
-            noiseScale = Math.Max(1, sapi.WorldManager.MapSizeY / 256f);
-
-            double[] scaleAdjustedFreqs(double[] vs, float horizontalScale)
-            {
-                for (int i = 0; i < vs.Length; i++)
-                {
-                    vs[i] /= horizontalScale;
-                }
-
-                return vs;
-            }
-/*
-            GenTerra_terrainNoise = NewNormalizedSimplexFractalNoise.FromDefaultOctaves
-                (
-                    terrainGenOctaves, 0.0005 * NewSimplexNoiseLayer.OldToNewFrequency / noiseScale, 0.9, seed
-                );
-            GenTerra_distort2dx = new SimplexNoise
-                (
-                    [55, 40, 30, 10],
-                    scaleAdjustedFreqs([1 / 5.0, 1 / 2.50, 1 / 1.250, 1 / 0.65], noiseScale),
-                    seed + 9876 + 0
-                );
-            GenTerra_distort2dz = new SimplexNoise
-                (
-                    [55, 40, 30, 10],
-                    scaleAdjustedFreqs([1 / 5.0, 1 / 2.50, 1 / 1.250, 1 / 0.65], noiseScale),
-                    seed + 9876 + 2
-                );
-            GenTerra_geoUpheavalNoise = new NormalizedSimplexNoise
-                (
-                    [55, 40, 30, 15, 7, 4],
-                    scaleAdjustedFreqs([
-                        1.0 / 5.5,
-                        1.1 / 2.75,
-                        1.2 / 1.375,
-                        1.2 / 0.715,
-                        1.2 / 0.45,
-                        1.2 / 0.25
-                    ], noiseScale),
-                    seed + 9876 + 1
-                );*/
         }
 
         public string Ring_Name { get; set; }
@@ -232,7 +187,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         public List<SeedDependentWorldGenParameters> RingWorldMaps { get; private set; }
 
-
+        public List<RGWorldgenTemplateFill> RingTemplates { get; private set; }
         public override double ExecuteOrder()
         {
             return 1;
@@ -271,6 +226,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
                 regionMidPoint = ((RegionMapSizeX + RegionMapSizeX - 1) / 2.0);
                 RingWorldMaps = new List<SeedDependentWorldGenParameters>(NumberOfRings);
+                RingTemplates = new List<RGWorldgenTemplateFill>(NumberOfRings);
             });
 
             sapi.Event.InitWorldGenerator(() => InitRingedWorldGenerator(), "standard");
@@ -331,17 +287,27 @@ namespace Rustwall.ModSystems.RingedGenerator
             int ringNum = RingNumberFromRegion(regionX, regionZ);
 
             region.SetModdata("ringNumber", ringNum);
-            //SetWorldParams(RingWorldMaps[ringNum], region, new Vec2i(regionX, regionZ));
 
-            SeedDependentWorldGenParameters worldParams = RingWorldMaps[ringNum];
+            /// TEMPORARY: set this up to index off of ring number or something instead of hardcoding to 0
+            RGWorldgenTemplateFill ParamsToUse = RingTemplates[0];
 
-            
+            if (ringNum <= 2 && ringNum >= 0)
+            {
+                ParamsToUse = RingTemplates[0];
+            }
+            else if (ringNum >= 3)
+            {
+                ParamsToUse = RingTemplates[1];
+
+            }
+
             //Dictionary<string, ByteDataMap2D> newAnimalData = new Dictionary<string, ByteDataMap2D>();
 
             int[] newBeachData = new int[region.BeachMap.Size * region.BeachMap.Size];
-            newBeachData.Fill(255);
+            newBeachData.Fill(ParamsToUse.beachData);
+            region.BeachMap.Data = newBeachData;
 
-            int[] newBiomeData = new int[region.BiomeMap.Size * region.BiomeMap.Size];
+            //int[] newBiomeData = new int[region.BiomeMap.Size * region.BiomeMap.Size];
 
             //Dictionary
             //int[] newBlockPatchData = new int[region.BlockPatchMaps.Size ^ 2];
@@ -352,20 +318,21 @@ namespace Rustwall.ModSystems.RingedGenerator
                 int result = (rainfall & 0xFF) << 8 | ((temperature & 0xFF) << 16);
                 return result;
             }
-            newClimateData.Fill(PackClimate(0, 0));
+            newClimateData.Fill(PackClimate(ParamsToUse.rainfallData, ParamsToUse.temperatureData));
             region.ClimateMap.Data = newClimateData;
 
 
             int[] newForestData = new int[region.ForestMap.Size * region.ForestMap.Size];
-            newForestData.Fill(255);
+            newForestData.Fill(ParamsToUse.forestData);
             region.ForestMap.Data = newForestData;
 
-            int[] newGeoProvData = new int[region.GeologicProvinceMap.Size * region.GeologicProvinceMap.Size];
+            //int[] newGeoProvData = new int[region.GeologicProvinceMap.Size * region.GeologicProvinceMap.Size];
 
 
             int[] newLandformData = new int[region.LandformMap.Size * region.LandformMap.Size];
 
-            string desiredLandform = "realisticflatlands";
+            //string desiredLandform = "realisticflatlands";
+            string desiredLandform = ParamsToUse.landformData;
             //string desiredLandform = "humongous mountain, cavernless";
 
             int landformCode = NoiseLandforms.landforms.GetIndexByCode(desiredLandform);
@@ -374,14 +341,18 @@ namespace Rustwall.ModSystems.RingedGenerator
                 newLandformData.Fill(landformCode);
                 region.LandformMap.Data = newLandformData;
             }
+            else
+            {
+                sapi.Logger.Error("Failed to find landform code for " + desiredLandform + ". Landform map will be unaltered.");
+            }
 
             int[] newOceanData = new int[region.OceanMap.Size * region.OceanMap.Size];
             newOceanData.Fill(0);
             region.OceanMap.Data = newOceanData;
 
-            int[] newOreVerticalDistortBottomData = new int[region.OreMapVerticalDistortBottom.Size * region.OreMapVerticalDistortBottom.Size];
+            //int[] newOreVerticalDistortBottomData = new int[region.OreMapVerticalDistortBottom.Size * region.OreMapVerticalDistortBottom.Size];
 
-            int[] newOreVerticalDistortTopData = new int[region.OreMapVerticalDistortBottom.Size * region.OreMapVerticalDistortBottom.Size];
+            //int[] newOreVerticalDistortTopData = new int[region.OreMapVerticalDistortBottom.Size * region.OreMapVerticalDistortBottom.Size];
 
             //Dictionary, not int
             //int[] newOreData = new int[region.OreMaps.Size ^ 2];
@@ -392,88 +363,29 @@ namespace Rustwall.ModSystems.RingedGenerator
             //Array of arrays, not int
             //int[] newRockStrataData = new int[region.RockStrata.Length ^ 2];
 
-            int[] newShrubData = new int[region.ShrubMap.Size * region.ShrubMap.Size];
+            //int[] newShrubData = new int[region.ShrubMap.Size * region.ShrubMap.Size];
 
             //ushort, not int
             //int[] newTerrainData = new int[region.TerrainMap.Size ^ 2];
 
-            int[] newUpheavelData = new int[region.UpheavelMap.Size * region.UpheavelMap.Size];
+            //int[] newUpheavelData = new int[region.UpheavelMap.Size * region.UpheavelMap.Size];
             //newUpheavelData.Fill(255);
         }
 
         //Initialize and load the worldgen parameters
         private void InitRingedWorldGenerator()
         {
-            //First, check if this is a brand new world...
+            /// First, check if this is a brand new world...
             if (sapi.WorldManager.SaveGame.IsNew)
             {
-                //If so, we need some new world configuration values.
-                //We'll pull in a list of templates from the config
-                List<Dictionary<string, double>> presetRingConfigs = config.RingTemplates;
-                int TemplatedRings = presetRingConfigs.Count();
-                //if the template contains something, then let's look into it
-                ///Templates are constructed in a predefined manner:
-                ///name
-                ///repeat (may or may not be present)
-                ///world config values OR a single entry for "random" with a distribution type
-                if (TemplatedRings >= 0)
+                IAsset asset = sapi.Assets.TryGet("rustwall:worldgen/fillringtemplates.json");
+                //RGWorldgenTemplateFill template = asset.ToObject<RGWorldgenTemplateFill>();
+                RGAllWorldgenTemplates templates = asset.ToObject<RGAllWorldgenTemplates>();
+
+                if (templates is not null)
                 {
-                    foreach (var template in presetRingConfigs)
-                    {
-                        string name = "";
-                        int repeatNum = 0;
-                        bool random = false;
-                        EnumDistribution randomType = EnumDistribution.NARROWINVERSEGAUSSIAN;
-                        int remains = -1;
-                        //Dictionary<string, double> ringDict;
-                        foreach (KeyValuePair<string, double> kvp in template)
-                        {
-                            if (kvp.Key.StartsWith("name-"))
-                            {
-                                name = kvp.Key;
-                                template.Remove(kvp.Key);
-                                continue;
-                            }
-                            else if (kvp.Key.Equals("repeat"))
-                            {
-                                repeatNum = (int)kvp.Value;
-                                template.Remove(kvp.Key);
-                                continue;
-                            }
-                            else if (kvp.Key.Equals("random"))
-                            {
-                                random = true;
-                                int randomTypeAsInt = (int)kvp.Value;
-                                randomType = (EnumDistribution)randomTypeAsInt;
-                                template.Remove(kvp.Key);
-                                continue;
-                            }
-                        }
-
-                        RandomizeParams(out Dictionary<string, double> newParams, out int seed, randomType);
-
-                        foreach (var item in newParams)
-                        {
-                            if (!template.ContainsKey(item.Key))
-                            {
-                                template.AddItem(item);
-                            }
-                        }
-
-                        for (int i = 0; i <= repeatNum; i++)
-                        {
-                            if (random)
-                            {
-                                RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, seed, newParams));
-                            }
-                            else
-                            {
-                                RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, seed, template));
-                            }
-                        }
-                    }
+                    RingTemplates = templates.FillTemplates;
                 }
-                //and if it contains nothing, just go for full random
                 else
                 {
                     CreateWorldgenValues();
