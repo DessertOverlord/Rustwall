@@ -4,14 +4,13 @@ using System;
 using System.Diagnostics;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
-using YamlDotNet.Serialization;
 
 namespace Rustwall.ModSystems
 {
     public abstract class RustwallModSystem : ModSystem
     {
         protected ICoreServerAPI sapi;
-        public RustwallConfig config;
+        public RustwallConfig config { get; private set; }
         private readonly string configName = "rustwall.json";
         public override void StartServerSide(ICoreServerAPI api)
         {

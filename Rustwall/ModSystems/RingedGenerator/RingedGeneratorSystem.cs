@@ -188,7 +188,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         public List<SeedDependentWorldGenParameters> RingWorldMaps { get; private set; }
 
-        public List<RGWorldgenTemplateFill> RingTemplates { get; private set; }
+        public List<RGWorldgenTemplate> RingTemplates = new List<RGWorldgenTemplate>();
         public override double ExecuteOrder()
         {
             return 1;
@@ -227,7 +227,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
                 regionMidPoint = ((RegionMapSizeX + RegionMapSizeX - 1) / 2.0);
                 RingWorldMaps = new List<SeedDependentWorldGenParameters>(NumberOfRings);
-                RingTemplates = new List<RGWorldgenTemplateFill>(NumberOfRings);
+                //RingTemplates = new List<RGWorldgenTemplate>(NumberOfRings);
             });
 
             sapi.Event.InitWorldGenerator(() => InitRingedWorldGenerator(), "standard");
@@ -289,67 +289,100 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             region.SetModdata("ringNumber", ringNum);
 
-            /// TEMPORARY: set this up to index off of ring number or something instead of hardcoding to 0
-            RGWorldgenTemplateFill ParamsToUse = RingTemplates[0];
+            RGWorldgenTemplate ParamsToUse = RingTemplates[ringNum];
 
-            if (ringNum <= 2 && ringNum >= 0)
+            /// Can happen if someone skips a ring in the template list.
+            if (ParamsToUse == null)
             {
-                ParamsToUse = RingTemplates[0];
+                return;
             }
-            /*else if (ringNum >= 3)
+
+            if (ParamsToUse.beachData > -1)
             {
-                ParamsToUse = RingTemplates[1];
-
-            }*/
-
-            //Dictionary<string, ByteDataMap2D> newAnimalData = new Dictionary<string, ByteDataMap2D>();
-
-            int[] newBeachData = new int[region.BeachMap.Size * region.BeachMap.Size];
-            newBeachData.Fill(ParamsToUse.beachData);
-            region.BeachMap.Data = newBeachData;
+                int[] newBeachData = new int[region.BeachMap.Size * region.BeachMap.Size];
+                newBeachData.Fill(ParamsToUse.beachData);
+                region.BeachMap.Data = newBeachData;
+            }
 
             //int[] newBiomeData = new int[region.BiomeMap.Size * region.BiomeMap.Size];
 
             //Dictionary
             //int[] newBlockPatchData = new int[region.BlockPatchMaps.Size ^ 2];
 
-            int[] newClimateData = new int[region.ClimateMap.Size * region.ClimateMap.Size];
-            static int PackClimate(int rainfall, int temperature)
+
+            if (ParamsToUse.rainfallData > -1 && ParamsToUse.temperatureData > -1)
             {
-                int result = (rainfall & 0xFF) << 8 | ((temperature & 0xFF) << 16);
-                return result;
+
+                int[] newClimateData = new int[region.ClimateMap.Size * region.ClimateMap.Size];
+                static int PackClimate(int rainfall, int temperature)
+                {
+                    int result = (rainfall & 0xFF) << 8 | ((temperature & 0xFF) << 16);
+                    return result;
+                }
+                newClimateData.Fill(PackClimate(ParamsToUse.rainfallData, ParamsToUse.temperatureData));
+                region.ClimateMap.Data = newClimateData;
+
+                /// I need a way to handle the case where only one climate parameter is set.
+                /// I'll do it by taking the existing value from the map, unpacking it, and repacking it 
+                /// with the other parameter. For now I will assume that I am always specifying both.
+
+                /*
+                if (ParamsToUse.rainfallData <= -1)
+                {
+                    int[] newClimateData = new int[region.ClimateMap.Size * region.ClimateMap.Size];
+                    static int PackClimate(int rainfall, int temperature)
+                    {
+                        int result = (rainfall & 0xFF) << 8 | ((temperature & 0xFF) << 16);
+                        return result;
+                    }
+                    newClimateData.Fill(PackClimate(ParamsToUse.rainfallData, ParamsToUse.temperatureData));
+                    region.ClimateMap.Data = newClimateData;
+                }
+                if (ParamsToUse.temperatureData > -1)
+                {
+                    int[] newClimateData = new int[region.ClimateMap.Size * region.ClimateMap.Size];
+                    static int PackClimate(int rainfall, int temperature)
+                    {
+                        int result = (rainfall & 0xFF) << 8 | ((temperature & 0xFF) << 16);
+                        return result;
+                    }
+                    newClimateData.Fill(PackClimate(ParamsToUse.rainfallData, ParamsToUse.temperatureData));
+                    region.ClimateMap.Data = newClimateData;
+                }*/
             }
-            newClimateData.Fill(PackClimate(ParamsToUse.rainfallData, ParamsToUse.temperatureData));
-            region.ClimateMap.Data = newClimateData;
 
-
-            int[] newForestData = new int[region.ForestMap.Size * region.ForestMap.Size];
-            newForestData.Fill(ParamsToUse.forestData);
-            region.ForestMap.Data = newForestData;
+            if (ParamsToUse.forestData > -1)
+            {
+                int[] newForestData = new int[region.ForestMap.Size * region.ForestMap.Size];
+                newForestData.Fill(ParamsToUse.forestData);
+                region.ForestMap.Data = newForestData;
+            }
 
             //int[] newGeoProvData = new int[region.GeologicProvinceMap.Size * region.GeologicProvinceMap.Size];
 
-
             int[] newLandformData = new int[region.LandformMap.Size * region.LandformMap.Size];
-
-            //string desiredLandform = "realisticflatlands";
             string desiredLandform = ParamsToUse.landformData;
-            //string desiredLandform = "humongous mountain, cavernless";
-
-            int landformCode = NoiseLandforms.landforms.GetIndexByCode(desiredLandform);
-            if (landformCode != -1)
+            if (desiredLandform != null || desiredLandform != "")
             {
-                newLandformData.Fill(landformCode);
-                region.LandformMap.Data = newLandformData;
-            }
-            else
-            {
-                sapi.Logger.Error("Failed to find landform code for " + desiredLandform + ". Landform map will be unaltered.");
+                int landformCode = NoiseLandforms.landforms.GetIndexByCode(desiredLandform);
+                if (landformCode != -1)
+                {
+                    newLandformData.Fill(landformCode);
+                    region.LandformMap.Data = newLandformData;
+                }
+                else
+                {
+                    sapi.Logger.Error("Failed to find landform code for " + desiredLandform + ". Landform map will be unaltered.");
+                }
             }
 
-            int[] newOceanData = new int[region.OceanMap.Size * region.OceanMap.Size];
-            newOceanData.Fill(0);
-            region.OceanMap.Data = newOceanData;
+            /// -1 is the default value, which means "don't change it"
+            if (ParamsToUse.oceanData > -1)
+            {
+                int[] newOceanData = new int[region.OceanMap.Size * region.OceanMap.Size];
+                newOceanData.Fill(ParamsToUse.oceanData);
+                region.OceanMap.Data = newOceanData;
+            }
 
             //int[] newOreVerticalDistortBottomData = new int[region.OreMapVerticalDistortBottom.Size * region.OreMapVerticalDistortBottom.Size];
 
@@ -387,7 +420,34 @@ namespace Rustwall.ModSystems.RingedGenerator
 
                 if (config.RingTemplates.Any())
                 {
-                    this.RingTemplates = config.RingTemplates;
+                    foreach (var item in config.RingTemplates)
+                    {
+                        if (item.FromRing > item.ToRing)
+                        {
+                            sapi.Logger.Error($"FromRing was greater than ToRing for template: {item.Name}. Template will be ignored.");
+                        }
+                        else if (item.FromRing < 0 || item.ToRing >= NumberOfRings)
+                        {
+                            sapi.Logger.Error($"Ring range is out of bounds for template: {item.Name}. Template will be ignored.");
+                        }
+                        else if (item.FromRing == item.ToRing)
+                        {
+                            RingTemplates.Add(item);
+                        }
+                        else if (item.ToRing > item.FromRing)
+                        {
+                            for (int i = item.FromRing; i <= item.ToRing; i++)
+                            {
+                                RingTemplates.Add(item);
+                            }
+                        }
+                        else
+                        {
+                            sapi.Logger.Error($"Unhandled ring value case for template: {item.Name}. Template will be ignored.");
+                        }
+                    }
+
+                    //this.RingTemplates = config.RingTemplates;
                 }
                 else
                 {
