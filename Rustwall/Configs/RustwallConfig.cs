@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 
 namespace Rustwall.Configs
@@ -26,7 +27,7 @@ namespace Rustwall.Configs
         //RingedGenerator options
         public int ringWidth = 2;
         public int safeZoneSize = 1;
-        public static readonly Dictionary<string, double> DefaultWorldConfigSettings = new()
+        /*public static readonly Dictionary<string, double> DefaultWorldConfigSettings = new()
         {
                 { "landformScale", 1 },
                 { "globalTemperature", 1 },
@@ -36,170 +37,98 @@ namespace Rustwall.Configs
                 { "oceanscale", 1 },
                 { "upheavelCommonness", 0.3 },
                 { "geologicActivity", 0.05 }
-        };
-
-        //keep in mind that ring 0 is the safezone and is ignored anyways
-        //these are in order, ring 0, ring 1, etc.
-        //leaving emptiness at the end will result in randomization
-        //keywords:
-        //"repeat", [int] -- repeat these settings this many times (for instance, repeat:3 would make a total of 4 rings)
-        //"random", [int] -- randomize this ring using the int as an identifier for EnumDistribution.
-        /*
-        UNIFORM = 0
-        Select completely random numbers within avg-var until avg+var
-
-        TRIANGLE = 1
-        Select random numbers with numbers near avg being the most commonly selected ones, following a triangle curve
-
-        GAUSSIAN = 2
-        Select random numbers with numbers near avg being the more commonly selected ones, following a gaussian curve
-
-        NARROWGAUSSIAN = 3
-        Select random numbers with numbers near avg being the much more commonly selected ones, following a narrow gaussian curve
-
-        INVERSEGAUSSIAN = 4
-        Select random numbers with numbers near avg being the less commonly selected ones, following an upside down gaussian curve
-
-        NARROWINVERSEGAUSSIAN = 5
-        Select random numbers with numbers near avg being the much less commonly selected ones, following an upside down gaussian curve
-
-        INVEXP = 6
-        Select random numbers in the form of avg + var, with numbers near avg being preferred
-
-        STRONGINVEXP = 7
-        Select random numbers in the form of avg + var, with numbers near avg being strongly preferred
-
-        STRONGERINVEXP = 8
-        Select random numbers in the form of avg + var, with numbers near avg being very strongly preferred
-
-        DIRAC = 9
-        Select completely random numbers within avg-var until avg+var only ONCE and then always 0
-
-        VERYNARROWGAUSSIAN = 10
-        Select random numbers with numbers near avg being the much much more commonly selected ones, following an even narrower gaussian curve
-        */
-        //"name-[string]", 0 -- identifier for the area. The number at the end is meaningless.
-        //omitting any worldconfig option will have it use the default.
-        public readonly List<Dictionary<string, double>> RingTemplates = new()
-        {
-            new Dictionary<string, double> 
-            {
-                { "name-safezone", 1 },
-                { "landformScale", 1 },
-                { "globalTemperature", 1 },
-                { "globalPrecipitation", 1 },
-                { "globalForestation", 0 },
-                { "landcover", 0.975 },
-                { "oceanscale", 1 },
-                { "upheavelCommonness", 0.3 },
-                { "geologicActivity", 0.05 }
-            },
-            new Dictionary<string, double> 
-            {
-                { "name-fertile_plains_cool", 1 },
-                { "landformScale", 3 },
-                { "globalTemperature", 1.5 },
-                { "globalPrecipitation", 5 },
-                { "globalForestation", -1 },
-                { "landcover", 0.975 },
-                { "oceanscale", 1 },
-                { "upheavelCommonness", 0 },
-                { "geologicActivity", 0 }
-            },
-            new Dictionary<string, double>
-            {
-                { "name-fertile_plains_warm", 1 },
-                { "landformScale", 3 },
-                { "globalTemperature", 1.5 },
-                { "globalPrecipitation", 5 },
-                { "globalForestation", -1 },
-                { "landcover", 0.975 },
-                { "oceanscale", 1 },
-                { "upheavelCommonness", 0 },
-                { "geologicActivity", 0 }
-            },
-            new Dictionary<string, double> 
-            {
-                { "name-dense_forest", 1 },
-                { "repeat", 1 },
-                { "landformScale", 1.0 },
-                { "globalTemperature", 1 },
-                { "globalPrecipitation", 1 },
-                { "globalForestation", 1 },
-                { "landcover", 0.975 },
-                { "oceanscale", 1 },
-                { "upheavelCommonness", 0 },
-                { "geologicActivity", 0 }
-            },
-            new Dictionary<string, double> 
-            {
-                { "name-warm_ocean", 1 },
-                { "repeat", 1 },
-                { "landformScale", 1.0 },
-                { "globalTemperature", 2 },
-                { "globalPrecipitation", 4 },
-                { "globalForestation", 1 },
-                { "landcover", 0.20 },
-                { "oceanscale", 2 },
-                { "upheavelCommonness", 0 },
-                { "geologicActivity", 0 }
-            },
-            new Dictionary<string, double> 
-            {
-                { "name-extreme_hills", 1 },
-                { "repeat", 1 },
-                { "landformScale", 0.5 },
-                { "globalTemperature", 1 },
-                { "globalPrecipitation", 1 },
-                { "globalForestation", 0 },
-                { "landcover", 0.975 },
-                { "oceanscale", 1 },
-                { "upheavelCommonness", 1.0 },
-                { "geologicActivity", 0.20 }
-            },
-            new Dictionary<string, double> 
-            {
-                { "name-cold_ocean", 1 },
-                { "repeat", 1 },
-                { "landformScale", 1.0 },
-                { "globalTemperature", 0.25 },
-                { "globalPrecipitation", 4 },
-                { "globalForestation", 1 },
-                { "landcover", 0.05 },
-                { "oceanscale", 2 },
-                { "upheavelCommonness", 0 },
-                { "geologicActivity", 0 }
-            },
-            new Dictionary<string, double> 
-            {
-                { "name-rich_mountains", 1 },
-                { "repeat", 1 },
-                { "landformScale", 0.5 },
-                { "globalTemperature", 1 },
-                { "globalPrecipitation", 1 },
-                { "globalForestation", 0 },
-                { "landcover", 0.975 },
-                { "oceanscale", 1 },
-                { "upheavelCommonness", 1.0 },
-                { "geologicActivity", 0.40 }
-            },
-        };
-        /*
-        public readonly List<Dictionary<string, int>> RingTemplates = new()
-        {
-            new Dictionary<string, int>
-            {
-                { "name-safezone", 1 },
-                { "beachData", 255 },
-                { "biomeData", 255 },
-                { "rainfallData", 255 },
-                { "temperatureData", 255 },
-                { "forestData", 255 },
-                { "geoprovData", 255 },
-                { "landformData", 255 },
-            },
         };*/
 
-
+        public List<RGWorldgenTemplate> RingTemplates =
+        [
+            new RGWorldgenTemplate
+            {
+                Name = "Safezone",
+                FromRing = 0,
+                ToRing = 0,
+                rainfallData = 120,
+                temperatureData = 100,
+                forestData = 0,
+                landformData = "realisticflatlands",
+                oceanData = 0,
+            },
+            new RGWorldgenTemplate
+            {
+                Name = "Warm Fertile Plains",
+                FromRing = 1,
+                ToRing = 2,
+                rainfallData = 120,
+                temperatureData = 200,
+                forestData = 0,
+                landformData = "realisticflatlands",
+                oceanData = 0,
+            },
+            new RGWorldgenTemplate
+            {
+                Name = "Dense Forest",
+                FromRing = 3,
+                ToRing = 4,
+                rainfallData = 100,
+                temperatureData = 100,
+                forestData = 255,
+                landformData = "realisticflatlands",
+                oceanData = 0,
+            },
+            new RGWorldgenTemplate
+            {
+                Name = "Warm Ocean",
+                FromRing = 3,
+                ToRing = 4,
+                rainfallData = 100,
+                temperatureData = 160,
+                forestData = 0,
+                landformData = "realisticflatlands",
+                oceanData = 255,
+            },
+            new RGWorldgenTemplate
+            {
+                Name = "Extreme Arctic Wasteland",
+                FromRing = 5,
+                ToRing = 6,
+                rainfallData = 255,
+                temperatureData = 0,
+                forestData = 0,
+                landformData = "humongous mountain, cavernless",
+                oceanData = 0,
+            },
+            new RGWorldgenTemplate
+            {
+                Name = "Arctic Ocean",
+                FromRing = 7,
+                ToRing = 8,
+                rainfallData = 255,
+                temperatureData = 0,
+                forestData = 0,
+                landformData = "",
+                oceanData = 255,
+            },
+            new RGWorldgenTemplate
+            {
+                Name = "Dense Jungle",
+                FromRing = 9,
+                ToRing = 10,
+                rainfallData = 255,
+                temperatureData = 190,
+                forestData = 255,
+                landformData = "realisticflatlands",
+                oceanData = 0,
+            },
+            new RGWorldgenTemplate
+            {
+                Name = "Rich Mountains",
+                FromRing = 11,
+                ToRing = 12,
+                rainfallData = 120,
+                temperatureData = 80,
+                forestData = 0,
+                landformData = "humongous mountain, cavernless",
+                oceanData = 0,
+            },
+        ];
     }
 }

@@ -1,7 +1,7 @@
 using Newtonsoft.Json;
 using Vintagestory.API.Common;
 
-namespace Rustwall.ModSystems.RingedGenerator
+namespace Rustwall.Configs
 {
     /*public enum EnumRingDefType 
     {
@@ -20,12 +20,26 @@ namespace Rustwall.ModSystems.RingedGenerator
     public class RGWorldgenTemplate 
     {
         [JsonProperty]
-        public AssetLocation Code = "defaulttemplate";
-        [JsonProperty]
         public string Name = "Default Ring Name";
         [JsonProperty]
         public int FromRing;
         [JsonProperty]
         public int ToRing;
+        [JsonProperty]
+        public int beachData = -1;
+        [JsonProperty]
+        public int biomeData = -1;
+        [JsonProperty]
+        public int rainfallData = -1;
+        [JsonProperty]
+        public int temperatureData = -1;
+        [JsonProperty]
+        public int forestData = -1;
+        [JsonProperty]
+        public int geoprovData = -1;
+        [JsonProperty]
+        public string landformData = "";
+        [JsonProperty]
+        public int oceanData = -1;
     }
 }
