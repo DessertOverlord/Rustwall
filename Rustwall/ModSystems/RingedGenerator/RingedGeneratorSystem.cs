@@ -1,6 +1,7 @@
 ﻿using Cairo;
 using HarmonyLib;
 using ProtoBuf;
+using Rustwall.Configs;
 using Rustwall.RWBehaviorRebuildable;
 using Rustwall.RWBlockEntity.BERebuildable;
 using System;
@@ -295,11 +296,11 @@ namespace Rustwall.ModSystems.RingedGenerator
             {
                 ParamsToUse = RingTemplates[0];
             }
-            else if (ringNum >= 3)
+            /*else if (ringNum >= 3)
             {
                 ParamsToUse = RingTemplates[1];
 
-            }
+            }*/
 
             //Dictionary<string, ByteDataMap2D> newAnimalData = new Dictionary<string, ByteDataMap2D>();
 
@@ -378,13 +379,15 @@ namespace Rustwall.ModSystems.RingedGenerator
             /// First, check if this is a brand new world...
             if (sapi.WorldManager.SaveGame.IsNew)
             {
-                IAsset asset = sapi.Assets.TryGet("rustwall:worldgen/fillringtemplates.json");
+                //IAsset asset = sapi.Assets.TryGet("rustwall:worldgen/fillringtemplates.json");
                 //RGWorldgenTemplateFill template = asset.ToObject<RGWorldgenTemplateFill>();
-                RGAllWorldgenTemplates templates = asset.ToObject<RGAllWorldgenTemplates>();
+                //RGAllWorldgenTemplates templates = asset.ToObject<RGAllWorldgenTemplates>();
 
-                if (templates is not null)
+                //RGAllWorldgenTemplates newTemplates = config.RingTemplates;
+
+                if (config.RingTemplates.Any())
                 {
-                    RingTemplates = templates.FillTemplates;
+                    this.RingTemplates = config.RingTemplates;
                 }
                 else
                 {

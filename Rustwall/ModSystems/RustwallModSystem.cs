@@ -4,6 +4,7 @@ using System;
 using System.Diagnostics;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
+using YamlDotNet.Serialization;
 
 namespace Rustwall.ModSystems
 {
@@ -48,26 +49,5 @@ namespace Rustwall.ModSystems
                 sapi.StoreModConfig(config, configName);
             }
         }
-
-        protected void LoadConfigShared(ICoreAPI api)
-        {
-            try
-            {
-                config = api.LoadModConfig<RustwallConfig>(configName);
-            }
-            catch (Exception)
-            {
-                api.Logger.Error("Exception loading Rustwall config at " + configName);
-            }
-
-            if (config == null)
-            {
-                api.Logger.Error("Rustwall config not loaded correctly, initializing default.");
-
-                config = new RustwallConfig();
-                api.StoreModConfig(config, configName);
-            }
-        }
-
     }
 }
