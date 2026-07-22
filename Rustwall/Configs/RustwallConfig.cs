@@ -1,7 +1,9 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -39,7 +41,8 @@ namespace Rustwall.Configs
                 { "geologicActivity", 0.05 }
         };*/
 
-        public List<RGWorldgenTemplate> RingTemplates =
+        [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
+        public readonly List<RGWorldgenTemplate> RingTemplates =
         [
             new RGWorldgenTemplate
             {
