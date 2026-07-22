@@ -273,10 +273,8 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             region.SetModdata("ringNumber", ringNum);
 
-            RGWorldgenTemplate ParamsToUse = RingTemplates[ringNum];
-
             /// Can happen if someone skips a ring in the template list.
-            if (ParamsToUse == null)
+            if (!RingTemplates.TryGetValue(ringNum, out RGWorldgenTemplate ParamsToUse))
             {
                 return;
             }
