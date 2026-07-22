@@ -172,7 +172,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         public List<SeedDependentWorldGenParameters> RingWorldMaps { get; private set; }
 
-        public List<RGWorldgenTemplate> RingTemplates = new List<RGWorldgenTemplate>();
+        public Dictionary<int, RGWorldgenTemplate> RingTemplates = new Dictionary<int, RGWorldgenTemplate>();
         public override double ExecuteOrder()
         {
             return 1;
@@ -186,7 +186,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             RegisterChatCommands();
 
             sapi.Event.ServerRunPhase(EnumServerRunPhase.WorldReady, () => 
-            { 
+            {
                 ringWidth = config.ringWidth;
                 safeZoneSize = config.safeZoneSize;
                 int RegionMapSizeX = -1;
@@ -416,13 +416,13 @@ namespace Rustwall.ModSystems.RingedGenerator
                         }
                         else if (item.FromRing == item.ToRing)
                         {
-                            RingTemplates.Add(item);
+                            RingTemplates[item.FromRing] = item;
                         }
                         else if (item.ToRing > item.FromRing)
                         {
                             for (int i = item.FromRing; i <= item.ToRing; i++)
                             {
-                                RingTemplates.Add(item);
+                                RingTemplates[i] = item;
                             }
                         }
                         else
