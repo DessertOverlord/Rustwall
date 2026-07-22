@@ -1,33 +1,17 @@
-﻿using Cairo;
-using HarmonyLib;
-using ProtoBuf;
+﻿using ProtoBuf;
 using Rustwall.Configs;
 using Rustwall.RWBehaviorRebuildable;
 using Rustwall.RWBlockEntity.BERebuildable;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Reflection.Metadata.Ecma335;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.InteropServices.JavaScript;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using Vintagestory.API.Client;
 using Vintagestory.API.Common;
-using Vintagestory.API.Config;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
-using Vintagestory.Common;
-using Vintagestory.Server;
 using Vintagestory.ServerMods;
-using Vintagestory.ServerMods.NoObf;
 
 namespace Rustwall.ModSystems.RingedGenerator
 {
@@ -418,7 +402,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
                 //RGAllWorldgenTemplates newTemplates = config.RingTemplates;
 
-                if (config.RingTemplates.Any())
+                if (config.RingTemplates.Count > 0)
                 {
                     foreach (var item in config.RingTemplates)
                     {

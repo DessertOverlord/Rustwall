@@ -3,6 +3,7 @@ using Rustwall.Configs;
 using System;
 using System.Diagnostics;
 using Vintagestory.API.Common;
+using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 
 namespace Rustwall.ModSystems
@@ -21,11 +22,6 @@ namespace Rustwall.ModSystems
             var harmony = new Harmony(Mod.Info.ModID);
             harmony.PatchAll();
         }
-
-        /*public override void Start(ICoreAPI api)
-        {
-            LoadConfigShared(api);
-        }*/
 
         protected abstract void RustwallStartServerSide();
 
