@@ -41,6 +41,41 @@ namespace Rustwall.Configs
                 { "geologicActivity", 0.05 }
         };*/
 
+        public RGWorldgenTemplate DefaultWorldConfigSettings = new RGWorldgenTemplate
+        {
+            Name = "Default Dynamic Worldgen Settings (Will be used if values are unspecified)",
+            landformScale = 1,
+            globalTemperature = 1,
+            globalPrecipitation = 1,
+            globalForestation = 0,
+            landcover = 0.975,
+            oceanscale = 1,
+            upheavelCommonness = 0.3,
+            geologicActivity = 0.05
+        };
+
+        public RGWorldgenTemplate ExamplePossibleSettings = new RGWorldgenTemplate
+        {
+            Name = "Example Maximum Settings (Will not be used)",
+            FromRing = -1,
+            ToRing = -1,
+            beachData = 255,
+            rainfallData = 255,
+            temperatureData = 255,
+            forestData = 255,
+            //geoprovData = 255,
+            landformData = "realisticflatlands",
+            oceanData = 255,
+            oreData = new Dictionary<string, OreValues>
+            {
+                { "hematite", new OreValues { value = 255, hypercommonness = 0, richness = 0 } },
+                { "nativecopper", new OreValues { value = 255, hypercommonness = 0, richness = 0 } },
+                { "gold", new OreValues {value = 255, hypercommonness = 0, richness = 0} },
+                { "silver", new OreValues {value = 255, hypercommonness = 0, richness = 0} },
+                { "lead", new OreValues {value = 255, hypercommonness = 0, richness = 0} },
+            }
+        };
+
         [JsonProperty(ObjectCreationHandling = ObjectCreationHandling.Replace)]
         public readonly List<RGWorldgenTemplate> RingTemplates =
         [
