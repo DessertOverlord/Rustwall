@@ -33,16 +33,23 @@ namespace Rustwall.ModSystems
             }
             catch (Exception)
             {
-                sapi.Server.LogError("Exception loading Rustwall config at " + configName);
+                sapi.Server.Logger.Error("Exception loading Rustwall config at " + configName);
             }
 
             if (config == null)
             {
-                sapi.Server.LogError("Rustwall config not loaded correctly, initializing default.");
+                sapi.Server.Logger.Error("Rustwall config not loaded correctly, initializing default.\nThis is normal on the first load.");
 
                 config = new RustwallConfig();
                 sapi.StoreModConfig(config, configName);
             }
+        }
+
+        public void ReloadConfig()
+        {
+            config = null;
+
+            LoadConfig();
         }
     }
 }

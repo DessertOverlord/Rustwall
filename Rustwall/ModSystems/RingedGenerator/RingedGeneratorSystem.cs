@@ -286,8 +286,11 @@ namespace Rustwall.ModSystems.RingedGenerator
                 region.BeachMap.Data = newBeachData;
             }
 
+            /// Not sure what BiomeData represents
             //int[] newBiomeData = new int[region.BiomeMap.Size * region.BiomeMap.Size];
 
+            /// Blockpatches seem to mostly govern things like shrubs and mushrooms. Not sure 
+            /// I care that much about this (could I make LSD land...?)
             //Dictionary
             //int[] newBlockPatchData = new int[region.BlockPatchMaps.Size ^ 2];
 
@@ -340,6 +343,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 region.ForestMap.Data = newForestData;
             }
 
+            /// Not yet implemented and I don't know what it does
             //int[] newGeoProvData = new int[region.GeologicProvinceMap.Size * region.GeologicProvinceMap.Size];
 
             int[] newLandformData = new int[region.LandformMap.Size * region.LandformMap.Size];
@@ -366,24 +370,48 @@ namespace Rustwall.ModSystems.RingedGenerator
                 region.OceanMap.Data = newOceanData;
             }
 
+            /// Not used right now. Not really sure how much I care about putting these in.
             //int[] newOreVerticalDistortBottomData = new int[region.OreMapVerticalDistortBottom.Size * region.OreMapVerticalDistortBottom.Size];
-
             //int[] newOreVerticalDistortTopData = new int[region.OreMapVerticalDistortBottom.Size * region.OreMapVerticalDistortBottom.Size];
+            
+            if (ParamsToUse.oreData != null)
+            {
+                static int PackOreValues(OreValues values)
+                {
+                    return (values.value & 0xFF) | ((values.hypercommonness & 0xFF) << 8) | ((values.richness & 0xFF) << 16);
+                }
 
-            //Dictionary, not int
-            //int[] newOreData = new int[region.OreMaps.Size ^ 2];
+                foreach (var kvp in ParamsToUse.oreData)
+                {
+                    if (region.OreMaps.TryGetValue(kvp.Key, out IntDataMap2D oreData))
+                    {
+                        int[] newOreData = new int[oreData.Size * oreData.Size];
+                        newOreData.Fill(PackOreValues(kvp.Value));
+                        oreData.Data = newOreData;
+                    }
+                    else
+                    {
+                        sapi.Logger.Error($"Failed to find ore map for {kvp.Key}. Ore map for {kvp.Key} will be unaltered.");
+                    }
+                }
+            }
 
+            /// Not implemented. Probably doesn't really do anything right now?
             //long, not int
             //int[] newRiverData = new int[region.RiverMap.Size ^ 2];
 
+            /// Not implemented. Not sure how much we care about manipulating Rock Strata?
             //Array of arrays, not int
             //int[] newRockStrataData = new int[region.RockStrata.Length ^ 2];
 
+            /// See above
             //int[] newShrubData = new int[region.ShrubMap.Size * region.ShrubMap.Size];
 
+            /// Not sure what this map does?
             //ushort, not int
             //int[] newTerrainData = new int[region.TerrainMap.Size ^ 2];
 
+            /// Also not sure what this really does
             //int[] newUpheavelData = new int[region.UpheavelMap.Size * region.UpheavelMap.Size];
             //newUpheavelData.Fill(255);
         }
@@ -392,14 +420,8 @@ namespace Rustwall.ModSystems.RingedGenerator
         private void InitRingedWorldGenerator()
         {
             /// First, check if this is a brand new world...
-            if (sapi.WorldManager.SaveGame.IsNew)
+            //if (sapi.WorldManager.SaveGame.IsNew)
             {
-                //IAsset asset = sapi.Assets.TryGet("rustwall:worldgen/fillringtemplates.json");
-                //RGWorldgenTemplateFill template = asset.ToObject<RGWorldgenTemplateFill>();
-                //RGAllWorldgenTemplates templates = asset.ToObject<RGAllWorldgenTemplates>();
-
-                //RGAllWorldgenTemplates newTemplates = config.RingTemplates;
-
                 if (config.RingTemplates.Count > 0)
                 {
                     foreach (var item in config.RingTemplates)
@@ -437,10 +459,10 @@ namespace Rustwall.ModSystems.RingedGenerator
                 }
             }
             // if it isn't, just load what's already there (hopefully...)
-            else
+            /*else
             {
                 LoadWorldgenData();
-            }
+            }*/
         }
 
         //Initialize first-time world generator values
@@ -731,8 +753,8 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
 
             StopChunkGeneration();
-            RandomizeRingRange(fromRing, toRing, EnumDistribution.UNIFORM);
-            StoreWorldgenData();
+            //RandomizeRingRange(fromRing, toRing, EnumDistribution.UNIFORM);
+            //StoreWorldgenData();
             DeleteRingRange(fromRing, toRing);
             StartChunkGeneration();
         }
@@ -918,6 +940,21 @@ namespace Rustwall.ModSystems.RingedGenerator
                         }
                         return TextCommandResult.Success(output);
                     })
+                    .EndSubCommand()
+                    .BeginSubCommand("reload")
+                        .BeginSubCommand("config")
+                        .WithArgs()
+                        .HandleWith(
+                        (args =>
+                        {
+                            var rwmodsys = sapi.ModLoader.GetModSystem<RustwallModSystem>();
+
+                            rwmodsys.ReloadConfig();
+
+                            return TextCommandResult.Success("Reloaded Rustwall configuration");
+                        }))
+                        .EndSubCommand()
+                    .EndSubCommand()
                 .EndSubCommand();
         }
     }

@@ -1,22 +1,30 @@
 using Newtonsoft.Json;
+using System.Collections.Generic;
 using Vintagestory.API.Common;
 
 namespace Rustwall.Configs
 {
-    /*public enum EnumRingDefType 
+    public class OreValues
     {
-        //Fully random, just do whatever / may have a distribution tied to it
-        Random,
-        //Use worldgen values to create a simulated world with those parameters.
-        // Provides some control compared to Random, but is not as exact as Fixed
-        Dynamic,
-        //Provide exact values to fill the entire region with. For instance, 
-        // using 255 as a value for forests will guarentee forest literally everywhere.
-        FixedFill,
-        //Some mixture of Dynamic and FixedFill values.
-        Hybrid
-    }*/
-    [JsonObject(MemberSerialization.OptIn)]
+        /// <summary>
+        /// Dictates how common ore is in an area (reflected by the propick's density mode).
+        /// Uses bit positions 0x0000ff
+        /// </summary>
+        [JsonProperty]
+        public int value;
+        /// <summary>
+        /// Unknown use at this time.
+        /// Uses bit positions 0x00ff00
+        /// </summary>
+        [JsonProperty]
+        public int hypercommonness;
+        /// <summary>
+        /// Current hypothesis: quality of individual discs?
+        /// Uses bit positions 0xff0000
+        /// </summary>
+        [JsonProperty]
+        public int richness;
+    }
     public class RGWorldgenTemplate 
     {
         [JsonProperty]
@@ -41,5 +49,7 @@ namespace Rustwall.Configs
         public string landformData = "";
         [JsonProperty]
         public int oceanData = -1;
+        [JsonProperty]
+        public Dictionary<string, OreValues> oreData;
     }
 }
