@@ -30,16 +30,19 @@ namespace Rustwall.ModSystems.RingedGenerator
         // after the game is saved for the first time.
         // TODO: programmatically gather the selected worldgen params on first launch.
         private readonly List<double> WorldgenDefaultParams = new List<double> { 1, 1, 1, 0, 0.975, 1, 0.3, 0.05 };
-        private static int curRing = 0;
-        private static int desiredRing = 0;
+        //private static int curRing = 0;
+        //private static int desiredRing = 0;
         private double regionMidPoint;
         GenMaps mapGenerator;
         GenDeposits depositGenerator;
         public int LeftOverRings { get; private set; }
 
-        public List<SeedDependentWorldGenParameters> RingWorldMaps { get; private set; }
+        public List<RegionMapLayerGenerators> RingWorldMaps { get; private set; }
 
-        public Dictionary<int, RGWorldgenTemplate> RingTemplates = new Dictionary<int, RGWorldgenTemplate>();
+        public Dictionary<int, RGWorldgenTemplate> RingTemplates = [];
+
+        public Dictionary<int, RingData> FinalRingDataForRealThisTime = [];
+
         public override double ExecuteOrder()
         {
             return 1;
@@ -77,7 +80,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 }
 
                 regionMidPoint = ((RegionMapSizeX + RegionMapSizeX - 1) / 2.0);
-                RingWorldMaps = new List<SeedDependentWorldGenParameters>(NumberOfRings);
+                RingWorldMaps = new List<RegionMapLayerGenerators>(NumberOfRings);
                 //RingTemplates = new List<RGWorldgenTemplate>(NumberOfRings);
             });
 
@@ -141,15 +144,22 @@ namespace Rustwall.ModSystems.RingedGenerator
             region.SetModdata("ringNumber", ringNum);
 
             /// Can happen if someone skips a ring in the template list.
-            if (!RingTemplates.TryGetValue(ringNum, out RGWorldgenTemplate ParamsToUse))
+            /*if (!RingTemplates.TryGetValue(ringNum, out RGWorldgenTemplate ParamsToUse))
+            {
+                return;
+            }*/
+
+            if (!FinalRingDataForRealThisTime.TryGetValue(ringNum, out RingData ringData))
             {
                 return;
             }
 
-            if (ParamsToUse.beachData > -1)
+            MapRegionData regionData = ringData.InitMapRegionData(regionX, regionZ, region);
+
+            if (ringData.template.beachData > -1)
             {
                 int[] newBeachData = new int[region.BeachMap.Size * region.BeachMap.Size];
-                newBeachData.Fill(ParamsToUse.beachData);
+                newBeachData.Fill(ringData.template.beachData);
                 region.BeachMap.Data = newBeachData;
             }
 
@@ -162,7 +172,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             //int[] newBlockPatchData = new int[region.BlockPatchMaps.Size ^ 2];
 
 
-            if (ParamsToUse.rainfallData > -1 && ParamsToUse.temperatureData > -1)
+            if (ringData.template.rainfallData > -1 && ringData.template.temperatureData > -1)
             {
 
                 int[] newClimateData = new int[region.ClimateMap.Size * region.ClimateMap.Size];
@@ -171,7 +181,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                     int result = (rainfall & 0xFF) << 8 | ((temperature & 0xFF) << 16);
                     return result;
                 }
-                newClimateData.Fill(PackClimate(ParamsToUse.rainfallData, ParamsToUse.temperatureData));
+                newClimateData.Fill(PackClimate(ringData.template.rainfallData, ringData.template   .temperatureData));
                 region.ClimateMap.Data = newClimateData;
 
                 /// I need a way to handle the case where only one climate parameter is set.
@@ -303,13 +313,14 @@ namespace Rustwall.ModSystems.RingedGenerator
                         }
                         else if (item.FromRing == item.ToRing)
                         {
-                            RingTemplates[item.FromRing] = item;
+                            /// Need to add in seed and world gen param randomization and stuff
+                            FinalRingDataForRealThisTime[item.FromRing] = new RingData(sapi, sapi.WorldManager.Seed, item);
                         }
                         else if (item.ToRing > item.FromRing)
                         {
                             for (int i = item.FromRing; i <= item.ToRing; i++)
                             {
-                                RingTemplates[i] = item;
+                                FinalRingDataForRealThisTime[i] = new RingData(sapi, sapi.WorldManager.Seed, item);
                             }
                         }
                         else
@@ -354,7 +365,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             for (int i = 0; i <= NumberOfRings; i++)
             {
-                RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, seedList[i], ringDictList[i]));
+                //RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, seedList[i], ringDictList[i]));
             }
 
             StoreWorldgenData();
@@ -363,14 +374,14 @@ namespace Rustwall.ModSystems.RingedGenerator
         private void StoreWorldgenData()
         {
             //this stores the generated seeds and params into the savegame, making them persistent
-            List<int> seedList = [];
+           /* List<int> seedList = [];
             //yes i couldve used a for loop but foreach is so nice okay?
             foreach (var item in RingWorldMaps)
             {
                 seedList.Add(item.World_Seed);
                 sapi.WorldManager.SaveGame.StoreData("rustwallRingData_" + RingWorldMaps.IndexOf(item), SerializerUtil.Serialize(item.World_Params));
             }
-            sapi.WorldManager.SaveGame.StoreData("rustwallRingSeeds", SerializerUtil.Serialize(seedList));
+            sapi.WorldManager.SaveGame.StoreData("rustwallRingSeeds", SerializerUtil.Serialize(seedList));*/
         }
 
         private void LoadWorldgenData()
@@ -387,7 +398,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                     if (ringData != null)
                     {
                         Dictionary<string, double> ringDict = SerializerUtil.Deserialize<Dictionary<string, double>>(ringData);
-                        RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, item, ringDict));
+                        //RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, item, ringDict));
                     }
                     else
                     {
@@ -446,7 +457,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         {
             RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, dist);
 
-            RingWorldMaps[ringNumber] = new SeedDependentWorldGenParameters(sapi, newSeed, newParams);
+            //RingWorldMaps[ringNumber] = new SeedDependentWorldGenParameters(sapi, newSeed, newParams);
         }
 
         private void RandomizeRingRange(int fromRing, int toRing, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
@@ -459,7 +470,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         //SetWorldParams takes the parameters and seed provided and updates the world generator with them.
         [Obsolete]
-        private void SetWorldParams(SeedDependentWorldGenParameters worldParams, IMapRegion mapRegion, Vec2i regionCoords)
+        private void SetWorldParams(RegionMapLayerGenerators worldParams, IMapRegion mapRegion, Vec2i regionCoords)
         {
         }
 
@@ -655,7 +666,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                         return TextCommandResult.Success("Ring number at region coords is: " + ringNumber);
                     })
                     .EndSubCommand()
-                    .BeginSubCommand("params")
+                    /*.BeginSubCommand("params")
                     .WithArgs()
                     .HandleWith((args) =>
                     {
@@ -670,7 +681,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
                         return TextCommandResult.Success("ring world params for ring " + ringNumber + " are: \n" + output);
                     })
-                    .EndSubCommand()
+                    .EndSubCommand()*/
                     .BeginSubCommand("mapdata")
                     .WithArgs()
                     .HandleWith((args) =>

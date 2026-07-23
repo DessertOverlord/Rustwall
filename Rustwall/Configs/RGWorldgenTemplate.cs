@@ -55,22 +55,23 @@ namespace Rustwall.Configs
         public int seed;
         /// The below fields are for "fill" type templates, which just fill all of the data for a region
         /// with that value
+        /// -1 or null represent "unused" values, which will be ignored and not applied to the worldgen data.
         [JsonProperty]
-        public int beachData;
+        public int beachData = -1;
         [JsonProperty]
-        public int biomeData;
+        public int biomeData = -1;
         [JsonProperty]
-        public int rainfallData;
+        public int rainfallData = -1;
         [JsonProperty]
-        public int temperatureData;
+        public int temperatureData = -1;
         [JsonProperty]
-        public int forestData;
+        public int forestData = -1;
         [JsonProperty]
-        public int geoprovData;
+        public int geoprovData = -1;
         [JsonProperty]
-        public string landformData;
+        public string landformData = null;
         [JsonProperty]
-        public int oceanData;
+        public int oceanData = -1;
         [JsonProperty]
         public Dictionary<string, OreValues> oreData;
         /// The fields below are for "dynamic" type templates, which use the default Vintage Story
@@ -91,5 +92,11 @@ namespace Rustwall.Configs
         public double upheavelCommonness = 0.3;
         [JsonProperty]
         public double geologicActivity = 0.05;
+
+        public int GetPackedClimateData()
+        {
+            int result = (rainfallData & 0xFF) << 8 | ((temperatureData & 0xFF) << 16);
+            return result;
+        }
     }
 }
