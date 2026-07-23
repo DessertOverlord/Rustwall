@@ -27,29 +27,69 @@ namespace Rustwall.Configs
     }
     public class RGWorldgenTemplate 
     {
+        /// <summary>
+        /// Name of the ring template. Not really used other than for organization in the config.
+        /// </summary>
         [JsonProperty]
-        public string Name = "Default Ring Name";
+        public string Name;
+        /// <summary>
+        /// Ring number to start with. 0 is the safezone. Inclusive. Set this to the same as ToRing
+        /// to modify only one ring.
+        /// Using a negative number will cause the template to be ignored.
+        /// I use this to show the default values and possible options.
+        /// </summary>
         [JsonProperty]
         public int FromRing;
+        /// <summary>
+        /// Ring number to end with. 0 is the safezone. Inclusive. Set this to the same as FromRing
+        /// to modify only one ring.
+        /// </summary>
         [JsonProperty]
         public int ToRing;
+        /// <summary>
+        /// World seed to use for this ring.
+        /// Only used if a dynamic worldgen template is used, to provide some randomness.
+        /// If left unpopulated, a random one will be generated.
+        /// </summary>
         [JsonProperty]
-        public int beachData = -1;
+        public int seed;
+        /// The below fields are for "fill" type templates, which just fill all of the data for a region
+        /// with that value
         [JsonProperty]
-        public int biomeData = -1;
+        public int beachData;
         [JsonProperty]
-        public int rainfallData = -1;
+        public int biomeData;
         [JsonProperty]
-        public int temperatureData = -1;
+        public int rainfallData;
         [JsonProperty]
-        public int forestData = -1;
+        public int temperatureData;
         [JsonProperty]
-        public int geoprovData = -1;
+        public int forestData;
         [JsonProperty]
-        public string landformData = "";
+        public int geoprovData;
         [JsonProperty]
-        public int oceanData = -1;
+        public string landformData;
+        [JsonProperty]
+        public int oceanData;
         [JsonProperty]
         public Dictionary<string, OreValues> oreData;
+        /// The fields below are for "dynamic" type templates, which use the default Vintage Story
+        /// worldgen settings to modify the worldgen data for a region.
+        [JsonProperty]
+        public double landformScale = 1;
+        [JsonProperty]
+        public double globalTemperature = 1;
+        [JsonProperty]
+        public double globalPrecipitation = 1;
+        [JsonProperty]
+        public double globalForestation = 0;
+        [JsonProperty]
+        public double landcover = 0.975;
+        [JsonProperty]
+        public double oceanscale = 1;
+        [JsonProperty]
+        public double upheavelCommonness = 0.3;
+        [JsonProperty]
+        public double geologicActivity = 0.05;
     }
 }
