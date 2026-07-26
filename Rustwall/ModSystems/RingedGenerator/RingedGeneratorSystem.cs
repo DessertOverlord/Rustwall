@@ -18,6 +18,17 @@ namespace Rustwall.ModSystems.RingedGenerator
     [ProtoContract(ImplicitFields = ImplicitFields.AllPublic, SkipConstructor = true)]
     internal class RingedGeneratorSystem : RustwallModSystem
     {
+        public enum EnumWorldGenParameters
+        {
+            landformScale,
+            globalTemperature,
+            globalPrecipitation,
+            globalForestation,
+            landcover,
+            oceanscale,
+            upheavelCommonness,
+            geologicActivity
+        }
         //ICoreServerAPI sapi;
         // ringsize must be an even number (? haven't tried an odd number yet) and determines how wide each ring is.
         private int ringWidth;
@@ -67,12 +78,17 @@ namespace Rustwall.ModSystems.RingedGenerator
                 {
                     RegionMapSizeX = (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2;
                     int RegionMapSizeXWithoutSafeZone = RegionMapSizeX - safeZoneSize;
-                    LeftOverRings = RegionMapSizeX % ringWidth;
+                    LeftOverRings = RegionMapSizeXWithoutSafeZone % ringWidth;
                     //I suspect that this function will count 1 ring short due to how LeftOverRings is computed. This method shaves off the excess
                     //rings before computing the number of total rings in the map, which would leave the rings at the outside edge unaccounted for.
                     //I think instead it should be ((RegionMapSizeX + (ringWidth - LeftOverRings) / ringWidth).
                     // This should theoretically always leave an even division of the RegionMap into rings and account for that extra territory at the edge.
-                    NumberOfRings = LeftOverRings == 0 ? (RegionMapSizeX / ringWidth) + 1 : ((RegionMapSizeX - LeftOverRings) / ringWidth) + 2;
+                    NumberOfRings = LeftOverRings == 0 ? 
+                        /// We want the +1 to account for the safezone that we shaved off earlier.
+                        (RegionMapSizeXWithoutSafeZone / ringWidth) + 1 
+                        : 
+                        /// Here, we need +2; we need to account for the safezone as before, and also a bonus ring for the remainder.
+                        ((RegionMapSizeXWithoutSafeZone - LeftOverRings) / ringWidth) + 2;
                 }
                 else 
                 {
@@ -154,14 +170,26 @@ namespace Rustwall.ModSystems.RingedGenerator
                 return;
             }
 
-            MapRegionData regionData = ringData.InitMapRegionData(regionX, regionZ, region);
+            var template = ringData.template;
+            var inputParams = ringData.regionMapLayerGenerators;
 
-            if (ringData.template.beachData > -1)
-            {
-                int[] newBeachData = new int[region.BeachMap.Size * region.BeachMap.Size];
-                newBeachData.Fill(ringData.template.beachData);
-                region.BeachMap.Data = newBeachData;
+            int[] newBeachData = new int[region.BeachMap.Size * region.BeachMap.Size];
+
+            if (template.beachData > -1)
+            {    
+                newBeachData.Fill(template.beachData);
             }
+            else
+            {
+                newBeachData = inputParams.GenMaps_beachGen.GenLayer(
+                    regionX * mapGenerator.noiseSizeBeach,
+                    regionZ * mapGenerator.noiseSizeBeach,
+                    mapGenerator.noiseSizeBeach + 1,
+                    mapGenerator.noiseSizeBeach + 1
+                );
+            }
+
+            region.BeachMap.Data = newBeachData;
 
             /// Not sure what BiomeData represents
             //int[] newBiomeData = new int[region.BiomeMap.Size * region.BiomeMap.Size];
@@ -171,94 +199,167 @@ namespace Rustwall.ModSystems.RingedGenerator
             //Dictionary
             //int[] newBlockPatchData = new int[region.BlockPatchMaps.Size ^ 2];
 
-
-            if (ringData.template.rainfallData > -1 && ringData.template.temperatureData > -1)
+            ///Some custom methods for handling the binary packing
+            static int PackClimate(int rainfall, int temperature)
             {
-
-                int[] newClimateData = new int[region.ClimateMap.Size * region.ClimateMap.Size];
-                static int PackClimate(int rainfall, int temperature)
-                {
-                    int result = (rainfall & 0xFF) << 8 | ((temperature & 0xFF) << 16);
-                    return result;
-                }
-                newClimateData.Fill(PackClimate(ringData.template.rainfallData, ringData.template   .temperatureData));
-                region.ClimateMap.Data = newClimateData;
-
-                /// I need a way to handle the case where only one climate parameter is set.
-                /// I'll do it by taking the existing value from the map, unpacking it, and repacking it 
-                /// with the other parameter. For now I will assume that I am always specifying both.
-
-                /*
-                if (ParamsToUse.rainfallData <= -1)
-                {
-                    int[] newClimateData = new int[region.ClimateMap.Size * region.ClimateMap.Size];
-                    static int PackClimate(int rainfall, int temperature)
-                    {
-                        int result = (rainfall & 0xFF) << 8 | ((temperature & 0xFF) << 16);
-                        return result;
-                    }
-                    newClimateData.Fill(PackClimate(ParamsToUse.rainfallData, ParamsToUse.temperatureData));
-                    region.ClimateMap.Data = newClimateData;
-                }
-                if (ParamsToUse.temperatureData > -1)
-                {
-                    int[] newClimateData = new int[region.ClimateMap.Size * region.ClimateMap.Size];
-                    static int PackClimate(int rainfall, int temperature)
-                    {
-                        int result = (rainfall & 0xFF) << 8 | ((temperature & 0xFF) << 16);
-                        return result;
-                    }
-                    newClimateData.Fill(PackClimate(ParamsToUse.rainfallData, ParamsToUse.temperatureData));
-                    region.ClimateMap.Data = newClimateData;
-                }*/
+                int result = (rainfall & 0xFF) << 8 | ((temperature & 0xFF) << 16);
+                return result;
             }
 
-            if (ParamsToUse.forestData > -1)
+            static int UnpackRainfall(int packedClimate)
             {
-                int[] newForestData = new int[region.ForestMap.Size * region.ForestMap.Size];
-                newForestData.Fill(ParamsToUse.forestData);
-                region.ForestMap.Data = newForestData;
+                return (packedClimate & 0x00FF00) >> 8;
             }
+
+            static int UnpackTemperature(int packedClimate)
+            {
+                return (packedClimate & 0xFF0000) >> 16;
+            }
+
+            int[] newClimateData = new int[region.ClimateMap.Size * region.ClimateMap.Size];
+
+            /// If both rainfall and temperature are specified in the template, 
+            /// we can just fill the climate map with that data.
+            if (template.rainfallData > -1 && template.temperatureData > -1)
+            {
+                newClimateData.Fill(PackClimate(template.rainfallData, template.temperatureData));
+            }
+            /// If only one is provided, pull the existing data out of the map and overwrite the provided
+            /// data in the region data.
+            else if (template.rainfallData > -1 && template.temperatureData <= -1)
+            {
+                for (int i = 0; i < region.ClimateMap.Data.Length; i++)
+                {
+                    int temp = UnpackTemperature(region.ClimateMap.Data[i]);
+                    int packedClimate = PackClimate(template.rainfallData, temp);
+                    newClimateData[i] = packedClimate;
+                }
+            }
+            else if (template.rainfallData <= -1 && template.temperatureData > -1)
+            {
+                for (int i = 0; i < region.ClimateMap.Data.Length; i++)
+                {
+                    int rainfall = UnpackRainfall(region.ClimateMap.Data[i]);
+                    int packedClimate = PackClimate(rainfall, template.temperatureData);
+                    newClimateData[i] = packedClimate;
+                }
+            }
+            /// and if neither is provided, just do it normally!
+            else
+            {
+                int pad = 2;
+                newClimateData = inputParams.GenMaps_climateGen.GenLayer(
+                    regionX * mapGenerator.noiseSizeClimate - pad,
+                    regionZ * mapGenerator.noiseSizeClimate - pad,
+                    mapGenerator.noiseSizeClimate + 2 * pad,
+                    mapGenerator.noiseSizeClimate + 2 * pad
+                );
+            }
+
+            region.ClimateMap.Data = newClimateData;
+
+            var newForestData = new int[region.ForestMap.Size * region.ForestMap.Size];
+            /// This needs some edits... should not be putting in the current ClimateMap, we need to use the modified one.
+            if (template.forestData > -1)
+            {
+                newForestData.Fill(template.forestData);
+            }
+            else
+            {
+                inputParams.GenMaps_forestGen.SetInputMap(region.ClimateMap, region.ForestMap);
+                newForestData = inputParams.GenMaps_forestGen.GenLayer(
+                    regionX * mapGenerator.noiseSizeForest,
+                    regionZ * mapGenerator.noiseSizeForest,
+                    mapGenerator.noiseSizeForest + 1,
+                    mapGenerator.noiseSizeForest + 1
+                );
+            }
+
+            region.ForestMap.Data = newForestData;
 
             /// Not yet implemented and I don't know what it does
+            /// I think geoprovs have to do with what rock types can generate and how the terrain is shaped...?
             //int[] newGeoProvData = new int[region.GeologicProvinceMap.Size * region.GeologicProvinceMap.Size];
-
-            int[] newLandformData = new int[region.LandformMap.Size * region.LandformMap.Size];
-            string desiredLandform = ParamsToUse.landformData;
-            if (desiredLandform != null || desiredLandform != "")
+            /*if (template.geoprovData > -1)
             {
+                geoprovData = new int[mapRegion.GeologicProvinceMap.Size * mapRegion.GeologicProvinceMap.Size];
+                geoprovData.Fill(template.geoprovData);
+            }
+            else
+            {
+                geoprovData = inputParams.GenMaps_geologicprovinceGen.GenLayer(
+                    regionX * mapRegion.GeologicProvinceMap.Size,
+                    regionZ * mapRegion.GeologicProvinceMap.Size,
+                    mapRegion.GeologicProvinceMap.Size,
+                    mapRegion.GeologicProvinceMap.Size
+                );
+            }*/
+
+
+
+            var newLandformData = new int[region.LandformMap.Size * region.LandformMap.Size];
+
+            if (template.landformData is not null && template.landformData != "")
+            {
+                //int[] newLandformData = new int[mapRegion.LandformMap.Size * mapRegion.LandformMap.Size];
+                string desiredLandform = template.landformData;
                 int landformCode = NoiseLandforms.landforms.GetIndexByCode(desiredLandform);
                 if (landformCode != -1)
                 {
                     newLandformData.Fill(landformCode);
-                    region.LandformMap.Data = newLandformData;
                 }
                 else
                 {
                     sapi.Logger.Error($"Failed to find landform code for {desiredLandform}. Landform map will be unaltered.");
                 }
             }
+            else
+            {
+                int pad = TerraGenConfig.landformMapPadding;
+                newLandformData = inputParams.GenMaps_landformsGen.GenLayer(
+                    regionX * mapGenerator.noiseSizeLandform - pad,
+                    regionZ * mapGenerator.noiseSizeLandform - pad,
+                    mapGenerator.noiseSizeLandform + 2 * pad,
+                    mapGenerator.noiseSizeLandform + 2 * pad);
+            }
+
+            region.LandformMap.Data = newLandformData;
 
             /// -1 is the default value, which means "don't change it"
-            if (ParamsToUse.oceanData > -1)
+
+            int[] newOceanData = new int[region.OceanMap.Size * region.OceanMap.Size];
+
+            if (template.oceanData > -1)
             {
-                int[] newOceanData = new int[region.OceanMap.Size * region.OceanMap.Size];
-                newOceanData.Fill(ParamsToUse.oceanData);
-                region.OceanMap.Data = newOceanData;
+                newOceanData.Fill(template.oceanData);
             }
+            else
+            {
+                int opad = 5;
+                newOceanData = inputParams.GenMaps_oceanGen.GenLayer(
+                    regionX * mapGenerator.noiseSizeOcean - opad,
+                    regionZ * mapGenerator.noiseSizeOcean - opad,
+                    mapGenerator.noiseSizeOcean + 2 * opad,
+                    mapGenerator.noiseSizeOcean + 2 * opad
+                );
+            }
+
+            region.OceanMap.Data = newOceanData;
 
             /// Not used right now. Not really sure how much I care about putting these in.
             //int[] newOreVerticalDistortBottomData = new int[region.OreMapVerticalDistortBottom.Size * region.OreMapVerticalDistortBottom.Size];
             //int[] newOreVerticalDistortTopData = new int[region.OreMapVerticalDistortBottom.Size * region.OreMapVerticalDistortBottom.Size];
-            
-            if (ParamsToUse.oreData != null)
+
+            /// We'll fill if we have template data, otherwise we'll just skip it and let the default
+            /// deposit generator run
+            if (template.oreData != null)
             {
                 static int PackOreValues(OreValues values)
                 {
                     return (values.value & 0xFF) | ((values.hypercommonness & 0xFF) << 8) | ((values.richness & 0xFF) << 16);
                 }
 
-                foreach (var kvp in ParamsToUse.oreData)
+                foreach (var kvp in template.oreData)
                 {
                     if (region.OreMaps.TryGetValue(kvp.Key, out IntDataMap2D oreData))
                     {
@@ -291,13 +392,17 @@ namespace Rustwall.ModSystems.RingedGenerator
             /// Also not sure what this really does
             //int[] newUpheavelData = new int[region.UpheavelMap.Size * region.UpheavelMap.Size];
             //newUpheavelData.Fill(255);
+
+            region.DirtyForSaving = true;
         }
 
         //Initialize and load the worldgen parameters
         private void InitRingedWorldGenerator()
         {
             /// First, check if this is a brand new world...
-            //if (sapi.WorldManager.SaveGame.IsNew)
+            /// TODO: Right now this stores the templates in the config and blindly loads only the stored ones
+            /// every time. We don't want that to happen!
+            if (sapi.WorldManager.SaveGame.IsNew)
             {
                 if (config.RingTemplates.Count > 0)
                 {
@@ -314,13 +419,15 @@ namespace Rustwall.ModSystems.RingedGenerator
                         else if (item.FromRing == item.ToRing)
                         {
                             /// Need to add in seed and world gen param randomization and stuff
-                            FinalRingDataForRealThisTime[item.FromRing] = new RingData(sapi, sapi.WorldManager.Seed, item);
+                            int inputSeed = item.seed <= 0 ? sapi.WorldManager.SaveGame.Seed : item.seed;
+                            FinalRingDataForRealThisTime[item.FromRing] = new RingData(sapi, inputSeed, item);
                         }
                         else if (item.ToRing > item.FromRing)
                         {
+                            int inputSeed = item.seed <= 0 ? sapi.WorldManager.SaveGame.Seed : item.seed;
                             for (int i = item.FromRing; i <= item.ToRing; i++)
                             {
-                                FinalRingDataForRealThisTime[i] = new RingData(sapi, sapi.WorldManager.Seed, item);
+                                FinalRingDataForRealThisTime[i] = new RingData(sapi, inputSeed, item);
                             }
                         }
                         else
@@ -328,18 +435,18 @@ namespace Rustwall.ModSystems.RingedGenerator
                             sapi.Logger.Error($"Unhandled ring value case for template: {item.Name}. Template will be ignored.");
                         }
                     }
-
+                    StoreWorldgenData();
                 }
                 else
                 {
                     CreateWorldgenValues();
                 }
             }
-            // if it isn't, just load what's already there (hopefully...)
-            /*else
+            /// if it isn't, just load what's already there (hopefully...)
+            else
             {
                 LoadWorldgenData();
-            }*/
+            }
         }
 
         //Initialize first-time world generator values
@@ -373,38 +480,32 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         private void StoreWorldgenData()
         {
-            //this stores the generated seeds and params into the savegame, making them persistent
-           /* List<int> seedList = [];
-            //yes i couldve used a for loop but foreach is so nice okay?
-            foreach (var item in RingWorldMaps)
+            foreach (var kvp in FinalRingDataForRealThisTime)
             {
-                seedList.Add(item.World_Seed);
-                sapi.WorldManager.SaveGame.StoreData("rustwallRingData_" + RingWorldMaps.IndexOf(item), SerializerUtil.Serialize(item.World_Params));
+                sapi.WorldManager.SaveGame.StoreData("rustwallRingData_" + kvp.Key, SerializerUtil.Serialize(kvp.Value.template));
             }
-            sapi.WorldManager.SaveGame.StoreData("rustwallRingSeeds", SerializerUtil.Serialize(seedList));*/
         }
 
         private void LoadWorldgenData()
         {
-            byte[] seedData = sapi.WorldManager.SaveGame.GetData("rustwallRingSeeds");
-            //this could happen if the world is improperly saved after the initial world load.
-            //HOPEfully this should never arise.
-            if (seedData != null)
+            for (int i = 0; i < NumberOfRings; i++)
             {
-                List<int> seedList = SerializerUtil.Deserialize<List<int>>(seedData);
-                foreach (var item in seedList)
+                RGWorldgenTemplate retrievedTemplate = sapi.WorldManager.SaveGame.GetData<RGWorldgenTemplate>("rustwallRingData_" + i);
+                if (retrievedTemplate is not null)
                 {
-                    byte[] ringData = sapi.WorldManager.SaveGame.GetData("rustwallRingData_" + seedList.IndexOf(item));
-                    if (ringData != null)
-                    {
-                        Dictionary<string, double> ringDict = SerializerUtil.Deserialize<Dictionary<string, double>>(ringData);
-                        //RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, item, ringDict));
-                    }
-                    else
-                    {
-                        sapi.Logger.Error("Failed to load worldgen data for ring " + seedList.IndexOf(item) + ". Ring generator may not work as intended.");
-                    }
+                    FinalRingDataForRealThisTime.Add(i, new RingData(sapi, retrievedTemplate.seed, retrievedTemplate));
                 }
+                else
+                {
+                    sapi.Logger.Error($"Ring data for ring {i} was not found in savegame. Skipping.");
+                }
+            }
+
+            /// TODO: this should probably do something
+
+            if (false)
+            {
+
             }
             else
             {
@@ -493,8 +594,9 @@ namespace Rustwall.ModSystems.RingedGenerator
                 var sply = (ply as IServerPlayer);
                 var eply = ply.Entity;
                 sply.CurrentChunkSentRadius = 0;
-                //sapi.WorldManager.ForceSendChunkColumn(sply, (int)(eply.Pos.X / chSize), (int)(eply.Pos.Z / chSize), 1);
-                //Debug.WriteLine("Sent chunk " + (int)(eply.Pos.X / chSize) + ", " + (int)(eply.Pos.Z / chSize) + " to player " + sply.PlayerName);
+                /// This is a hacky way to bypass players getting stuck in an ungenerated part of the world.
+                /// We just teleport them to their current position; the game registers this as movement and starts feeding
+                /// new chunks to the player.
                 eply.TeleportToDouble(eply.Pos.X, eply.Pos.Y, eply.Pos.Z);
             }
         }
