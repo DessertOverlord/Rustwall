@@ -95,28 +95,20 @@ namespace Rustwall.Configs
                 Name = "Warm Fertile Plains",
                 FromRing = 1,
                 ToRing = 2,
-                rainfallData = 120,
-                temperatureData = 200,
-                forestData = 0,
-                landformData = "realisticflatlands",
-                oceanData = 0,
+                seed = 1234578978,
             },
             new RGWorldgenTemplate
             {
                 Name = "Dense Forest",
                 FromRing = 3,
                 ToRing = 4,
-                rainfallData = 100,
-                temperatureData = 100,
-                forestData = 255,
-                landformData = "realisticflatlands",
-                oceanData = 0,
+                seed = 163264859,
             },
             new RGWorldgenTemplate
             {
                 Name = "Warm Ocean",
-                FromRing = 3,
-                ToRing = 4,
+                FromRing = 5,
+                ToRing = 6,
                 rainfallData = 100,
                 temperatureData = 160,
                 forestData = 0,
@@ -126,8 +118,8 @@ namespace Rustwall.Configs
             new RGWorldgenTemplate
             {
                 Name = "Extreme Arctic Wasteland",
-                FromRing = 5,
-                ToRing = 6,
+                FromRing = 7,
+                ToRing = 8,
                 rainfallData = 255,
                 temperatureData = 0,
                 forestData = 0,
@@ -137,24 +129,13 @@ namespace Rustwall.Configs
             new RGWorldgenTemplate
             {
                 Name = "Arctic Ocean",
-                FromRing = 7,
-                ToRing = 8,
+                FromRing = 9,
+                ToRing = 10,
                 rainfallData = 255,
                 temperatureData = 0,
                 forestData = 0,
                 landformData = "",
                 oceanData = 255,
-            },
-            new RGWorldgenTemplate
-            {
-                Name = "Dense Jungle",
-                FromRing = 9,
-                ToRing = 10,
-                rainfallData = 255,
-                temperatureData = 190,
-                forestData = 255,
-                landformData = "realisticflatlands",
-                oceanData = 0,
             },
             new RGWorldgenTemplate
             {
