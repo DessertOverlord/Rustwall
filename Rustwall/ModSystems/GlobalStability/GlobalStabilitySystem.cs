@@ -190,7 +190,7 @@ namespace Rustwall.ModSystems.GlobalStability
 
                 data.nextGreatDecayDays = sapi.World.Calendar.TotalDays + config.DaysBeforeTheGreatDecay;
                 var ringedGenModSys = sapi.ModLoader.GetModSystem<RingedGeneratorSystem>();
-                ringedGenModSys.TriggerGreatDecay(1.0f - averageScore);
+                ringedGenModSys.TriggerGreatDecay(1.0f - averageScore, true);
                 sapi.Logger.Audit("Great decay triggered with average score of: " + averageScore);
             }
 

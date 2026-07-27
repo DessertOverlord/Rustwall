@@ -11,6 +11,7 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
+using Vintagestory.GameContent;
 using Vintagestory.ServerMods;
 
 namespace Rustwall.ModSystems.RingedGenerator
@@ -95,7 +96,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 regionMidPoint = ((RegionMapSizeX + RegionMapSizeX - 1) / 2.0);
             });
 
-            sapi.Event.InitWorldGenerator(() => InitRingedWorldGenerator(), "standard");
+            sapi.Event.InitWorldGenerator(() => InitRingedWorldGenerator(false), "standard");
 
             sapi.Event.MapRegionGeneration(HandleRegionLoading, "standard");
         }
@@ -392,11 +393,11 @@ namespace Rustwall.ModSystems.RingedGenerator
         }
 
         //Initialize and load the worldgen parameters
-        private void InitRingedWorldGenerator()
+        private void InitRingedWorldGenerator(bool flushCache)
         {
-            /// TODO: Right now this stores the templates in the config and blindly loads only the stored ones
-            /// every time. We don't want that to happen!
-            if (sapi.WorldManager.SaveGame.IsNew)
+            /// flushCache is used by the GreatDecay methods to instruct InitRingedWorldGenerator to fire even on an already-playing world.
+            /// This will erase the current world generation options from the savegame and ensure they are up-to-date.
+            if (sapi.WorldManager.SaveGame.IsNew || flushCache)
             {
                 if (config.RingTemplates.Count > 0)
                 {
@@ -723,63 +724,65 @@ namespace Rustwall.ModSystems.RingedGenerator
             return;
         }
         
-        public void TriggerGreatDecay(int fromRing, int toRing)
+        public void TriggerGreatDecay(int fromRing, int toRing, bool flushCache)
         {
             //We are not allowed to regen ring 0 (the innermost safe zone). This hardcodes that in even if players let the stability get to 0
             if (fromRing <= 0)
             {
-                Debug.WriteLine("Rustwall error: fromRing was less than or equal to 0. Safezone deletions are forbidden. Changing to 1.");
+                sapi.Logger.Error("Rustwall error: fromRing was less than or equal to 0. Safezone deletions are forbidden. Changing to 1.");
                 fromRing = 1;
             }
 
             if (toRing <= 0)
             {
-                Debug.WriteLine("Rustwall error: toRing was less than or equal to 0. Safezone deletions are forbidden. Changing to 1.");
+                sapi.Logger.Error("Rustwall error: toRing was less than or equal to 0. Safezone deletions are forbidden. Changing to 1.");
                 toRing = 1;
             }
 
             if (toRing > NumberOfRings)
             {
-                Debug.WriteLine("Rustwall error: requested deletion exceeds size of ring map. Try a smaller value.");
+                sapi.Logger.Error("Rustwall error: requested deletion exceeds size of ring map. Try a smaller value.");
                 return;
             }
 
             if (fromRing > toRing)
             {
-                Debug.WriteLine("Rustwall error: fromRing was greater than toRing. What the fuck did you do?");
+                sapi.Logger.Error("Rustwall error: fromRing was greater than toRing. What the fuck did you do?");
                 return;
             }
 
             if (fromRing >= NumberOfRings)
             {
                 fromRing = NumberOfRings - 1;
-                Debug.WriteLine("Rustwall error: fromRing exceeded size of ring map. This will crash the fuck out of the server");
+                sapi.Logger.Error("Rustwall error: fromRing exceeded size of ring map. This will crash the fuck out of the server");
             }
 
             if (toRing >= NumberOfRings)
             {
                 toRing = NumberOfRings - 1;
-                Debug.WriteLine("Rustwall error: toRing exceeded size of ring map. This will crash the fuck out of the server");
+                sapi.Logger.Error("Rustwall error: toRing exceeded size of ring map. This will crash the fuck out of the server");
             }
 
             StopChunkGeneration();
-            //RandomizeRingRange(fromRing, toRing, EnumDistribution.UNIFORM);
-            //StoreWorldgenData();
+            if (flushCache)
+            {
+                InitRingedWorldGenerator(flushCache);
+            }
             DeleteRingRange(fromRing, toRing);
             StartChunkGeneration();
         }
 
-        public void TriggerGreatDecay(float stabRatio)
+        public void TriggerGreatDecay(float stabRatio, bool flushCache)
         {
             int fromRing = (int)(NumberOfRings - (NumberOfRings * stabRatio));
             int toRing = NumberOfRings;
 
-            TriggerGreatDecay(fromRing, toRing);
+            TriggerGreatDecay(fromRing, toRing, flushCache);
         }
 
-        public void TriggerGreatDecay(int ring)
+        public void TriggerGreatDecay(int ring, bool flushCache)
         {
-            TriggerGreatDecay(ring, ring);
+            TriggerGreatDecay(ring, ring, flushCache);
         }
 
         private void RegisterChatCommands()
@@ -844,32 +847,44 @@ namespace Rustwall.ModSystems.RingedGenerator
                 .BeginSubCommand("delete")
 
                     .BeginSubCommand("ring")
-                    .WithArgs(sapi.ChatCommands.Parsers.Int("ring"))
+                    .WithArgs(sapi.ChatCommands.Parsers.Int("ring"), sapi.ChatCommands.Parsers.Bool("flushCache"))
                     .HandleWith((args) =>
                     {
-                        TriggerGreatDecay((int)args[0]);
+                        TriggerGreatDecay((int)args[0], (bool)args[1]);
 
-                        return TextCommandResult.Success("Deleted ring " + (int)args[0]);
+                        string flushed = (bool)args[1] ? " and flushed the saved ring generator" : "";
+
+                        string output = $"Deleted ring {(int)args[0]}" + flushed;
+
+                        return TextCommandResult.Success(output);
                     })
                     .EndSubCommand()
 
                     .BeginSubCommand("ringrange")
-                    .WithArgs(sapi.ChatCommands.Parsers.Int("fromRing"), sapi.ChatCommands.Parsers.Int("toRing"))
+                    .WithArgs(sapi.ChatCommands.Parsers.Int("fromRing"), sapi.ChatCommands.Parsers.Int("toRing"), sapi.ChatCommands.Parsers.Bool("flushCache"))
                     .HandleWith((args) =>
                     {
-                        TriggerGreatDecay((int)args[0], (int)args[1]);
+                        TriggerGreatDecay((int)args[0], (int)args[1], (bool)args[2]);
 
-                        return TextCommandResult.Success("deleted some shit prolly");
+                        string flushed = (bool)args[2] ? " and flushed the saved ring generator" : "";
+
+                        string output = $"Deleted rings {(int)args[0]} through {(int)args[1]}" + flushed;
+
+                        return TextCommandResult.Success(output);
                     })
                     .EndSubCommand()
 
                     .BeginSubCommand("ratio")
-                    .WithArgs(sapi.ChatCommands.Parsers.Float("ratio"))
+                    .WithArgs(sapi.ChatCommands.Parsers.Float("ratio"), sapi.ChatCommands.Parsers.Bool("flushCache"))
                     .HandleWith((args) =>
                     {
-                        TriggerGreatDecay((float)args[0]);
+                        TriggerGreatDecay((float)args[0], (bool)args[1]);
 
-                        return TextCommandResult.Success("deleted some shit prolly");
+                        string flushed = (bool)args[1] ? " and flushed the saved ring generator" : "";
+
+                        string output = $"Deleted rings using a ratio of {(int)args[1]}%" + flushed;
+
+                        return TextCommandResult.Success(output);
                     })
                     .EndSubCommand()
 
@@ -877,14 +892,13 @@ namespace Rustwall.ModSystems.RingedGenerator
                     .WithArgs(sapi.ChatCommands.Parsers.WorldPosition("position"))
                     .HandleWith((args) =>
                     {
-
                         Vec3d pos = (Vec3d)(args[0]);
 
                         var be = sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(new BlockPos((int)pos.X, (int)pos.Y, (int)pos.Z));
                         sapi.World.BlockAccessor.RemoveBlockEntity(be.Pos);
                         be.MarkDirty(true);
 
-                        return TextCommandResult.Success("delete sumn");
+                        return TextCommandResult.Success($"Erased block entity at position {(int)pos.X}, {(int)pos.Y}, {(int)pos.Z}");
                     })
                     .EndSubCommand()
 
