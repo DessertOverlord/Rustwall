@@ -15,8 +15,8 @@ using Vintagestory.ServerMods;
 
 namespace Rustwall.ModSystems.RingedGenerator
 {
-    [ProtoContract(ImplicitFields = ImplicitFields.AllPublic, SkipConstructor = true)]
-    internal class RingedGeneratorSystem : RustwallModSystem
+    //[ProtoContract(ImplicitFields = ImplicitFields.AllPublic, SkipConstructor = true)]
+    public class RingedGeneratorSystem : RustwallModSystem
     {
         public enum EnumWorldGenParameters
         {
@@ -40,20 +40,22 @@ namespace Rustwall.ModSystems.RingedGenerator
         // Some day I won't have to do this, but I haven't figured out how to gather the currently selected params until
         // after the game is saved for the first time.
         // TODO: programmatically gather the selected worldgen params on first launch.
-        private readonly List<double> WorldgenDefaultParams = new List<double> { 1, 1, 1, 0, 0.975, 1, 0.3, 0.05 };
-        //private static int curRing = 0;
+        private List<double> WorldgenDefaultParams { get; set; } = new List<double> { 1, 1, 1, 0, 0.975, 1, 0.3, 0.05 };
+        //private static int curRing = 0; 
         //private static int desiredRing = 0;
         private double regionMidPoint;
-        GenMaps mapGenerator;
-        GenDeposits depositGenerator;
+        GenMaps mapGenerator { get; set; }
+        /// <summary>
+        /// Unused right now, might be useful later if I want to get deeper into the ore or clay generation weeds
+        /// </summary>
+        //GenDeposits depositGenerator { get; set; }
         public int LeftOverRings { get; private set; }
-
-        public List<RegionMapLayerGenerators> RingWorldMaps { get; private set; }
-
-        public Dictionary<int, RGWorldgenTemplate> RingTemplates = [];
-
         public Dictionary<int, RingData> FinalRingDataForRealThisTime = [];
 
+        /// <summary>
+        /// Ensures that our mod registers its Region generation handlers *after* the vanilla worldgen handlers
+        /// </summary>
+        /// <returns></returns>
         public override double ExecuteOrder()
         {
             return 1;
@@ -62,27 +64,22 @@ namespace Rustwall.ModSystems.RingedGenerator
         protected override void RustwallStartServerSide()
         {
             mapGenerator = sapi.ModLoader.GetModSystem<GenMaps>();
-            depositGenerator = sapi.ModLoader.GetModSystem<GenDeposits>();
-
             RegisterChatCommands();
 
             sapi.Event.ServerRunPhase(EnumServerRunPhase.WorldReady, () => 
             {
-                ringWidth = config.ringWidth;
-                safeZoneSize = config.safeZoneSize;
+                ringWidth = config.RingWidth;
+                safeZoneSize = config.SafeZoneSize;
                 int RegionMapSizeX = -1;
 
-                // This calculates map size relative to the resolution of the rings
-                // It also checks to make sure the world is a square; if it is rectangular, the ring generator doesn't initialize
+                /// This calculates map size relative to the resolution of the rings
+                /// It also checks to make sure the world is a square; if it is rectangular, the ring generator doesn't initialize
                 if (sapi.WorldManager.MapSizeX == sapi.WorldManager.MapSizeZ)
                 {
                     RegionMapSizeX = (sapi.WorldManager.MapSizeX / sapi.WorldManager.RegionSize) / 2;
                     int RegionMapSizeXWithoutSafeZone = RegionMapSizeX - safeZoneSize;
                     LeftOverRings = RegionMapSizeXWithoutSafeZone % ringWidth;
-                    //I suspect that this function will count 1 ring short due to how LeftOverRings is computed. This method shaves off the excess
-                    //rings before computing the number of total rings in the map, which would leave the rings at the outside edge unaccounted for.
-                    //I think instead it should be ((RegionMapSizeX + (ringWidth - LeftOverRings) / ringWidth).
-                    // This should theoretically always leave an even division of the RegionMap into rings and account for that extra territory at the edge.
+                    /// This should theoretically always leave an even division of the RegionMap into rings and account for that extra territory at the edge.
                     NumberOfRings = LeftOverRings == 0 ? 
                         /// We want the +1 to account for the safezone that we shaved off earlier.
                         (RegionMapSizeXWithoutSafeZone / ringWidth) + 1 
@@ -96,8 +93,6 @@ namespace Rustwall.ModSystems.RingedGenerator
                 }
 
                 regionMidPoint = ((RegionMapSizeX + RegionMapSizeX - 1) / 2.0);
-                RingWorldMaps = new List<RegionMapLayerGenerators>(NumberOfRings);
-                //RingTemplates = new List<RGWorldgenTemplate>(NumberOfRings);
             });
 
             sapi.Event.InitWorldGenerator(() => InitRingedWorldGenerator(), "standard");
@@ -399,7 +394,6 @@ namespace Rustwall.ModSystems.RingedGenerator
         //Initialize and load the worldgen parameters
         private void InitRingedWorldGenerator()
         {
-            /// First, check if this is a brand new world...
             /// TODO: Right now this stores the templates in the config and blindly loads only the stored ones
             /// every time. We don't want that to happen!
             if (sapi.WorldManager.SaveGame.IsNew)
@@ -412,13 +406,12 @@ namespace Rustwall.ModSystems.RingedGenerator
                         {
                             sapi.Logger.Error($"FromRing was greater than ToRing for template: {item.Name}. Template will be ignored.");
                         }
-                        else if (item.FromRing < 0 || item.ToRing >= NumberOfRings)
+                        else if (item.FromRing < 0 || item.ToRing >= NumberOfRings - 1)
                         {
                             sapi.Logger.Error($"Ring range is out of bounds for template: {item.Name}. Template will be ignored.");
                         }
                         else if (item.FromRing == item.ToRing)
                         {
-                            /// Need to add in seed and world gen param randomization and stuff
                             int inputSeed = item.seed <= 0 ? sapi.WorldManager.SaveGame.Seed : item.seed;
                             FinalRingDataForRealThisTime[item.FromRing] = new RingData(sapi, inputSeed, item);
                         }
@@ -435,81 +428,81 @@ namespace Rustwall.ModSystems.RingedGenerator
                             sapi.Logger.Error($"Unhandled ring value case for template: {item.Name}. Template will be ignored.");
                         }
                     }
-                    StoreWorldgenData();
                 }
-                else
-                {
-                    CreateWorldgenValues();
-                }
+
+                BackfillRandomWorldgenValues();
+
+                StoreWorldgenData();
             }
-            /// if it isn't, just load what's already there (hopefully...)
             else
             {
                 LoadWorldgenData();
             }
         }
 
-        //Initialize first-time world generator values
-        private void CreateWorldgenValues()
+        /// <summary>
+        /// Checks for gaps in the ring data list and fills them in using new templates with randomized values.
+        /// </summary>
+        private void BackfillRandomWorldgenValues()
         {
-            //Initialize seedList and ringDictList, and loop through them to populate values
-            //seedList.Add(sapi.WorldManager.SaveGame.Seed);
-            List<int> seedList = new List<int>(NumberOfRings) { sapi.WorldManager.SaveGame.Seed };
-            List<Dictionary<string, double>> ringDictList = new List<Dictionary<string, double>>(NumberOfRings) { new Dictionary<string, double>() };
-            //This adds the default worldgen params to spawn (ring 0)
-            for (int i = 0; i < WorldgenParamsToScramble.Count(); i++)
+            List<int> KeysToRandomize = [];
+
+            int lastKey = 0;
+            /// Compares each key in the table with the previous; will catch gaps where templates were not provided.
+            foreach (var kvp in FinalRingDataForRealThisTime)
             {
-                ringDictList[0].Add(WorldgenParamsToScramble[i], WorldgenDefaultParams[i]);
+                if (kvp.Key - lastKey > 1)
+                {
+                    for (int i = lastKey + 1; i < kvp.Key; i++)
+                    {
+                        KeysToRandomize.Add(i);
+                    }
+                }
+                lastKey = kvp.Key;
             }
 
-            // it needs to be less than or equal to because I want exactly 26 (minus the first one already added), not 25. Otherwise shit goes sideways!
-            for (int i = 1; i <= NumberOfRings; i++)
+            /// The previous eval only checks for gaps in between provided values, but we also need to make sure there's no rings missing at the edge.
+            if (lastKey < NumberOfRings - 1)
             {
-                RandomizeParams(out Dictionary<string, double> newParams, out int seed, EnumDistribution.NARROWINVERSEGAUSSIAN);
-                seedList.Add(seed);
-                ringDictList.Add(newParams);
+                for (int i = lastKey + 1; i < NumberOfRings; i++)
+                {
+                    KeysToRandomize.Add(i);
+                }
             }
 
-            for (int i = 0; i <= NumberOfRings; i++)
+            foreach (int key in KeysToRandomize)
             {
-                //RingWorldMaps.Add(new SeedDependentWorldGenParameters(sapi, seedList[i], ringDictList[i]));
+                RandomizeParams(key);
             }
-
-            StoreWorldgenData();
         }
 
         private void StoreWorldgenData()
         {
+            var templateList = new Dictionary<int, RGWorldgenTemplate>();
             foreach (var kvp in FinalRingDataForRealThisTime)
             {
-                sapi.WorldManager.SaveGame.StoreData("rustwallRingData_" + kvp.Key, SerializerUtil.Serialize(kvp.Value.template));
+                templateList[kvp.Key] = kvp.Value.template;
+
+                //sapi.WorldManager.SaveGame.StoreData("rustwallRingData_" + kvp.Key, SerializerUtil.Serialize(kvp.Value.template));
+                sapi.WorldManager.SaveGame.StoreData("rustwallRingData", SerializerUtil.Serialize(templateList));
             }
         }
 
         private void LoadWorldgenData()
         {
-            for (int i = 0; i < NumberOfRings; i++)
+            var retrievedTemplates = sapi.WorldManager.SaveGame.GetData<Dictionary<int, RGWorldgenTemplate>>("rustwallRingData");
+            if (retrievedTemplates is not null)
             {
-                RGWorldgenTemplate retrievedTemplate = sapi.WorldManager.SaveGame.GetData<RGWorldgenTemplate>("rustwallRingData_" + i);
-                if (retrievedTemplate is not null)
+                foreach (var kvp in retrievedTemplates)
                 {
-                    FinalRingDataForRealThisTime.Add(i, new RingData(sapi, retrievedTemplate.seed, retrievedTemplate));
+                    FinalRingDataForRealThisTime.Add(kvp.Key, new RingData(sapi, kvp.Value.seed, kvp.Value));
                 }
-                else
-                {
-                    sapi.Logger.Error($"Ring data for ring {i} was not found in savegame. Skipping.");
-                }
-            }
-
-            /// TODO: this should probably do something
-
-            if (false)
-            {
-
             }
             else
             {
-                CreateWorldgenValues();
+                /// TODO: CreateWorldgenValues needs a refactor still
+                sapi.Logger.Error($"Ring data was not found in savegame. Initializing new dataset from current configuration.");
+                BackfillRandomWorldgenValues();
             }
         }
 
@@ -522,15 +515,52 @@ namespace Rustwall.ModSystems.RingedGenerator
 
         //RandomizeParams takes WorldgenParamsToScramble and loops through every world generator parameter, creating a dictionary
         // of randomized values by calling RandomDoubleInRange. The dictionary is passed out via "out" params. The seed is also randomized.
-        private void RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
+        private void RandomizeParams(int ring)
+        {
+            Dictionary<EnumWorldGenParameters, float> newParams = new();
+
+            //var WorldgenMinParams = new List<float> { 0.5f, 0, 0, -1, 0.1f, 0.1f, 0, 0 };
+            //var WorldgenMaxParams = new List<double> { 1.5, 5, 5, 1, 1, 4, 1, 0.4 };
+            var WorldgenAverageParams = new List<float> { 1, 2.5f, 2.5f, 0, 0.55f, 2.05f, 0.5f, 0.2f };
+            var WorldgenVarianceParams = new List<float> { .5f, 2.5f, 2.5f, 1, 0.45f, 1.95f, 0.5f, 0.2f };
+            
+            foreach (var wgparam in Enum.GetValues<EnumWorldGenParameters>())
+            {
+                var natfl = NatFloat.create((EnumDistribution)config.RandomizationDistribution, WorldgenAverageParams[(int)wgparam], WorldgenVarianceParams[(int)wgparam]);
+                newParams.Add(wgparam, natfl.nextFloat());
+            }
+
+            Random rand = new Random();
+            FinalRingDataForRealThisTime[ring] = new RingData
+            (
+                sapi,
+                sapi.WorldManager.Seed + rand.Next(10000),
+                new RGWorldgenTemplate()
+                {
+                    landformScale = newParams[EnumWorldGenParameters.landformScale],
+                    globalTemperature = newParams[EnumWorldGenParameters.globalTemperature],
+                    globalPrecipitation = newParams[EnumWorldGenParameters.globalPrecipitation],
+                    globalForestation = newParams[EnumWorldGenParameters.globalForestation],
+                    landcover = newParams[EnumWorldGenParameters.landcover],
+                    oceanscale = newParams[EnumWorldGenParameters.oceanscale],
+                    upheavelCommonness = newParams[EnumWorldGenParameters.upheavelCommonness],
+                    geologicActivity = newParams[EnumWorldGenParameters.geologicActivity],
+                }
+            );
+        }
+
+        /*
+        [Obsolete]
+        private void RandomizeParamsOld(out Dictionary<string, double> newParams, out int newSeed, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
         {
             newParams = new Dictionary<string, double>();
             // These are the hardcoded min and max values for the attributes we want to scramble.
             // TODO: Can I get these programmatically, instead of hardcoding them?
-            var WorldgenMinParams = new List<double> { 0.5, 0, 0, -1, 0.1, 0.1, 0, 0 };
-            var WorldgenMaxParams = new List<double> { 1.5, 5, 5, 1, 1, 4, 1, 0.4 };
+            //var WorldgenMinParams = new List<double> { 0.5, 0, 0, -1, 0.1, 0.1, 0, 0 };
+            //var WorldgenMaxParams = new List<double> { 1.5, 5, 5, 1, 1, 4, 1, 0.4 };
             var WorldgenAverageParams = new List<double> { 1, 2.5, 2.5, 0, 0.55, 2.05, 0.5, 0.2 };
             var WorldgenVarianceParams = new List<double> { .5, 2.5, 2.5, 1, 0.45, 1.95, 0.5, 0.2 };
+
 
             
             switch (dist)
@@ -553,19 +583,20 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
             newSeed = sapi.World.Seed + sapi.World.Rand.Next(1000);
         }
-
+        */
+        /*
+        [Obsolete]
         private void RandomizeRing(int ringNumber, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
         {
-            RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, dist);
+            //RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, dist);
 
-            //RingWorldMaps[ringNumber] = new SeedDependentWorldGenParameters(sapi, newSeed, newParams);
-        }
+        }*/
 
-        private void RandomizeRingRange(int fromRing, int toRing, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
+        private void RandomizeRingRange(int fromRing, int toRing)
         {
             for (int i = fromRing; i <= toRing; i++)
             {
-                RandomizeRing(i, dist);
+                RandomizeParams(i);
             }
         }
 

@@ -10,7 +10,7 @@ namespace Rustwall.Configs
     {
         /// <summary>
         /// Dictates how common ore is in an area (reflected by the propick's density mode).
-        /// Uses bit positions 0x0000ff
+        /// Uses bit positions 0x0000ff, values between 0 - 255
         /// </summary>
         [JsonProperty]
         [ProtoMember(1)]
@@ -23,7 +23,7 @@ namespace Rustwall.Configs
         [ProtoMember(2)]
         public int hypercommonness;
         /// <summary>
-        /// Current hypothesis: quality of individual discs?
+        /// No fucking clue what this does
         /// Uses bit positions 0xff0000
         /// </summary>
         [JsonProperty]
