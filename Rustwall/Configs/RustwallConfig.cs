@@ -27,19 +27,9 @@ namespace Rustwall.Configs
         public double GracePeriodDurationRepairFully = 1.0;
 
         //RingedGenerator options
-        public int ringWidth = 2;
-        public int safeZoneSize = 1;
-        /*public static readonly Dictionary<string, double> DefaultWorldConfigSettings = new()
-        {
-                { "landformScale", 1 },
-                { "globalTemperature", 1 },
-                { "globalPrecipitation", 1 },
-                { "globalForestation", 0 },
-                { "landcover", 0.975 },
-                { "oceanscale", 1 },
-                { "upheavelCommonness", 0.3 },
-                { "geologicActivity", 0.05 }
-        };*/
+        public int RingWidth = 2;
+        public int SafeZoneSize = 1;
+        public int RandomizationDistribution = 5;
 
         public RGWorldgenTemplate DefaultWorldConfigSettings = new RGWorldgenTemplate
         {
