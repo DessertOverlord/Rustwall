@@ -20,6 +20,7 @@ namespace Rustwall.ModSystems.RebuildableBlock
             api.RegisterBlockBehaviorClass("BehaviorRebuildable", typeof(BehaviorRebuildable));
             api.RegisterItemClass("ItemJonasScrap", typeof(ItemJonasScrap));
             api.RegisterItemClass("ItemAdminWrench", typeof(ItemAdminWrench));
+            api.RegisterItemClass("ItemPunchCard", typeof(ItemPunchCard));
         }
 
         protected override void RustwallStartServerSide()
