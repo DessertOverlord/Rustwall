@@ -155,12 +155,6 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             region.SetModdata("ringNumber", ringNum);
 
-            /// Can happen if someone skips a ring in the template list.
-            /*if (!RingTemplates.TryGetValue(ringNum, out RGWorldgenTemplate ParamsToUse))
-            {
-                return;
-            }*/
-
             if (!FinalRingDataForRealThisTime.TryGetValue(ringNum, out RingData ringData))
             {
                 return;
@@ -448,7 +442,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         {
             List<int> KeysToRandomize = [];
 
-            int lastKey = 0;
+            int lastKey = -1;
             /// Compares each key in the table with the previous; will catch gaps where templates were not provided.
             foreach (var kvp in FinalRingDataForRealThisTime)
             {
@@ -507,15 +501,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
         }
 
-        //RandomDoubleInRange does what it says, giving a random double between minVal and maxVal.
-        // I can probably eliminate this function entirely at some point but I can't be assed.
-        private double RandomDoubleInRange(double minVal, double maxVal)
-        {
-            return sapi.World.Rand.NextDouble() * (maxVal - minVal) + minVal;
-        }
-
-        //RandomizeParams takes WorldgenParamsToScramble and loops through every world generator parameter, creating a dictionary
-        // of randomized values by calling RandomDoubleInRange. The dictionary is passed out via "out" params. The seed is also randomized.
         private void RandomizeParams(int ring)
         {
             Dictionary<EnumWorldGenParameters, float> newParams = new();
@@ -532,12 +517,14 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
 
             Random rand = new Random();
+            int newSeed = sapi.WorldManager.Seed + rand.Next(10000);
             FinalRingDataForRealThisTime[ring] = new RingData
             (
                 sapi,
-                sapi.WorldManager.Seed + rand.Next(10000),
+                newSeed,
                 new RGWorldgenTemplate()
                 {
+                    seed = newSeed,
                     landformScale = newParams[EnumWorldGenParameters.landformScale],
                     globalTemperature = newParams[EnumWorldGenParameters.globalTemperature],
                     globalPrecipitation = newParams[EnumWorldGenParameters.globalPrecipitation],
@@ -548,63 +535,6 @@ namespace Rustwall.ModSystems.RingedGenerator
                     geologicActivity = newParams[EnumWorldGenParameters.geologicActivity],
                 }
             );
-        }
-
-        /*
-        [Obsolete]
-        private void RandomizeParamsOld(out Dictionary<string, double> newParams, out int newSeed, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
-        {
-            newParams = new Dictionary<string, double>();
-            // These are the hardcoded min and max values for the attributes we want to scramble.
-            // TODO: Can I get these programmatically, instead of hardcoding them?
-            //var WorldgenMinParams = new List<double> { 0.5, 0, 0, -1, 0.1, 0.1, 0, 0 };
-            //var WorldgenMaxParams = new List<double> { 1.5, 5, 5, 1, 1, 4, 1, 0.4 };
-            var WorldgenAverageParams = new List<double> { 1, 2.5, 2.5, 0, 0.55, 2.05, 0.5, 0.2 };
-            var WorldgenVarianceParams = new List<double> { .5, 2.5, 2.5, 1, 0.45, 1.95, 0.5, 0.2 };
-
-
-            
-            switch (dist)
-            {
-                case EnumDistribution.UNIFORM:
-                    for (int i = 0; i < WorldgenParamsToScramble.Count; i++)
-                    {
-                        newParams.Add(WorldgenParamsToScramble[i], RandomDoubleInRange(WorldgenMinParams[i], WorldgenMaxParams[i]));
-                    }
-                    break;
-                case EnumDistribution.NARROWINVERSEGAUSSIAN:
-                    for (int i = 0; i < WorldgenParamsToScramble.Count; i++)
-                    {
-                        var natfl = NatFloat.create(dist, (float)WorldgenAverageParams[i], (float)WorldgenVarianceParams[i]);
-                        newParams.Add(WorldgenParamsToScramble[i], natfl.nextFloat());
-                    }
-                    break;
-                default:
-                    break;
-            }
-            newSeed = sapi.World.Seed + sapi.World.Rand.Next(1000);
-        }
-        */
-        /*
-        [Obsolete]
-        private void RandomizeRing(int ringNumber, EnumDistribution dist = EnumDistribution.NARROWINVERSEGAUSSIAN)
-        {
-            //RandomizeParams(out Dictionary<string, double> newParams, out int newSeed, dist);
-
-        }*/
-
-        private void RandomizeRingRange(int fromRing, int toRing)
-        {
-            for (int i = fromRing; i <= toRing; i++)
-            {
-                RandomizeParams(i);
-            }
-        }
-
-        //SetWorldParams takes the parameters and seed provided and updates the world generator with them.
-        [Obsolete]
-        private void SetWorldParams(RegionMapLayerGenerators worldParams, IMapRegion mapRegion, Vec2i regionCoords)
-        {
         }
 
         private void StopChunkGeneration()
@@ -965,19 +895,19 @@ namespace Rustwall.ModSystems.RingedGenerator
                         return TextCommandResult.Success(output);
                     })
                     .EndSubCommand()
-                    .BeginSubCommand("reload")
-                        .BeginSubCommand("config")
-                        .WithArgs()
-                        .HandleWith(
-                        (args =>
-                        {
-                            var rwmodsys = sapi.ModLoader.GetModSystem<RustwallModSystem>();
+                .EndSubCommand()
+                .BeginSubCommand("reload")
+                    .BeginSubCommand("config")
+                    .WithArgs()
+                    .HandleWith(
+                    (args =>
+                    {
+                        var rwmodsys = sapi.ModLoader.GetModSystem<RustwallModSystem>();
 
-                            rwmodsys.ReloadConfig();
+                        rwmodsys.ReloadConfig();
 
-                            return TextCommandResult.Success("Reloaded Rustwall configuration");
-                        }))
-                        .EndSubCommand()
+                        return TextCommandResult.Success("Reloaded Rustwall configuration");
+                    }))
                     .EndSubCommand()
                 .EndSubCommand();
         }
