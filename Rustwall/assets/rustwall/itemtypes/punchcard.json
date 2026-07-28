@@ -2,11 +2,7 @@
     
     "code": "punchcard",
     "class": "ItemPunchCard",
-    "shapeByType": {
-        "all": {
-            "base" : "item/punchcard/{state}"
-            }
-        },
+    "shape": { "base": "item/punchcard/unpunched" },
     "behaviors": [
         {
             "name": "GroundStorable",
