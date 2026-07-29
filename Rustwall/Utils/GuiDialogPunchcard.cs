@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Config;
@@ -20,7 +22,7 @@ namespace Rustwall.Utils
 
         protected int maxLines = 20;
 
-        protected int maxWidth = 400;
+        protected int maxWidth = 1200;
 
         public List<PagePosition> Pages = new List<PagePosition>();
 
@@ -68,7 +70,7 @@ namespace Rustwall.Utils
 
             if (OperatingSystem.IsWindows())
             {
-                monoFont = CairoFont.TextInput().WithFontSize(18f).WithFont("Consolas");
+                monoFont = CairoFont.TextInput().WithFontSize(18f).WithFont("Courier New");
             }
             if (OperatingSystem.IsLinux())
             {
@@ -79,66 +81,14 @@ namespace Rustwall.Utils
                 monoFont = CairoFont.TextInput().WithFontSize(18f).WithFont("Menlo");
             }
 
-            //Pages = this.Pageize(AllPagesText, monoFont, textAreaWidth, maxLines);
+            Text = "&-0123456789ABCDEFGHIJKLMNOPQR/STUVWXYZ:#@'=\"¢.<(+!$*);¬ ,%_>?";
+
             this.Compose();
         }
         
         protected CairoFont monoFont;
-                    
-        protected List<PagePosition> Pageize(string fullText, CairoFont font, double pageWidth, int maxLinesPerPage)
-        {
-            TextDrawUtil textDrawUtil = new();
-            Stack<string> stack = new Stack<string>();
-            var newSpan = textDrawUtil.Lineize(font, fullText, pageWidth, EnumLinebreakBehavior.Default, keepLinebreakChar: true);
-            newSpan.Reverse();
-            foreach (TextLine item in newSpan)
-            {
-                stack.Push(item.Text);
-            }
-
-            List<PagePosition> list = new List<PagePosition>();
-            int num = 0;
-            int num2 = 0;
-            while (stack.Count > 0)
-            {
-                int num3 = 0;
-                while (num3 < maxLinesPerPage && stack.Count > 0)
-                {
-                    string text = stack.Pop();
-                    num3++;
-                    num2 += text.Length;
-                }
-
-                if (num3 > 0)
-                {
-                    list.Add(new PagePosition
-                    {
-                        Start = num,
-                        Length = num2,
-                        LineCount = num3
-                    });
-                    num += num2;
-                }
-
-                num2 = 0;
-            }
-
-            if (list.Count == 0)
-            {
-                list.Add(new PagePosition
-                {
-                    Start = 0,
-                    Length = 0
-                });
-            }
-
-            return list;
-        }
-       
         protected void Compose()
         {
-            //monoFont.Fontname = "monospace";
-            //monoFont.Fontname = "Courier New";
             double num = monoFont.GetFontExtents().Height * monoFont.LineHeightMultiplier / (double)RuntimeEnv.GUIScale;
             ElementBounds elementBounds = ElementBounds.Fixed(0.0, 30.0, maxWidth, (double)(maxLines + ((Pages.Count > 1) ? 2 : 0)) * num + 1.0);
             ElementBounds elementBounds2 = ElementBounds.FixedSize(60.0, 30.0).FixedUnder(elementBounds, 23.0).WithAlignment(EnumDialogArea.LeftFixed)
@@ -168,7 +118,7 @@ namespace Rustwall.Utils
                 .AddIf(Pages.Count > 1)
                 .AddSmallButton(Lang.Get(">"), nextPage, elementBounds3)
                 .EndIf()*/
-                .AddSmallButton(Lang.Get("Close"), () => TryClose(), elementBounds4)
+                //.AddSmallButton(Lang.Get("Close"), () => TryClose(), elementBounds4)
                 .AddIf(onTranscribedPressed != null)
                 .AddSmallButton(Lang.Get("Transcribe"), onButtonTranscribe, bounds2)
                 .EndIf()
@@ -198,7 +148,10 @@ namespace Rustwall.Utils
 
         protected void updatePage(bool setCaretPosToEnd = true)
         {
-            string curPageText = Text;
+            //string curPageText = Text;
+
+            string curPageText = PunchCardUtils.CreatePunchCard(Text, true);
+
             //base.SingleComposer.GetDynamicText("pageNum").SetNewText(curPage + 1 + "/" + Pages.Count);
             GuiElement element = base.SingleComposer.GetElement("text");
             if (element is GuiElementTextArea guiElementTextArea)
