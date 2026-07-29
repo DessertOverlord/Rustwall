@@ -10,33 +10,82 @@ using Vintagestory.GameContent;
 
 namespace Rustwall.Utils
 {
-    internal class GuiDialogPunchcard : GuiDialogReadonlyBook
+    internal class GuiDialogPunchcard : GuiDialogGeneric
     {
+        //public string AllPagesText;
+
+        public string Title;
+
+        //protected int curPage;
+
+        protected int maxLines = 20;
+
+        protected int maxWidth = 400;
+
+        public List<PagePosition> Pages = new List<PagePosition>();
+
+        protected CairoFont font = CairoFont.TextInput().WithFontSize(18f);
+
         private TranscribePressedDelegate onTranscribedPressed;
 
+        protected bool KeyboardNavigation = true;
+
+        /*public string CurPageText
+        {
+            get
+            {
+                if (curPage >= Pages.Count)
+                {
+                    return "";
+                }
+
+                if (Pages[curPage].Start < AllPagesText.Length)
+                {
+                    return AllPagesText.Substring(Pages[curPage].Start, Math.Min(AllPagesText.Length - Pages[curPage].Start, Pages[curPage].Length)).TrimStart(' ');
+                }
+
+                return "";
+            }
+        }*/
+
+        public string Text;
+
+        public double textAreaWidth => GuiElement.scaled(maxWidth);
         internal GuiDialogPunchcard(ItemStack bookStack, ICoreClientAPI capi, TranscribePressedDelegate onTranscribedPressed = null) 
-            : base(bookStack, capi, onTranscribedPressed)
+            : base("", capi)
         {
             this.onTranscribedPressed = onTranscribedPressed;
             if (bookStack.Attributes.HasAttribute("textCodes"))
             {
-                AllPagesText = string.Join("\n", (bookStack.Attributes["textCodes"] as StringArrayAttribute).value.Select((string code) => Lang.Get(code))).Replace("\r", "").Replace("___NEWPAGE___", "");
+                Text = string.Join("\n", (bookStack.Attributes["textCodes"] as StringArrayAttribute).value.Select((string code) => Lang.Get(code))).Replace("\r", "").Replace("___NEWPAGE___", "");
                 Title = Lang.Get(bookStack.Attributes.GetString("titleCode", ""));
             }
             else
             {
-                AllPagesText = bookStack.Attributes.GetString("text", "").Replace("\r", "");
+                Text = bookStack.Attributes.GetString("text", "").Replace("\r", "");
                 Title = bookStack.Attributes.GetString("title", "");
             }
 
-            //monoFont.Fontname = "Courier New";
-            Pages = this.Pageize(AllPagesText, monoFont, textAreaWidth, maxLines);
+            if (OperatingSystem.IsWindows())
+            {
+                monoFont = CairoFont.TextInput().WithFontSize(18f).WithFont("Consolas");
+            }
+            if (OperatingSystem.IsLinux())
+            {
+                monoFont = CairoFont.TextInput().WithFontSize(18f).WithFont("DejaVu Sans Mono");
+            }
+            if (OperatingSystem.IsIOS())
+            {
+                monoFont = CairoFont.TextInput().WithFontSize(18f).WithFont("Menlo");
+            }
+
+            //Pages = this.Pageize(AllPagesText, monoFont, textAreaWidth, maxLines);
             this.Compose();
         }
-
-        protected CairoFont monoFont = new CairoFont(22f, "Courier New");
-
-        protected new List<PagePosition> Pageize(string fullText, CairoFont font, double pageWidth, int maxLinesPerPage)
+        
+        protected CairoFont monoFont;
+                    
+        protected List<PagePosition> Pageize(string fullText, CairoFont font, double pageWidth, int maxLinesPerPage)
         {
             TextDrawUtil textDrawUtil = new();
             Stack<string> stack = new Stack<string>();
@@ -86,7 +135,7 @@ namespace Rustwall.Utils
             return list;
         }
        
-        protected override void Compose()
+        protected void Compose()
         {
             //monoFont.Fontname = "monospace";
             //monoFont.Fontname = "Courier New";
@@ -112,13 +161,13 @@ namespace Rustwall.Utils
             })
                 .BeginChildElements(elementBounds5)
                 .AddRichtext("", monoFont, elementBounds, "text")
-                .AddIf(Pages.Count > 1)
+                /*.AddIf(Pages.Count > 1)
                 .AddSmallButton(Lang.Get("<"), prevPage, elementBounds2)
                 .EndIf()
                 .AddDynamicText("1/1", CairoFont.WhiteSmallText().WithOrientation(EnumTextOrientation.Center), bounds, "pageNum")
                 .AddIf(Pages.Count > 1)
                 .AddSmallButton(Lang.Get(">"), nextPage, elementBounds3)
-                .EndIf()
+                .EndIf()*/
                 .AddSmallButton(Lang.Get("Close"), () => TryClose(), elementBounds4)
                 .AddIf(onTranscribedPressed != null)
                 .AddSmallButton(Lang.Get("Transcribe"), onButtonTranscribe, bounds2)
@@ -126,17 +175,17 @@ namespace Rustwall.Utils
                 .EndChildElements()
                 .Compose();
             updatePage();
-
-
-
-
-
-            //base.Compose();
         }
 
         private bool onButtonTranscribe()
         {
-            onTranscribedPressed(CurPageText, Title, curPage);
+            onTranscribedPressed(Text, Title, 1);
+            return true;
+        }
+        /*protected bool nextPage()
+        {
+            curPage = Math.Min(curPage + 1, Pages.Count - 1);
+            updatePage();
             return true;
         }
 
@@ -145,9 +194,21 @@ namespace Rustwall.Utils
             curPage = Math.Max(curPage - 1, 0);
             updatePage();
             return true;
+        }*/
+
+        protected void updatePage(bool setCaretPosToEnd = true)
+        {
+            string curPageText = Text;
+            //base.SingleComposer.GetDynamicText("pageNum").SetNewText(curPage + 1 + "/" + Pages.Count);
+            GuiElement element = base.SingleComposer.GetElement("text");
+            if (element is GuiElementTextArea guiElementTextArea)
+            {
+                guiElementTextArea.SetValue(curPageText, setCaretPosToEnd);
+            }
+            else
+            {
+                (element as GuiElementRichtext).SetNewText(curPageText, monoFont);
+            }
         }
-
-
-
     }
 }

@@ -134,7 +134,5 @@ namespace Rustwall.RWItem
         {
             bookModSys.Transcribe(capi.World.Player, pageText, pageTitle, pageNumber, curSlot);
         }
-
-
     }
 }
