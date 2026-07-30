@@ -22,7 +22,7 @@ namespace Rustwall.Utils
 
         protected int maxLines = 20;
 
-        protected int maxWidth = 1200;
+        protected int maxWidth = 1800;
 
         public List<PagePosition> Pages = new List<PagePosition>();
 
@@ -81,7 +81,7 @@ namespace Rustwall.Utils
                 monoFont = CairoFont.TextInput().WithFontSize(18f).WithFont("Menlo");
             }
 
-            Text = "&-0123456789ABCDEFGHIJKLMNOPQR/STUVWXYZ:#@'=\"¢.<(+!$*);¬ ,%_>?";
+            Text = "&-0123456789ABCDEFGHIJKLMNOPQR/STUVWXYZ:#@'=\"¢.<(+|!$*);¬ ,%_>?";
 
             this.Compose();
         }

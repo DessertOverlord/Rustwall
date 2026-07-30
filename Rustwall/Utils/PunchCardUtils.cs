@@ -182,6 +182,11 @@ namespace Rustwall.Utils
             return output;
         }
 
+        /// <summary>
+        /// Takes in a binary punchcode and deconstructs it into a list of the row positions where a punch should be added.
+        /// </summary>
+        /// <param name="code"></param>
+        /// <returns></returns>
         public static List<int> UnpackPunchCode(int code)
         {
             List<int> output = new List<int>();
