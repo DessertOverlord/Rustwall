@@ -12,7 +12,7 @@ using Vintagestory.GameContent;
 
 namespace Rustwall.Utils
 {
-    internal class GuiDialogPunchcard : GuiDialogGeneric
+    internal class GuiDialogPunchCard : GuiDialogGeneric
     {
         //public string AllPagesText;
 
@@ -53,20 +53,13 @@ namespace Rustwall.Utils
         public string Text;
 
         public double textAreaWidth => GuiElement.scaled(maxWidth);
-        internal GuiDialogPunchcard(ItemStack bookStack, ICoreClientAPI capi, TranscribePressedDelegate onTranscribedPressed = null) 
+        internal GuiDialogPunchCard(ItemStack bookStack, ICoreClientAPI capi, TranscribePressedDelegate onTranscribedPressed = null) 
             : base("", capi)
         {
             this.onTranscribedPressed = onTranscribedPressed;
-            if (bookStack.Attributes.HasAttribute("textCodes"))
-            {
-                Text = string.Join("\n", (bookStack.Attributes["textCodes"] as StringArrayAttribute).value.Select((string code) => Lang.Get(code))).Replace("\r", "").Replace("___NEWPAGE___", "");
-                Title = Lang.Get(bookStack.Attributes.GetString("titleCode", ""));
-            }
-            else
-            {
-                Text = bookStack.Attributes.GetString("text", "").Replace("\r", "");
-                Title = bookStack.Attributes.GetString("title", "");
-            }
+
+            Text = bookStack.Attributes.GetString("text", "").Replace("\r", "");
+            Title = "MBI 8501 PUNCH CARD";
 
             if (OperatingSystem.IsWindows())
             {
@@ -81,7 +74,7 @@ namespace Rustwall.Utils
                 monoFont = CairoFont.TextInput().WithFontSize(18f).WithFont("Menlo");
             }
 
-            Text = "&-0123456789ABCDEFGHIJKLMNOPQR/STUVWXYZ:#@'=\"¢.<(+|!$*);¬ ,%_>?";
+            //Text = "&-0123456789ABCDEFGHIJKLMNOPQR/STUVWXYZ:#@'=\"¢.<(+|!$*);¬ ,%_>?";
 
             this.Compose();
         }
@@ -132,27 +125,11 @@ namespace Rustwall.Utils
             onTranscribedPressed(Text, Title, 1);
             return true;
         }
-        /*protected bool nextPage()
-        {
-            curPage = Math.Min(curPage + 1, Pages.Count - 1);
-            updatePage();
-            return true;
-        }
-
-        private bool prevPage()
-        {
-            curPage = Math.Max(curPage - 1, 0);
-            updatePage();
-            return true;
-        }*/
 
         protected void updatePage(bool setCaretPosToEnd = true)
         {
-            //string curPageText = Text;
+            string curPageText = Text;
 
-            string curPageText = PunchCardUtils.CreatePunchCard(Text, true);
-
-            //base.SingleComposer.GetDynamicText("pageNum").SetNewText(curPage + 1 + "/" + Pages.Count);
             GuiElement element = base.SingleComposer.GetElement("text");
             if (element is GuiElementTextArea guiElementTextArea)
             {

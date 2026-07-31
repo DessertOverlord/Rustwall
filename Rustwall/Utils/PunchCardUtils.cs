@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using Vintagestory.API.Client;
 using Vintagestory.GameContent;
@@ -58,6 +59,20 @@ namespace Rustwall.Utils
         /// There's two rows of header before arriving at the data
         /// </summary>
         public static readonly int RowOffset = 2;
+        /// <summary>
+        /// Total number of template rows
+        /// </summary>
+        public static readonly int TotalRows = 16;
+        /// <summary>
+        /// How many characters wide is the total data space of this punchcard?
+        /// </summary>
+        public static readonly int DataSpaceLength = 80;
+        /// <summary>
+        /// How many characters tall is the total data space?
+        /// </summary>
+        public static readonly int DataSpaceHeight = 12;
+
+
 
         public static readonly char PunchedChar = '█';
 
@@ -221,9 +236,9 @@ namespace Rustwall.Utils
 
         /// <summary>
         /// Takes a string and returns the string encoded into the punch card format.
-        /// Does NOT include the "PT" line, which deciphers the punchcard.
         /// </summary>
         /// <param name="inputString"></param>
+        /// <param name="addPrintLine"></param>
         /// <returns></returns>
         public static string CreatePunchCard(string inputString, bool addPrintLine)
         {
@@ -280,6 +295,71 @@ namespace Rustwall.Utils
             string saniResult = result.Replace("<", "&lt;").Replace(">", "&gt;");
 
             return saniResult;
+        }
+
+        public static string DecodePunchCard(string inputCard)
+        {
+            string output = "";
+            char[] inputCardCharArr = inputCard.ToCharArray();
+            Dictionary<int, char> InvertedLookupTable = UTF16toPunchCodeLookupTable.ToDictionary(x => x.Value, x => x.Key);
+
+            /// First validate that this is a valid template by checking its total size
+            if (inputCard.Count() != (TotalRows * RowLength) + 1)
+            {
+                return "";
+            }
+
+            int dataStart = (RowLength * RowOffset) + ColOffset;
+
+            for (int i = 0; i < DataSpaceLength; i++)
+            {
+                int NumPunchesFound = 0;
+                int DecodedCharacterAsBinary = 0b000000;
+
+                /// Offset by two to account for the fact that 12 and 11 come before 0
+                for (int j = -2; j < DataSpaceHeight - 2; j++)
+                {
+                    /// Max is 3 punches; no need to iterate if we've already found 3 punches.
+                    if (NumPunchesFound >= 3)
+                    {
+                        break;
+                    }
+
+                    if (inputCardCharArr[dataStart + i + ((j + 2) * RowLength)] == PunchedChar)
+                    {
+                        NumPunchesFound++;
+
+                        switch (j)
+                        {
+                            case -2:
+                                {
+                                    DecodedCharacterAsBinary += 0b100000;
+                                    break;
+                                }
+                            case -1:
+                                {
+                                    DecodedCharacterAsBinary += 0b010000;
+                                    break;
+                                }
+                            case 0:
+                                {
+                                    DecodedCharacterAsBinary += 0b110000;
+                                    break;
+                                }
+                            default:
+                                {
+                                    DecodedCharacterAsBinary += j;
+                                    break;
+                                }
+                        }
+                    }
+                }
+
+                /// This is safe because every key and value is unique in our lookup dictionary
+                output += InvertedLookupTable[DecodedCharacterAsBinary];
+            }
+
+            return output;
         }
     }
 }

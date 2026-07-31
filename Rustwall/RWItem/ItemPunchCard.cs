@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualBasic;
+using Newtonsoft.Json.Linq;
 using Rustwall.Utils;
 using System;
 using System.Collections.Generic;
@@ -16,8 +17,6 @@ namespace Rustwall.RWItem
     {
         private ModSystemEditableBook bookModSys;
 
-        private int maxPageCount;
-
         private bool editable;
 
         private ICoreClientAPI capi;
@@ -31,7 +30,7 @@ namespace Rustwall.RWItem
             base.OnLoaded(api);
             capi = api as ICoreClientAPI;
             editable = Attributes["editable"].AsBool();
-            maxPageCount = Attributes["maxPageCount"].AsInt(90);
+            //maxPageCount = Attributes["maxPageCount"].AsInt(90);
             bookModSys = api.ModLoader.GetModSystem<ModSystemEditableBook>();
             interactions = ObjectCacheUtil.GetOrCreate(api, "bookInteractions", delegate
             {
@@ -44,7 +43,7 @@ namespace Rustwall.RWItem
                     }
                 }
 
-                return new WorldInteraction[2]
+                return new WorldInteraction[1]
                 {
                 new WorldInteraction
                 {
@@ -56,25 +55,25 @@ namespace Rustwall.RWItem
                         ITreeAttribute treeAttribute = activeHotbarSlot.Itemstack?.Attributes;
                         return isReadable(activeHotbarSlot) && treeAttribute != null && (treeAttribute.HasAttribute("text") || treeAttribute.HasAttribute("textCodes"));
                     }
-                },
+                }/*,
                 new WorldInteraction
                 {
                     MouseButton = EnumMouseButton.Right,
                     Itemstacks = list.ToArray(),
                     ActionLangCode = "heldhelp-write",
                     GetMatchingStacks = (WorldInteraction wi, BlockSelection bs, EntitySelection es) => (capi.World.Player.InventoryManager.ActiveHotbarSlot.Itemstack?.Attributes.GetString("signedby") == null) ? wi.Itemstacks : null
-                }
+                }*/
                 };
             });
+        
+            
         }
+
+
 
         public override void OnHeldInteractStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, bool firstEvent, ref EnumHandHandling handling)
         {
-            if (byEntity.Controls.ShiftKey)
-            {
-                base.OnHeldInteractStart(slot, byEntity, blockSel, entitySel, firstEvent, ref handling);
-                return;
-            }
+
 
             if (!isReadable(slot))
             {
@@ -83,37 +82,27 @@ namespace Rustwall.RWItem
             }
 
             IPlayer player = (byEntity as EntityPlayer).Player;
-            /*if (editable && isWritingTool(byEntity.LeftHandItemSlot) && !isSigned(slot))
+
+            if (byEntity.Controls.ShiftKey)
             {
-                bookModSys.BeginEdit(player, slot);
-                if (api.Side == EnumAppSide.Client)
-                {
-                    GuiDialogEditableBook dlg = new GuiDialogEditableBook(slot.Itemstack, api as ICoreClientAPI, maxPageCount);
-                    dlg.OnClosed += delegate
-                    {
-                        if (dlg.DidSave)
-                        {
-                            bookModSys.EndEdit(player, dlg.AllPagesText, dlg.Title, dlg.DidSign);
-                        }
-                        else
-                        {
-                            bookModSys.CancelEdit(player);
-                        }
-                    };
-                    dlg.TryOpen();
-                }
+                slot.Itemstack.Attributes.SetString("text", PunchCardUtils.CreatePunchCard("hello world this is a test punchcard!@#$^%^$#&^%", false));
+                slot.Itemstack.Attributes.TryGetAttribute("text", out IAttribute PunchText);
+
+                string DecodedPunchStr = PunchCardUtils.DecodePunchCard(PunchText.ToString());
+
+                (player as IClientPlayer)?.ShowChatNotification(DecodedPunchStr);
 
                 handling = EnumHandHandling.PreventDefault;
+                return;
             }
-            else*/ 
-            
+
             if (slot.Itemstack.Attributes.HasAttribute("text") || slot.Itemstack.Attributes.HasAttribute("textCodes"))
             {
                 bookModSys.BeginEdit(player, slot);
                 if (api.Side == EnumAppSide.Client)
                 {
                     curSlot = slot;
-                    GuiDialogPunchcard guiDialogPunchCard = new GuiDialogPunchcard(slot.Itemstack, api as ICoreClientAPI, onTranscribePressed);
+                    GuiDialogPunchCard guiDialogPunchCard = new GuiDialogPunchCard(slot.Itemstack, api as ICoreClientAPI, onTranscribePressed);
                     guiDialogPunchCard.OnClosed += delegate
                     {
                         curSlot = null;
