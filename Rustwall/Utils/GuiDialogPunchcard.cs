@@ -16,9 +16,9 @@ namespace Rustwall.Utils
     {
         public string Title;
 
-        protected int maxLines = 20;
+        protected int maxLines = 12;
 
-        protected int maxWidth = 1800;
+        protected int maxWidth = 1000;
 
         public List<PagePosition> Pages = new List<PagePosition>();
 
@@ -36,7 +36,6 @@ namespace Rustwall.Utils
         {
             this.onTranscribedPressed = onTranscribedPressed;
 
-            //Text = bookStack.Attributes.GetString("text", "").Replace("\r", "");
             Text = bookStack.Attributes.GetBytes("punchcarddata") != null ? PunchCardUtils.CreatePunchCard(bookStack.Attributes.GetBytes("punchcarddata")) : "";
 
             Title = "MBI 8501 PUNCH CARD";
@@ -81,9 +80,9 @@ namespace Rustwall.Utils
             })
                 .BeginChildElements(elementBounds5)
                 .AddRichtext("", monoFont, elementBounds, "text")
-                .AddIf(onTranscribedPressed != null)
+                /*.AddIf(onTranscribedPressed != null)
                 .AddSmallButton(Lang.Get("Transcribe"), onButtonTranscribe, bounds2)
-                .EndIf()
+                .EndIf()*/
                 .EndChildElements()
                 .Compose();
             updatePage();

@@ -39,8 +39,15 @@ namespace Rustwall.RWBlockBehavior
                     ItemStack newItemStack = new(newItem, 1);
                     string punchText = ProducePunchCardDataString((world.Api as ICoreServerAPI));
                     newItemStack.Attributes.SetBytes("punchcarddata", PunchCardUtils.EncodeString(punchText));
-                    slot.Itemstack.SetFrom(newItemStack);
-                    //(byPlayer as IServerPlayer).InventoryManager.TryGiveItemstack(newItemStack, true);
+                    if (slot.Itemstack.StackSize == 1)
+                    {
+                        slot.Itemstack.SetFrom(newItemStack);
+                    }
+                    else
+                    {
+                        slot.TakeOut(1);
+                        byPlayer.InventoryManager.TryGiveItemstack(newItemStack);
+                    }
                 }
                 slot.MarkDirty();
                 return true;

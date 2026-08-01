@@ -27,7 +27,6 @@ namespace Rustwall.RWItem
 
         public override void OnLoaded(ICoreAPI api)
         {
-            base.OnLoaded(api);
             capi = api as ICoreClientAPI;
             editable = Attributes["editable"].AsBool();
             //maxPageCount = Attributes["maxPageCount"].AsInt(90);
@@ -53,7 +52,7 @@ namespace Rustwall.RWItem
                     {
                         ItemSlot activeHotbarSlot = capi.World.Player.InventoryManager.ActiveHotbarSlot;
                         ITreeAttribute treeAttribute = activeHotbarSlot.Itemstack?.Attributes;
-                        return isReadable(activeHotbarSlot) && treeAttribute != null && (treeAttribute.HasAttribute("text") || treeAttribute.HasAttribute("textCodes"));
+                        return isReadable(activeHotbarSlot) && treeAttribute != null && (treeAttribute.HasAttribute("punchcarddata"));
                     }
                 }
                 };
