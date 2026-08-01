@@ -41,7 +41,7 @@
     },
     "editable": false,
     "readable": true,
-    "maxPageCount": 2,
+    "maxPageCount": 1,
     "canTranscribeOn": false,
     "groundStorageTransform": {
       "translation": {
@@ -51,7 +51,7 @@
       },
       "rotation": {
         "x": 0,
-        "y": -30,
+        "y": -44,
         "z": 0
       },
       "origin": {
@@ -59,7 +59,7 @@
         "y": 0.15,
         "z": 0.5
       },
-      "scale": 0.9
+      "scale": 0.74
     },
     "onscrollrackTransform": {
       "translation": {
@@ -81,9 +81,10 @@
   },
   "creativeinventory": {
     "general": [ "*" ],
-    "items": [ "*" ]
+    "items": [ "*" ],
+    "rustwall": [ "*" ]
   },
-  "maxstacksize": 1,
+  "maxstacksize": 64,
   "materialDensity": 210,
   "tpHandTransform": {
     "translation": {
@@ -114,16 +115,16 @@
       "z": 0
     },
     "rotation": {
-      "x": 90,
+      "x": 0,
       "y": 0,
-      "z": 2
+      "z": 0
     },
     "origin": {
-      "x": 0.5,
-      "y": 0.5,
-      "z": 0.08
+      "x": 0,
+      "y": 0,
+      "z": 0
     },
-    "scale": 3.2
+    "scale": 3.13
   },
   "guiTransform": {
     "translation": {
