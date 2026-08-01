@@ -76,7 +76,7 @@ namespace Rustwall.Utils
 
         public static readonly char PunchedChar = '█';
 
-        public static Dictionary<char, int> UTF16toPunchCodeLookupTable
+        public static Dictionary<char, byte> UTF16toPunchCodeLookupTable
         {
             get;
 
@@ -171,7 +171,15 @@ namespace Rustwall.Utils
             { '"', 0b001111 }, // 8-7
         };
 
-        public static int UTF16CharToPunchCode(char InUTF16)
+        public static Dictionary<byte, char> InvertedLookupTable
+        {
+            get
+            {
+                return UTF16toPunchCodeLookupTable.ToDictionary(x => x.Value, x => x.Key);
+            }
+        }
+
+        public static byte EncodeChar(char InUTF16)
         {
             try
             {
@@ -179,22 +187,22 @@ namespace Rustwall.Utils
             }
             catch (KeyNotFoundException e)
             {
-                Console.WriteLine("Attempted to look up unknown character to punch code translation");
+                Console.WriteLine("Attempted to look up unknown character to punch code translation: " + e);
             }
 
-            return -1;
+            return (byte)0;
         }
 
-        public static SortedList<int, int> UTF16StringToPunchCode(string InUTF16Str)
+        public static byte[] EncodeString(string InUTF16Str)
         {
-            SortedList<int, int> output = new();
+            List<byte> output = new();
 
             foreach (char ch in InUTF16Str)
             {
-                output.Add(output.Count, UTF16CharToPunchCode(ch));
+                output.Add(EncodeChar(ch));
             }
 
-            return output;
+            return output.ToArray();
         }
 
         /// <summary>
@@ -202,9 +210,9 @@ namespace Rustwall.Utils
         /// </summary>
         /// <param name="code"></param>
         /// <returns></returns>
-        public static List<int> UnpackPunchCode(int code)
+        public static List<byte> UnpackPunchCode(int code)
         {
-            List<int> output = new List<int>();
+            List<byte> output = new List<byte>();
 
             if (code >= 0b110000)
             {
@@ -228,11 +236,11 @@ namespace Rustwall.Utils
             }
             if (code > 0b000000)
             {
-                output.Add(code);
+                output.Add((byte)code);
             }
 
             return output;
-        } 
+        }
 
         /// <summary>
         /// Takes a string and returns the string encoded into the punch card format.
@@ -240,10 +248,15 @@ namespace Rustwall.Utils
         /// <param name="inputString"></param>
         /// <param name="addPrintLine"></param>
         /// <returns></returns>
-        public static string CreatePunchCard(string inputString, bool addPrintLine)
+        public static string CreatePunchCard(string inputString, bool addPrintLine = false)
         {
+            if (inputString.Count() > DataSpaceLength)
+            {
+                throw new ArgumentException("Input string is too long for the punch card format.");
+            }
             string upperString = inputString.ToUpper();
-            SortedList<int, int> punchCodes = UTF16StringToPunchCode(upperString);
+            //SortedList<int, byte> punchCodes = UTF16StringToPunchCode(upperString);
+            byte[] punchCodes = EncodeString(upperString);
             char[] outputAsChars = PunchCardBackground.ToCharArray();
             /// Each line of the template is 87 characters long.
             /// The left headers are 5 columns before reaching the "data" part of the card.
@@ -261,12 +274,11 @@ namespace Rustwall.Utils
                 }
             }
 
-            foreach (var kvp in punchCodes)
+            foreach (var code in punchCodes)
             {
-                int code = kvp.Value;
-                List<int> punches = UnpackPunchCode(code);
+                List<byte> punches = UnpackPunchCode(code);
 
-                foreach (int punch in punches)
+                foreach (byte punch in punches)
                 {
                     switch (punch)
                     {
@@ -287,11 +299,74 @@ namespace Rustwall.Utils
                             }
                     }
                 }
-                
+
                 dataStart++;
             }
 
             string result = new(outputAsChars);
+            /// VTML uses < and > as tags, so we're santizing them.
+            string saniResult = result.Replace("<", "&lt;").Replace(">", "&gt;");
+
+            return saniResult;
+        }
+
+        public static string CreatePunchCard(byte[] inBytes, bool addPrintLine = false)
+        {
+            if (inBytes.Count() > DataSpaceLength)
+            {
+                throw new ArgumentException("Input string is too long for the punch card format.");
+            }
+            //string upperString = inputString.ToUpper();
+            //SortedList<int, byte> punchCodes = UTF16StringToPunchCode(upperString);
+            //byte[] punchCodes = EncodeString(upperString);
+            char[] outputAsChars = PunchCardBackground.ToCharArray();
+            /// Each line of the template is 87 characters long.
+            /// The left headers are 5 columns before reaching the "data" part of the card.
+            /// And there's two rows before you reach row 12 at the top.
+            int dataStart = (RowOffset * RowLength) + ColOffset;
+
+            if (addPrintLine)
+            {
+                int printLineStart = ((RowOffset - 1) * RowLength) + ColOffset;
+                int counter = 0;
+                foreach (byte item in inBytes)
+                {
+                    outputAsChars[printLineStart + counter] = DecodePunchCode(item);
+                    counter++;
+                }
+            }
+
+            foreach (var code in inBytes)
+            {
+                List<byte> punches = UnpackPunchCode(code);
+
+                foreach (byte punch in punches)
+                {
+                    switch (punch)
+                    {
+                        case 12:
+                            {
+                                outputAsChars[dataStart] = PunchedChar;
+                                continue;
+                            }
+                        case 11:
+                            {
+                                outputAsChars[dataStart + RowLength] = PunchedChar;
+                                continue;
+                            }
+                        default:
+                            {
+                                outputAsChars[dataStart + ((punch + 2) * RowLength)] = PunchedChar;
+                                continue;
+                            }
+                    }
+                }
+
+                dataStart++;
+            }
+
+            string result = new(outputAsChars);
+            /// VTML uses < and > as tags, so we're santizing them.
             string saniResult = result.Replace("<", "&lt;").Replace(">", "&gt;");
 
             return saniResult;
@@ -301,7 +376,6 @@ namespace Rustwall.Utils
         {
             string output = "";
             char[] inputCardCharArr = inputCard.ToCharArray();
-            Dictionary<int, char> InvertedLookupTable = UTF16toPunchCodeLookupTable.ToDictionary(x => x.Value, x => x.Key);
 
             /// First validate that this is a valid template by checking its total size
             if (inputCard.Count() != (TotalRows * RowLength) + 1)
@@ -314,7 +388,7 @@ namespace Rustwall.Utils
             for (int i = 0; i < DataSpaceLength; i++)
             {
                 int NumPunchesFound = 0;
-                int DecodedCharacterAsBinary = 0b000000;
+                byte DecodedCharacterAsBinary = 0b000000;
 
                 /// Offset by two to account for the fact that 12 and 11 come before 0
                 for (int j = -2; j < DataSpaceHeight - 2; j++)
@@ -348,7 +422,7 @@ namespace Rustwall.Utils
                                 }
                             default:
                                 {
-                                    DecodedCharacterAsBinary += j;
+                                    DecodedCharacterAsBinary += (byte)j;
                                     break;
                                 }
                         }
@@ -356,10 +430,15 @@ namespace Rustwall.Utils
                 }
 
                 /// This is safe because every key and value is unique in our lookup dictionary
-                output += InvertedLookupTable[DecodedCharacterAsBinary];
+                output += DecodePunchCode(DecodedCharacterAsBinary);
             }
 
             return output;
         }
+
+        public static char DecodePunchCode(byte code)
+        {
+            return InvertedLookupTable[code];
+        }
     }
-}
+}   

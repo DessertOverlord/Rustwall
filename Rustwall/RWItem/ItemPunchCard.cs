@@ -55,26 +55,13 @@ namespace Rustwall.RWItem
                         ITreeAttribute treeAttribute = activeHotbarSlot.Itemstack?.Attributes;
                         return isReadable(activeHotbarSlot) && treeAttribute != null && (treeAttribute.HasAttribute("text") || treeAttribute.HasAttribute("textCodes"));
                     }
-                }/*,
-                new WorldInteraction
-                {
-                    MouseButton = EnumMouseButton.Right,
-                    Itemstacks = list.ToArray(),
-                    ActionLangCode = "heldhelp-write",
-                    GetMatchingStacks = (WorldInteraction wi, BlockSelection bs, EntitySelection es) => (capi.World.Player.InventoryManager.ActiveHotbarSlot.Itemstack?.Attributes.GetString("signedby") == null) ? wi.Itemstacks : null
-                }*/
+                }
                 };
             });
-        
-            
         }
-
-
 
         public override void OnHeldInteractStart(ItemSlot slot, EntityAgent byEntity, BlockSelection blockSel, EntitySelection entitySel, bool firstEvent, ref EnumHandHandling handling)
         {
-
-
             if (!isReadable(slot))
             {
                 base.OnHeldInteractStart(slot, byEntity, blockSel, entitySel, firstEvent, ref handling);
@@ -83,20 +70,7 @@ namespace Rustwall.RWItem
 
             IPlayer player = (byEntity as EntityPlayer).Player;
 
-            if (byEntity.Controls.ShiftKey)
-            {
-                slot.Itemstack.Attributes.SetString("text", PunchCardUtils.CreatePunchCard("hello world this is a test punchcard!@#$^%^$#&^%", false));
-                slot.Itemstack.Attributes.TryGetAttribute("text", out IAttribute PunchText);
-
-                string DecodedPunchStr = PunchCardUtils.DecodePunchCard(PunchText.ToString());
-
-                (player as IClientPlayer)?.ShowChatNotification(DecodedPunchStr);
-
-                handling = EnumHandHandling.PreventDefault;
-                return;
-            }
-
-            if (slot.Itemstack.Attributes.HasAttribute("text") || slot.Itemstack.Attributes.HasAttribute("textCodes"))
+            if (slot.Itemstack.Attributes.HasAttribute("punchcarddata"))
             {
                 bookModSys.BeginEdit(player, slot);
                 if (api.Side == EnumAppSide.Client)

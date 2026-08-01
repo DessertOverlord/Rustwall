@@ -14,11 +14,7 @@ namespace Rustwall.Utils
 {
     internal class GuiDialogPunchCard : GuiDialogGeneric
     {
-        //public string AllPagesText;
-
         public string Title;
-
-        //protected int curPage;
 
         protected int maxLines = 20;
 
@@ -26,29 +22,11 @@ namespace Rustwall.Utils
 
         public List<PagePosition> Pages = new List<PagePosition>();
 
-        protected CairoFont font = CairoFont.TextInput().WithFontSize(18f);
+        protected CairoFont monoFont;
 
         private TranscribePressedDelegate onTranscribedPressed;
 
         protected bool KeyboardNavigation = true;
-
-        /*public string CurPageText
-        {
-            get
-            {
-                if (curPage >= Pages.Count)
-                {
-                    return "";
-                }
-
-                if (Pages[curPage].Start < AllPagesText.Length)
-                {
-                    return AllPagesText.Substring(Pages[curPage].Start, Math.Min(AllPagesText.Length - Pages[curPage].Start, Pages[curPage].Length)).TrimStart(' ');
-                }
-
-                return "";
-            }
-        }*/
 
         public string Text;
 
@@ -58,7 +36,9 @@ namespace Rustwall.Utils
         {
             this.onTranscribedPressed = onTranscribedPressed;
 
-            Text = bookStack.Attributes.GetString("text", "").Replace("\r", "");
+            //Text = bookStack.Attributes.GetString("text", "").Replace("\r", "");
+            Text = bookStack.Attributes.GetBytes("punchcarddata") != null ? PunchCardUtils.CreatePunchCard(bookStack.Attributes.GetBytes("punchcarddata")) : "";
+
             Title = "MBI 8501 PUNCH CARD";
 
             if (OperatingSystem.IsWindows())
@@ -74,12 +54,9 @@ namespace Rustwall.Utils
                 monoFont = CairoFont.TextInput().WithFontSize(18f).WithFont("Menlo");
             }
 
-            //Text = "&-0123456789ABCDEFGHIJKLMNOPQR/STUVWXYZ:#@'=\"¢.<(+|!$*);¬ ,%_>?";
-
             this.Compose();
         }
         
-        protected CairoFont monoFont;
         protected void Compose()
         {
             double num = monoFont.GetFontExtents().Height * monoFont.LineHeightMultiplier / (double)RuntimeEnv.GUIScale;
@@ -104,14 +81,6 @@ namespace Rustwall.Utils
             })
                 .BeginChildElements(elementBounds5)
                 .AddRichtext("", monoFont, elementBounds, "text")
-                /*.AddIf(Pages.Count > 1)
-                .AddSmallButton(Lang.Get("<"), prevPage, elementBounds2)
-                .EndIf()
-                .AddDynamicText("1/1", CairoFont.WhiteSmallText().WithOrientation(EnumTextOrientation.Center), bounds, "pageNum")
-                .AddIf(Pages.Count > 1)
-                .AddSmallButton(Lang.Get(">"), nextPage, elementBounds3)
-                .EndIf()*/
-                //.AddSmallButton(Lang.Get("Close"), () => TryClose(), elementBounds4)
                 .AddIf(onTranscribedPressed != null)
                 .AddSmallButton(Lang.Get("Transcribe"), onButtonTranscribe, bounds2)
                 .EndIf()

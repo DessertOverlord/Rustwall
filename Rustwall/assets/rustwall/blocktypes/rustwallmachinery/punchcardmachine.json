@@ -33,7 +33,6 @@
     "resistance": 8,
     "sidesolid": { "all": false },
     "sideopaque": { "all": false },
-    "entityClass": "BlockEntityPunchCardMachine",
     "behaviors": [
         {
             "name": "HorizontalOrientable"
