@@ -1,0 +1,44 @@
+﻿{
+    "code": "punchmachine",
+    "creativeinventory": {
+        "general": [ "*-south" ],
+        "rustwall": [ "*-south" ]
+    },
+    "shapeByType": {
+        "*-north": {
+            "base": "block/rustwallmachinery/punchmachine",
+            "rotateY": 0
+        },
+        "*-east": {
+            "base": "block/rustwallmachinery/punchmachine",
+            "rotateY": 270
+        },
+        "*-south": {
+            "base": "block/rustwallmachinery/punchmachine",
+            "rotateY": 180
+        },
+        "*-west": {
+            "base": "block/rustwallmachinery/punchmachine",
+            "rotateY": 90
+        }
+    },
+    "variantgroups": [
+        {
+            "code": "side",
+            "loadFromProperties": "abstract/horizontalorientation"
+        }
+    ],
+    "drawtype": "json",
+    "replaceable": 90,
+    "resistance": 8,
+    "sidesolid": { "all": false },
+    "sideopaque": { "all": false },
+    "behaviors": [
+        {
+            "name": "HorizontalOrientable"
+        },
+        {
+            "name": "BehaviorPunchCardMachine"
+        }
+    ]
+}

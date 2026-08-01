@@ -1,9 +1,11 @@
 ﻿using Rustwall.RWBehaviorRebuildable;
-//using Rustwall.RWBlockBehavior;
+using Rustwall.RWBlockBehavior;
+using Rustwall.RWBlockEntity;
 using Rustwall.RWBlockEntity.BERebuildable;
 using Rustwall.RWBlockEntity.RustwallMachinery;
 using Rustwall.RWItem;
 using Vintagestory.API.Common;
+using Vintagestory.Common;
 
 namespace Rustwall.ModSystems.RebuildableBlock
 {
@@ -18,17 +20,15 @@ namespace Rustwall.ModSystems.RebuildableBlock
             api.RegisterBlockEntityClass("BlockEntityPumpUnit", typeof(BlockEntityPumpUnit));
             api.RegisterBlockEntityClass("BlockEntityGearbox", typeof(BlockEntityGearbox));
             api.RegisterBlockBehaviorClass("BehaviorRebuildable", typeof(BehaviorRebuildable));
+            api.RegisterBlockBehaviorClass("BehaviorPunchCardMachine", typeof(BehaviorPunchCardMachine));
             api.RegisterItemClass("ItemJonasScrap", typeof(ItemJonasScrap));
             api.RegisterItemClass("ItemAdminWrench", typeof(ItemAdminWrench));
+            api.RegisterItemClass("ItemPunchCard", typeof(ItemPunchCard));
         }
 
         protected override void RustwallStartServerSide()
         {
             
         }
-
-
-
-
     }
 }
