@@ -285,13 +285,10 @@ namespace Rustwall.ModSystems.RingedGenerator
                 );
             }*/
 
-
-
             var newLandformData = new int[region.LandformMap.Size * region.LandformMap.Size];
 
             if (template.landformData is not null && template.landformData != "")
             {
-                //int[] newLandformData = new int[mapRegion.LandformMap.Size * mapRegion.LandformMap.Size];
                 string desiredLandform = template.landformData;
                 int landformCode = NoiseLandforms.landforms.GetIndexByCode(desiredLandform);
                 if (landformCode != -1)
@@ -477,10 +474,8 @@ namespace Rustwall.ModSystems.RingedGenerator
             foreach (var kvp in FinalRingDataForRealThisTime)
             {
                 templateList[kvp.Key] = kvp.Value.template;
-
-                //sapi.WorldManager.SaveGame.StoreData("rustwallRingData_" + kvp.Key, SerializerUtil.Serialize(kvp.Value.template));
-                sapi.WorldManager.SaveGame.StoreData("rustwallRingData", SerializerUtil.Serialize(templateList));
             }
+            sapi.WorldManager.SaveGame.StoreData("rustwallRingData", SerializerUtil.Serialize(templateList));
         }
 
         private void LoadWorldgenData()
@@ -495,7 +490,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
             else
             {
-                /// TODO: CreateWorldgenValues needs a refactor still
                 sapi.Logger.Error($"Ring data was not found in savegame. Initializing new dataset from current configuration.");
                 BackfillRandomWorldgenValues();
             }
