@@ -14,6 +14,7 @@
       "_##___##_"
     ]
   ],
+  "code": "2gear-iron",
   "output": {
     "type": "item",
     "code": "rustwall:gear-iron",

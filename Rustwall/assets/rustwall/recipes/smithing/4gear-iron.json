@@ -19,6 +19,7 @@
       "_##___##_"
     ]
   ],
+  "code": "4gear-iron",
   "output": {
     "type": "item",
     "code": "rustwall:gear-iron",
