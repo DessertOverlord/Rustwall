@@ -13,7 +13,12 @@ namespace Rustwall.RWBlockEntity.RustwallMachinery
 {
     public class BlockEntityTriplanarCore : BlockEntityComplexRebuildable
     {
-        //Invoke explosion when fully damaged
+        /// <summary>
+        /// Invoke explosion when fully damaged
+        /// </summary>
+        /// <param name="world"></param>
+        /// <param name="byPlayer"></param>
+        /// <param name="blockSel"></param>
         public override void DamageFully(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
         {
             base.DamageFully(world, byPlayer, blockSel);
@@ -29,10 +34,7 @@ namespace Rustwall.RWBlockEntity.RustwallMachinery
             int blastRadius = 4;
             int injureRadius = 16;
             EnumBlastType blastType = EnumBlastType.EntityBlast;
-
-            //Api.World.BlockAccessor.SetBlock(0, Pos);
             ((IServerWorldAccessor)Api.World).CreateExplosion(Pos.Copy().Up(), blastType, blastRadius, injureRadius);
-            //Api.World.BlockAccessor.SetBlock(Block.Id, Pos);
         }
     }
 }
