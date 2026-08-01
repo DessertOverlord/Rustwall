@@ -21,8 +21,6 @@ namespace Rustwall.RWBehaviorRebuildable
 
         private static List<ItemStack> allWrenchItemStacks = new List<ItemStack>();
 
-        //public RustwallConfig config;
-
         public BehaviorRebuildable(Block block) : base(block)
         {
         }
