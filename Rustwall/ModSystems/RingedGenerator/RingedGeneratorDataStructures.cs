@@ -131,4 +131,13 @@ namespace Rustwall.ModSystems.RingedGenerator
         public MapLayerBase GenMaps_geologicprovinceGen { get; private set; }
         public MapLayerBase GenMaps_landformsGen { get; private set; }
     }
+
+    [ProtoContract]
+    public class GreatDecayMessage
+    {
+        /*[ProtoMember(1)]
+        public int placeholder = 0;*/
+    }
+
+
 }

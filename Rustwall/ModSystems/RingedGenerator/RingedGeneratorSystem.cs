@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
@@ -19,6 +20,7 @@ namespace Rustwall.ModSystems.RingedGenerator
     //[ProtoContract(ImplicitFields = ImplicitFields.AllPublic, SkipConstructor = true)]
     public class RingedGeneratorSystem : RustwallModSystem
     {
+        ICoreClientAPI capi;
         public enum EnumWorldGenParameters
         {
             landformScale,
@@ -30,7 +32,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             upheavelCommonness,
             geologicActivity
         }
-        //ICoreServerAPI sapi;
         // ringsize must be an even number (? haven't tried an odd number yet) and determines how wide each ring is.
         private int ringWidth;
         private int safeZoneSize;
@@ -41,7 +42,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         // Some day I won't have to do this, but I haven't figured out how to gather the currently selected params until
         // after the game is saved for the first time.
         // TODO: programmatically gather the selected worldgen params on first launch.
-        private List<double> WorldgenDefaultParams { get; set; } = new List<double> { 1, 1, 1, 0, 0.975, 1, 0.3, 0.05 };
+        //private List<double> WorldgenDefaultParams { get; set; } = new List<double> { 1, 1, 1, 0, 0.975, 1, 0.3, 0.05 };
         //private static int curRing = 0; 
         //private static int desiredRing = 0;
         private double regionMidPoint;
@@ -99,6 +100,27 @@ namespace Rustwall.ModSystems.RingedGenerator
             sapi.Event.InitWorldGenerator(() => InitRingedWorldGenerator(false), "standard");
 
             sapi.Event.MapRegionGeneration(HandleRegionLoading, "standard");
+        }
+
+        public override void Start(ICoreAPI api)
+        {
+            base.Start(api);
+
+            api.Network.RegisterChannel("rustwall-ringedgen").RegisterMessageType<GreatDecayMessage>();
+        }
+
+        public override void StartClientSide(ICoreClientAPI api)
+        {
+            base.StartClientSide(api);
+            capi = api;
+            api.Network.GetChannel("rustwall-ringedgen").SetMessageHandler<GreatDecayMessage>(OnGreatDecayMessage);
+        }
+
+        private void OnGreatDecayMessage(GreatDecayMessage message)
+        {
+            capi.Shader.ReloadShaders();
+            capi.Ambient
+            Debug.WriteLine("Reloaded Shaders");
         }
 
         public int RingNumberFromRegion(int regionX, int regionZ)
@@ -694,6 +716,12 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
             DeleteRingRange(fromRing, toRing);
             StartChunkGeneration();
+            
+        }
+
+        private void ReloadAllClientShaders()
+        {
+            sapi.Network.GetChannel("rustwall-ringedgen").BroadcastPacket(new GreatDecayMessage());
         }
 
         public void TriggerGreatDecay(float stabRatio, bool flushCache)
@@ -901,6 +929,16 @@ namespace Rustwall.ModSystems.RingedGenerator
                         rwmodsys.ReloadConfig();
 
                         return TextCommandResult.Success("Reloaded Rustwall configuration");
+                    }))
+                    .EndSubCommand()
+                    .BeginSubCommand("shaders")
+                    .WithArgs()
+                    .HandleWith(
+                    (args =>
+                    {
+                        ReloadAllClientShaders();
+
+                        return TextCommandResult.Success("Reloaded all client shaders");
                     }))
                     .EndSubCommand()
                 .EndSubCommand();
