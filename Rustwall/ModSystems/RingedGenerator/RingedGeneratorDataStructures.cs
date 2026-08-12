@@ -16,9 +16,6 @@ namespace Rustwall.ModSystems.RingedGenerator
     /// <summary>
     /// When we initialize RingData, we'll immediately initialize the RegionMapLayerGenerators, 
     /// which will generate all of the GenMaps map generators for this ring.
-    /// Note that we do NOT initialize the MapRegionData here, because that is dependent 
-    /// on the region coordinates and the map region itself, which we won't have access to until
-    /// the region is generating.
     /// </summary>
     /// <param name="sapi"></param>
     /// <param name="seed"></param>
