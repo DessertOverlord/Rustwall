@@ -37,7 +37,7 @@ namespace Rustwall.ModSystems
 
             if (Config == null)
             {
-                sapi.Server.Logger.Error("Rustwall config not loaded correctly, initializing default.\nThis is normal on the first load.");
+                sapi.Server.Logger.Warning("Rustwall config not loaded correctly, initializing default. This is normal on the first load.");
 
                 Config = new RustwallConfig();
                 sapi.StoreModConfig(Config, configName);
