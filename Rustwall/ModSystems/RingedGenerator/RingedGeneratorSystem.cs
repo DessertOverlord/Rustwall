@@ -26,11 +26,11 @@ namespace Rustwall.ModSystems.RingedGenerator
             upheavelCommonness,
             geologicActivity
         }
-        // ringsize must be an even number (? haven't tried an odd number yet) and determines how wide each ring is.
+        // ringWidth must be an even number (? haven't tried an odd number yet) and determines how wide each ring is.
         private int ringWidth;
         private int safeZoneSize;
-        public int NumberOfRings { get; private set; }
         private double regionMidPoint;
+        public int NumberOfRings { get; private set; }
         GenMaps mapGenerator { get; set; }
         /// <summary>
         /// Unused right now, might be useful later if I want to get deeper into the ore or clay generation weeds
@@ -47,9 +47,12 @@ namespace Rustwall.ModSystems.RingedGenerator
         {
             return 1;
         }
-
+        /// <summary>
+        /// Initialize this system server-side
+        /// </summary>
         protected override void RustwallStartServerSide()
         {
+            /// We access the map generator that Vanilla uses for simplicity so that our region maps line up nicely
             mapGenerator = sapi.ModLoader.GetModSystem<GenMaps>();
             RegisterChatCommands();
 
@@ -78,7 +81,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 {
                     NumberOfRings = -500;
                 }
-
+                /// yeah I could've done * 2 but I'm cool and do what I want
                 regionMidPoint = ((RegionMapSizeX + RegionMapSizeX - 1) / 2.0);
             });
 
@@ -86,7 +89,12 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             sapi.Event.MapRegionGeneration(HandleRegionLoading, "standard");
         }
-
+        /// <summary>
+        /// Given a region coordinate, returns the ring number that it belongs to. Ring 0 is the innermost safe zone, and ring numbers increase as you move outward.
+        /// </summary>
+        /// <param name="regionX"></param>
+        /// <param name="regionZ"></param>
+        /// <returns></returns>
         public int RingNumberFromRegion(int regionX, int regionZ)
         {
             if (safeZoneSize != ringWidth)
@@ -119,21 +127,38 @@ namespace Rustwall.ModSystems.RingedGenerator
                 return (int)(((double.Max(Math.Abs(regionX - regionMidPoint), Math.Abs(regionZ - regionMidPoint)) - 0.5)) / ringWidth);
             }
         }
-
+        /// <summary>
+        /// Given a chunk coordinate, returns the ring number that it belongs to. Ring 0 is the innermost safe zone, and ring numbers increase as you move outward.
+        /// </summary>
+        /// <param name="chunkX"></param>
+        /// <param name="chunkZ"></param>
+        /// <returns></returns>
         public int RingNumberFromChunk(int chunkX, int chunkZ)
         {
             int regionX = chunkX / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
             int regionZ = chunkZ / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
             return RingNumberFromRegion(regionX, regionZ);
         }
-
+        /// <summary>
+        /// Given a world position, returns the ring number that it belongs to. Ring 0 is the innermost safe zone, and ring numbers increase as you move outward.
+        /// </summary>
+        /// <param name="posX"></param>
+        /// <param name="posZ"></param>
+        /// <returns></returns>
         public int RingNumberFromWorldPos(int posX, int posZ)
         {
             int regionX = posX / sapi.WorldManager.RegionSize;
             int regionZ = posZ / sapi.WorldManager.RegionSize;
             return RingNumberFromRegion(regionX, regionZ);
         }
-
+        
+        /// <summary>
+        /// Handles the loading of a region and applies the appropriate worldgen parameters based on the ring number that the region belongs to.
+        /// </summary>
+        /// <param name="region"></param>
+        /// <param name="regionX"></param>
+        /// <param name="regionZ"></param>
+        /// <param name="chunkGenParams"></param>
         private void HandleRegionLoading(IMapRegion region, int regionX, int regionZ, ITreeAttribute chunkGenParams = null)
         {
             if (NumberOfRings == -500) { return; }
@@ -462,6 +487,9 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
         }
 
+        /// <summary>
+        /// Stores the current worldgen parameters in the savegame so that they persist across server restarts.
+        /// </summary>
         private void StoreWorldgenData()
         {
             var templateList = new Dictionary<int, RGWorldgenTemplate>();
@@ -473,6 +501,9 @@ namespace Rustwall.ModSystems.RingedGenerator
             sapi.WorldManager.SaveGame.StoreData("rustwallRingData", SerializerUtil.Serialize(templateList));
         }
 
+        /// <summary>
+        /// Retrieve the stored worldgen parameters from the savegame and load them into the current worldgen configuration.
+        /// </summary>
         private void LoadWorldgenData()
         {
             FinalRingDataForRealThisTime = [];
@@ -491,6 +522,10 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
         }
 
+        /// <summary>
+        /// Randomizes the worldgen parameters for a specific ring and stores them in the FinalRingDataForRealThisTime dictionary.
+        /// </summary>
+        /// <param name="ring"></param>
         private void RandomizeParams(int ring)
         {
             Dictionary<EnumWorldGenParameters, float> newParams = new();
@@ -527,12 +562,18 @@ namespace Rustwall.ModSystems.RingedGenerator
             );
         }
 
+        /// <summary>
+        /// Halts new chunk generation temporarily.
+        /// </summary>
         private void StopChunkGeneration()
         {
             sapi.WorldManager.AutoGenerateChunks = false;
             sapi.WorldManager.SendChunks = false;
         }
 
+        /// <summary>
+        /// Resumes chunk generation and prompts the server to re-send chunks.
+        /// </summary>
         private void StartChunkGeneration()
         {
             sapi.WorldManager.AutoGenerateChunks = true;
@@ -552,7 +593,12 @@ namespace Rustwall.ModSystems.RingedGenerator
                 eply.TeleportToDouble(eply.Pos.X, eply.Pos.Y, eply.Pos.Z);
             }
         }
-        //Given a range of rings, erase them and mangle the worldgen params
+
+        /// <summary>
+        /// Given a range of rings, erase all regions and chunks contained within
+        /// </summary>
+        /// <param name="fromRing"></param>
+        /// <param name="toRing"></param>
         private void DeleteRingRange(int fromRing, int toRing)
         {
             List<Vec2i> regionCoordsToDelete = new List<Vec2i>();
@@ -644,6 +690,13 @@ namespace Rustwall.ModSystems.RingedGenerator
             return;
         }
 
+        /// <summary>
+        /// The great decay deletes all provided rings and optionally prompts the server to flush the cached worldgen parameters and re-initialize them. 
+        /// This is a destructive operation and should be used with caution.
+        /// </summary>
+        /// <param name="fromRing"></param>
+        /// <param name="toRing"></param>
+        /// <param name="flushCache"></param>
         public void TriggerGreatDecay(int fromRing, int toRing, bool flushCache)
         {
             //We are not allowed to regen ring 0 (the innermost safe zone). This hardcodes that in even if players let the stability get to 0
@@ -699,6 +752,12 @@ namespace Rustwall.ModSystems.RingedGenerator
             StartChunkGeneration();
         }
 
+        /// <summary>
+        /// Overload that uses a ratio to regenerate the world. The ratio provided is how much of the world will be regenerated, starting from the outermost ring and moving inward. 
+        /// For example, a ratio of 0.5 will regenerate the outer half of the world, while a ratio of 0.25 will regenerate the outer quarter of the world.
+        /// </summary>
+        /// <param name="stabRatio"></param>
+        /// <param name="flushCache"></param>
         public void TriggerGreatDecay(float stabRatio, bool flushCache)
         {
             int fromRing = (int)(NumberOfRings - (NumberOfRings * stabRatio));
@@ -707,11 +766,19 @@ namespace Rustwall.ModSystems.RingedGenerator
             TriggerGreatDecay(fromRing, toRing, flushCache);
         }
 
+        /// <summary>
+        /// Courtesy method for regenerating only one ring.
+        /// </summary>
+        /// <param name="ring"></param>
+        /// <param name="flushCache"></param>
         public void TriggerGreatDecay(int ring, bool flushCache)
         {
             TriggerGreatDecay(ring, ring, flushCache);
         }
 
+        /// <summary>
+        /// Registers chat commands.
+        /// </summary>
         private void RegisterChatCommands()
         {
             sapi.ChatCommands.Create("rustwall")
