@@ -1,23 +1,18 @@
-﻿using ProtoBuf;
-using Rustwall.Configs;
+﻿using Rustwall.Configs;
 using Rustwall.RWBehaviorRebuildable;
 using Rustwall.RWBlockEntity.BERebuildable;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
-using Vintagestory.GameContent;
 using Vintagestory.ServerMods;
 
 namespace Rustwall.ModSystems.RingedGenerator
 {
-    //[ProtoContract(ImplicitFields = ImplicitFields.AllPublic, SkipConstructor = true)]
     public class RingedGeneratorSystem : RustwallModSystem
     {
         public enum EnumWorldGenParameters
@@ -31,20 +26,10 @@ namespace Rustwall.ModSystems.RingedGenerator
             upheavelCommonness,
             geologicActivity
         }
-        //ICoreServerAPI sapi;
         // ringsize must be an even number (? haven't tried an odd number yet) and determines how wide each ring is.
         private int ringWidth;
         private int safeZoneSize;
         public int NumberOfRings { get; private set; }
-        // this list is all of the settings we want to mess with. Can be added to easily.
-        private readonly List<string> WorldgenParamsToScramble = new List<string> { "landformScale", "globalTemperature", "globalPrecipitation", "globalForestation", "landcover", "oceanscale", "upheavelCommonness", "geologicActivity" };
-        // The default parameters for each of the associated parameters to scramble. ORDER MATTERS!
-        // Some day I won't have to do this, but I haven't figured out how to gather the currently selected params until
-        // after the game is saved for the first time.
-        // TODO: programmatically gather the selected worldgen params on first launch.
-        private List<double> WorldgenDefaultParams { get; set; } = new List<double> { 1, 1, 1, 0, 0.975, 1, 0.3, 0.05 };
-        //private static int curRing = 0; 
-        //private static int desiredRing = 0;
         private double regionMidPoint;
         GenMaps mapGenerator { get; set; }
         /// <summary>
@@ -68,7 +53,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             mapGenerator = sapi.ModLoader.GetModSystem<GenMaps>();
             RegisterChatCommands();
 
-            sapi.Event.ServerRunPhase(EnumServerRunPhase.WorldReady, () => 
+            sapi.Event.ServerRunPhase(EnumServerRunPhase.WorldReady, () =>
             {
                 ringWidth = Config.RingWidth;
                 safeZoneSize = Config.SafeZoneSize;
@@ -82,14 +67,14 @@ namespace Rustwall.ModSystems.RingedGenerator
                     int RegionMapSizeXWithoutSafeZone = RegionMapSizeX - safeZoneSize;
                     LeftOverRings = RegionMapSizeXWithoutSafeZone % ringWidth;
                     /// This should theoretically always leave an even division of the RegionMap into rings and account for that extra territory at the edge.
-                    NumberOfRings = LeftOverRings == 0 ? 
+                    NumberOfRings = LeftOverRings == 0 ?
                         /// We want the +1 to account for the safezone that we shaved off earlier.
-                        (RegionMapSizeXWithoutSafeZone / ringWidth) + 1 
-                        : 
+                        (RegionMapSizeXWithoutSafeZone / ringWidth) + 1
+                        :
                         /// Here, we need +2; we need to account for the safezone as before, and also a bonus ring for the remainder.
                         ((RegionMapSizeXWithoutSafeZone - LeftOverRings) / ringWidth) + 2;
                 }
-                else 
+                else
                 {
                     NumberOfRings = -500;
                 }
@@ -135,13 +120,13 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
         }
 
-        public int RingNumberFromChunk(int chunkX, int chunkZ) 
+        public int RingNumberFromChunk(int chunkX, int chunkZ)
         {
             int regionX = chunkX / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
             int regionZ = chunkZ / (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
             return RingNumberFromRegion(regionX, regionZ);
         }
-        
+
         public int RingNumberFromWorldPos(int posX, int posZ)
         {
             int regionX = posX / sapi.WorldManager.RegionSize;
@@ -167,7 +152,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             int[] newBeachData = new int[region.BeachMap.Size * region.BeachMap.Size];
 
             if (template.beachData > -1)
-            {    
+            {
                 newBeachData.Fill(template.beachData);
             }
             else
@@ -383,13 +368,17 @@ namespace Rustwall.ModSystems.RingedGenerator
             region.DirtyForSaving = true;
         }
 
-        //Initialize and load the worldgen parameters
+        /// <summary>
+        /// Initialize and load the worldgen parameters
+        /// </summary>
+        /// <param name="flushCache"></param>
         private void InitRingedWorldGenerator(bool flushCache)
         {
             /// flushCache is used by the GreatDecay methods to instruct InitRingedWorldGenerator to fire even on an already-playing world.
             /// This will erase the current world generation options from the savegame and ensure they are up-to-date.
             if (sapi.WorldManager.SaveGame.IsNew || flushCache)
             {
+                Random rand = new();
                 FinalRingDataForRealThisTime = [];
                 if (Config.RingTemplates.Count > 0)
                 {
@@ -398,19 +387,23 @@ namespace Rustwall.ModSystems.RingedGenerator
                         if (item.FromRing > item.ToRing)
                         {
                             sapi.Logger.Error($"FromRing was greater than ToRing for template: {item.Name}. Template will be ignored.");
+                            continue;
                         }
-                        else if (item.FromRing < 0 || item.ToRing >= NumberOfRings - 1)
+
+                        if (item.FromRing < 0 || item.ToRing >= NumberOfRings - 1)
                         {
                             sapi.Logger.Error($"Ring range is out of bounds for template: {item.Name}. Template will be ignored.");
+                            continue;
                         }
-                        else if (item.FromRing == item.ToRing)
+
+                        int inputSeed = item.seed <= 0 ? sapi.WorldManager.SaveGame.Seed + rand.Next(9999999) : item.seed;
+
+                        if (item.FromRing == item.ToRing)
                         {
-                            int inputSeed = item.seed <= 0 ? sapi.WorldManager.SaveGame.Seed : item.seed;
                             FinalRingDataForRealThisTime[item.FromRing] = new RingData(sapi, inputSeed, item);
                         }
                         else if (item.ToRing > item.FromRing)
                         {
-                            int inputSeed = item.seed <= 0 ? sapi.WorldManager.SaveGame.Seed : item.seed;
                             for (int i = item.FromRing; i <= item.ToRing; i++)
                             {
                                 FinalRingDataForRealThisTime[i] = new RingData(sapi, inputSeed, item);
@@ -506,7 +499,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             //var WorldgenMaxParams = new List<double> { 1.5, 5, 5, 1, 1, 4, 1, 0.4 };
             var WorldgenAverageParams = new List<float> { 1, 2.5f, 2.5f, 0, 0.55f, 2.05f, 0.5f, 0.2f };
             var WorldgenVarianceParams = new List<float> { .5f, 2.5f, 2.5f, 1, 0.45f, 1.95f, 0.5f, 0.2f };
-            
+
             foreach (var wgparam in Enum.GetValues<EnumWorldGenParameters>())
             {
                 var natfl = NatFloat.create((EnumDistribution)Config.RandomizationDistribution, WorldgenAverageParams[(int)wgparam], WorldgenVarianceParams[(int)wgparam]);
@@ -514,7 +507,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
 
             Random rand = new Random();
-            int newSeed = sapi.WorldManager.Seed + rand.Next(10000);
+            int newSeed = sapi.WorldManager.Seed + rand.Next(9999999);
             FinalRingDataForRealThisTime[ring] = new RingData
             (
                 sapi,
@@ -560,7 +553,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
         }
         //Given a range of rings, erase them and mangle the worldgen params
-        private void DeleteRingRange(int fromRing, int toRing) 
+        private void DeleteRingRange(int fromRing, int toRing)
         {
             List<Vec2i> regionCoordsToDelete = new List<Vec2i>();
             int chSize = sapi.WorldManager.ChunkSize;
@@ -609,21 +602,21 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             /// Note less or equal == we want to include the regions along the "to" coordinate
             /// This gets the largest sections of the zone to delete.
-            for (int i = FromOutsideRegionXorZ; i <= ToOutsideRegionXorZ; i++) 
+            for (int i = FromOutsideRegionXorZ; i <= ToOutsideRegionXorZ; i++)
             {
                 for (int j = FromOutsideRegionXorZ; j <= FromInsideRegionXorZ; j++)
                 {
                     regionCoordsToDelete.Add(new Vec2i(i, j));
                 }
 
-                for (int j = ToInsideRegionXorZ; j <= ToOutsideRegionXorZ; j++) 
+                for (int j = ToInsideRegionXorZ; j <= ToOutsideRegionXorZ; j++)
                 {
                     regionCoordsToDelete.Add(new Vec2i(i, j));
                 }
             }
 
             /// Here we get the remaining "slices" in the middle of the area.
-            for (int i = FromInsideRegionXorZ + 1; i < ToInsideRegionXorZ; i++) 
+            for (int i = FromInsideRegionXorZ + 1; i < ToInsideRegionXorZ; i++)
             {
                 for (int j = FromOutsideRegionXorZ; j <= FromInsideRegionXorZ; j++)
                 {
@@ -633,7 +626,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 for (int j = ToInsideRegionXorZ; j <= ToOutsideRegionXorZ; j++)
                 {
                     regionCoordsToDelete.Add(new Vec2i(j, i));
-                } 
+                }
             }
 
             foreach (var i in regionCoordsToDelete)
@@ -650,7 +643,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
             return;
         }
-        
+
         public void TriggerGreatDecay(int fromRing, int toRing, bool flushCache)
         {
             //We are not allowed to regen ring 0 (the innermost safe zone). This hardcodes that in even if players let the stability get to 0
@@ -691,12 +684,12 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
 
             StopChunkGeneration();
-           /* int chunksGenerating = sapi.WorldManager.CurrentGeneratingChunkCount;
+            /* int chunksGenerating = sapi.WorldManager.CurrentGeneratingChunkCount;
 
-            while (sapi.WorldManager.CurrentGeneratingChunkCount > 0)
-            {
-                sapi.Logger.Event($"Waiting for chunk queue to clear. Current count: {sapi.WorldManager.CurrentGeneratingChunkCount}");
-            }*/
+             while (sapi.WorldManager.CurrentGeneratingChunkCount > 0)
+             {
+                 sapi.Logger.Event($"Waiting for chunk queue to clear. Current count: {sapi.WorldManager.CurrentGeneratingChunkCount}");
+             }*/
 
             if (flushCache)
             {
@@ -744,10 +737,10 @@ namespace Rustwall.ModSystems.RingedGenerator
                         var ringNumber = RingNumberFromWorldPos((int)callerPos.X, (int)callerPos.Z);
 
                         var output = "";
-                        foreach (var item in RingWorldMaps[ringNumber].World_Params)
-                        {
-                            output += item.Key + " | " + item.Value + "\n";
-                        }
+
+                        
+
+                        output += ;
 
                         return TextCommandResult.Success("ring world params for ring " + ringNumber + " are: \n" + output);
                     })
@@ -875,7 +868,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                                     var targetblock = sapi.World.BlockAccessor.GetBlock(targetpos);
 
                                     if (
-                                        targetblock.Code.Domain == "rustwall" && 
+                                        targetblock.Code.Domain == "rustwall" &&
                                         (targetblock.BlockBehaviors.ToList().Find(item => item.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable) is not null &&
                                         (sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(targetpos) is null)
                                         )
