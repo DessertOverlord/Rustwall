@@ -79,8 +79,8 @@ namespace Rustwall.ModSystems.GlobalStability
 
                     data = new globalStabilityRuntimeData()
                     {
-                        nextScoringDays = config.DaysBetweenStormScoring + sapi.World.Calendar.TotalDays,
-                        nextGreatDecayDays = config.DaysBeforeTheGreatDecay + sapi.World.Calendar.TotalDays,
+                        nextScoringDays = Config.DaysBetweenStormScoring + sapi.World.Calendar.TotalDays,
+                        nextGreatDecayDays = Config.DaysBeforeTheGreatDecay + sapi.World.Calendar.TotalDays,
                     };
                 }
 
@@ -165,16 +165,16 @@ namespace Rustwall.ModSystems.GlobalStability
             if (data.nextScoringDays - sapi.World.Calendar.TotalDays < 0)
             {
                 int numSamples = 1;
-                if (sapi.World.Calendar.TotalDays - data.nextScoringDays > config.DaysBetweenStormScoring)
+                if (sapi.World.Calendar.TotalDays - data.nextScoringDays > Config.DaysBetweenStormScoring)
                 {
-                    numSamples = (int)(data.nextScoringDays - sapi.World.Calendar.TotalDays / config.DaysBetweenStormScoring);
+                    numSamples = (int)(data.nextScoringDays - sapi.World.Calendar.TotalDays / Config.DaysBetweenStormScoring);
                 }
 
-                if (numSamples > config.DaysBeforeTheGreatDecay / config.DaysBetweenStormScoring ) { numSamples = (int)(config.DaysBeforeTheGreatDecay / config.DaysBetweenStormScoring); }
+                if (numSamples > Config.DaysBeforeTheGreatDecay / Config.DaysBetweenStormScoring ) { numSamples = (int)(Config.DaysBeforeTheGreatDecay / Config.DaysBetweenStormScoring); }
 
                 for (int i = 0; i < numSamples; i++)
                 {
-                    data.nextScoringDays = data.nextScoringDays + config.DaysBetweenStormScoring;
+                    data.nextScoringDays = data.nextScoringDays + Config.DaysBetweenStormScoring;
                     data.scores.Add(globalStabilityRatio);
                     sapi.Logger.Audit("Score of " + globalStabilityRatio + " Added to score list");
                 }
@@ -188,7 +188,7 @@ namespace Rustwall.ModSystems.GlobalStability
                 float averageScore = totalScore / data.scores.Count;
                 data.scores.Clear();
 
-                data.nextGreatDecayDays = sapi.World.Calendar.TotalDays + config.DaysBeforeTheGreatDecay;
+                data.nextGreatDecayDays = sapi.World.Calendar.TotalDays + Config.DaysBeforeTheGreatDecay;
                 var ringedGenModSys = sapi.ModLoader.GetModSystem<RingedGeneratorSystem>();
                 ringedGenModSys.TriggerGreatDecay(1.0f - averageScore, true);
                 sapi.Logger.Audit("Great decay triggered with average score of: " + averageScore);
@@ -212,7 +212,7 @@ namespace Rustwall.ModSystems.GlobalStability
                 double damageChanceMultiplier;
                 if (sapi.ModLoader.GetModSystem<TemporalStormHandlerSystem>().IsStormActive())
                 {
-                    damageChanceMultiplier = config.TemporalStormDamageMultiplier;
+                    damageChanceMultiplier = Config.TemporalStormDamageMultiplier;
                 }
                 else
                 {
@@ -225,7 +225,7 @@ namespace Rustwall.ModSystems.GlobalStability
                 {
                     //This gives us a 1/288 chance every 10 seconds to damage the block. In theory, this should mean a block gets damage ~once every in-game day.
                     //Diving by damageChanceMultiplier means that it is 5x more likely to hit the random chance.
-                    if (rand.Next((int)(config.ChanceToBreakSimple / damageChanceMultiplier)) == 0)
+                    if (rand.Next((int)(Config.ChanceToBreakSimple / damageChanceMultiplier)) == 0)
                     {
                         //Feeding nulls into this function is okay because IPlayer and BlockSel are only used to create sounds; for our purposes, they are not needed.
                         RBitem.DamageOneStage(api.World, null, null);
@@ -233,7 +233,7 @@ namespace Rustwall.ModSystems.GlobalStability
                 }
                 else
                 {
-                    if (rand.Next((int)(config.ChanceToBreakComplex / damageChanceMultiplier)) == 0)
+                    if (rand.Next((int)(Config.ChanceToBreakComplex / damageChanceMultiplier)) == 0)
                     {
                         RBitem.DamageOneStage(api.World, null, null);
                     }

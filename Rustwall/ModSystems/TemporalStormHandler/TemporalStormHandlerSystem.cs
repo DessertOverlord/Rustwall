@@ -48,7 +48,7 @@ namespace Rustwall.ModSystems.TemporalStormHandler
             sapi.Event.GameWorldSave += Event_GameWorldSave;
 
             //config = sapi.LoadModConfig<TemporalStormConfig>("rustwall_temporalstormconfig.json");
-            var testvar = config.TemporalStormDaysRemovedPerKill;
+            var testvar = Config.TemporalStormDaysRemovedPerKill;
 
         }
 
@@ -89,7 +89,7 @@ namespace Rustwall.ModSystems.TemporalStormHandler
                   entity.GetName().Contains("bowtorn")))
             {
                 //Add the offset; onTempStormTick only runs every 2 seconds, so we need a buffer in case players kill multiple mobs inside of the 2 second window
-                Patch_onTempStormTick.currentStormOffset += config.TemporalStormDaysRemovedPerKill;
+                Patch_onTempStormTick.currentStormOffset += Config.TemporalStormDaysRemovedPerKill;
                 //Patch_onTempStormTick.writeData = true;
                 Debug.WriteLine("Time subtracted");
             }

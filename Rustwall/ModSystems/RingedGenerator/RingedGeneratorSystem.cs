@@ -70,8 +70,8 @@ namespace Rustwall.ModSystems.RingedGenerator
 
             sapi.Event.ServerRunPhase(EnumServerRunPhase.WorldReady, () => 
             {
-                ringWidth = config.RingWidth;
-                safeZoneSize = config.SafeZoneSize;
+                ringWidth = Config.RingWidth;
+                safeZoneSize = Config.SafeZoneSize;
                 int RegionMapSizeX = -1;
 
                 /// This calculates map size relative to the resolution of the rings
@@ -250,7 +250,6 @@ namespace Rustwall.ModSystems.RingedGenerator
             region.ClimateMap.Data = newClimateData;
 
             var newForestData = new int[region.ForestMap.Size * region.ForestMap.Size];
-            /// This needs some edits... should not be putting in the current ClimateMap, we need to use the modified one.
             if (template.forestData > -1)
             {
                 newForestData.Fill(template.forestData);
@@ -392,9 +391,9 @@ namespace Rustwall.ModSystems.RingedGenerator
             if (sapi.WorldManager.SaveGame.IsNew || flushCache)
             {
                 FinalRingDataForRealThisTime = [];
-                if (config.RingTemplates.Count > 0)
+                if (Config.RingTemplates.Count > 0)
                 {
-                    foreach (var item in config.RingTemplates)
+                    foreach (var item in Config.RingTemplates)
                     {
                         if (item.FromRing > item.ToRing)
                         {
@@ -510,7 +509,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             
             foreach (var wgparam in Enum.GetValues<EnumWorldGenParameters>())
             {
-                var natfl = NatFloat.create((EnumDistribution)config.RandomizationDistribution, WorldgenAverageParams[(int)wgparam], WorldgenVarianceParams[(int)wgparam]);
+                var natfl = NatFloat.create((EnumDistribution)Config.RandomizationDistribution, WorldgenAverageParams[(int)wgparam], WorldgenVarianceParams[(int)wgparam]);
                 newParams.Add(wgparam, natfl.nextFloat());
             }
 

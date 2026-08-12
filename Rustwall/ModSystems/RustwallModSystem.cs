@@ -1,6 +1,7 @@
 ﻿using HarmonyLib;
 using Rustwall.Configs;
 using System;
+using System.IO;
 using Vintagestory.API.Common;
 using Vintagestory.API.Server;
 
@@ -9,7 +10,7 @@ namespace Rustwall.ModSystems
     public abstract class RustwallModSystem : ModSystem
     {
         protected ICoreServerAPI sapi;
-        public static RustwallConfig config { get; private set; }
+        public static RustwallConfig Config { get; private set; }
         private readonly string configName = "rustwall.json";
         public override void StartServerSide(ICoreServerAPI api)
         {
@@ -27,25 +28,25 @@ namespace Rustwall.ModSystems
         {
             try
             {
-                config = sapi.LoadModConfig<RustwallConfig>(configName);
+                Config = sapi.LoadModConfig<RustwallConfig>(configName);
             }
             catch (Exception)
             {
                 sapi.Server.Logger.Error("Exception loading Rustwall config at " + configName);
             }
 
-            if (config == null)
+            if (Config == null)
             {
                 sapi.Server.Logger.Error("Rustwall config not loaded correctly, initializing default.\nThis is normal on the first load.");
 
-                config = new RustwallConfig();
-                sapi.StoreModConfig(config, configName);
+                Config = new RustwallConfig();
+                sapi.StoreModConfig(Config, configName);
             }
         }
 
         public void ReloadConfig()
         {
-            config = null;
+            Config = null;
 
             LoadConfig();
         }
