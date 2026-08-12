@@ -160,10 +160,8 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                 globalStabSys = sapi.ModLoader.GetModSystem<GlobalStabilitySystem>();
                 globalStabSys.allStableBlockEntities.Add(Pos);
 
-                RustwallModSystem rwmodsys = sapi.ModLoader.GetModSystem<RustwallModSystem>();
-
-                GracePeriodDurationRepairOneStage = rwmodsys.config.GracePeriodDurationRepairOneStage;
-                GracePeriodDurationRepairFully = rwmodsys.config.GracePeriodDurationRepairFully;
+                GracePeriodDurationRepairOneStage = RustwallModSystem.config.GracePeriodDurationRepairOneStage;
+                GracePeriodDurationRepairFully = RustwallModSystem.config.GracePeriodDurationRepairFully;
             }
         }
 

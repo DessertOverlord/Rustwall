@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
@@ -117,12 +118,12 @@ namespace Rustwall.ModSystems.RingedGenerator
                 {
                     int ringRing = -1;
 
-                    //because regionX or Z cannot have decimal values and the midpoint always contains 0.5 (because there's an even number)
-                    //regionX and regionZ can never be equal to the midpoint, therefore only evaling greater and less than is okay.
+                    /// because regionX or Z cannot have decimal values and the midpoint always contains 0.5 (because there's an even number)
+                    /// regionX and regionZ can never be equal to the midpoint, therefore only evaling greater and less than is okay.
                     var regionXOffset = regionX - regionMidPoint > 0 ? regionX + safezonediff : regionX - safezonediff;
                     var regionZOffset = regionZ - regionMidPoint > 0 ? regionZ + safezonediff : regionZ - safezonediff;
 
-                    //Region offsets are relative to the center of the map and tell us how far we are from the center point.
+                    /// Region offsets are relative to the center of the map and tell us how far we are from the center point.
                     ringRing = (int)((double.Max(Math.Abs(regionXOffset - regionMidPoint), Math.Abs(regionZOffset - regionMidPoint)) - 0.5) / ringWidth);
 
                     return ringRing;
@@ -390,6 +391,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             /// This will erase the current world generation options from the savegame and ensure they are up-to-date.
             if (sapi.WorldManager.SaveGame.IsNew || flushCache)
             {
+                FinalRingDataForRealThisTime = [];
                 if (config.RingTemplates.Count > 0)
                 {
                     foreach (var item in config.RingTemplates)
@@ -475,11 +477,13 @@ namespace Rustwall.ModSystems.RingedGenerator
             {
                 templateList[kvp.Key] = kvp.Value.template;
             }
+            sapi.WorldManager.SaveGame.StoreData("rustwallRingData", SerializerUtil.Serialize(new byte[0]));
             sapi.WorldManager.SaveGame.StoreData("rustwallRingData", SerializerUtil.Serialize(templateList));
         }
 
         private void LoadWorldgenData()
         {
+            FinalRingDataForRealThisTime = [];
             var retrievedTemplates = sapi.WorldManager.SaveGame.GetData<Dictionary<int, RGWorldgenTemplate>>("rustwallRingData");
             if (retrievedTemplates is not null)
             {
@@ -688,6 +692,13 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
 
             StopChunkGeneration();
+           /* int chunksGenerating = sapi.WorldManager.CurrentGeneratingChunkCount;
+
+            while (sapi.WorldManager.CurrentGeneratingChunkCount > 0)
+            {
+                sapi.Logger.Event($"Waiting for chunk queue to clear. Current count: {sapi.WorldManager.CurrentGeneratingChunkCount}");
+            }*/
+
             if (flushCache)
             {
                 InitRingedWorldGenerator(flushCache);

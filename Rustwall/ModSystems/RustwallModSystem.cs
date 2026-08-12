@@ -1,9 +1,7 @@
 ﻿using HarmonyLib;
 using Rustwall.Configs;
 using System;
-using System.Diagnostics;
 using Vintagestory.API.Common;
-using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 
 namespace Rustwall.ModSystems
@@ -11,7 +9,7 @@ namespace Rustwall.ModSystems
     public abstract class RustwallModSystem : ModSystem
     {
         protected ICoreServerAPI sapi;
-        public RustwallConfig config { get; private set; }
+        public static RustwallConfig config { get; private set; }
         private readonly string configName = "rustwall.json";
         public override void StartServerSide(ICoreServerAPI api)
         {
