@@ -25,7 +25,7 @@ namespace Rustwall.RWItem
         {
             IWorldAccessor world = byEntity.World;
             if (blockSel is null) { return; }
-            BlockEntityRebuildable ber = world.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(blockSel.Position);
+            BERebuildable ber = world.BlockAccessor.GetBlockEntity<BERebuildable>(blockSel.Position);
             IPlayer byplayer = (byEntity as EntityPlayer)?.Player;
 
             if (ber is not null && byplayer is not null)

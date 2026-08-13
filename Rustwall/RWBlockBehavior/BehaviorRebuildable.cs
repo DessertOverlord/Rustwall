@@ -9,7 +9,7 @@ using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
-using static Rustwall.RWBlockEntity.BERebuildable.BlockEntityRebuildable;
+using static Rustwall.RWBlockEntity.BERebuildable.BERebuildable;
 
 namespace Rustwall.RWBehaviorRebuildable
 {
@@ -45,7 +45,7 @@ namespace Rustwall.RWBehaviorRebuildable
         {
             handling = EnumHandling.PreventSubsequent;
             ItemSlot slot = byPlayer.InventoryManager.ActiveHotbarSlot;
-            BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BlockEntityRebuildable;
+            BERebuildable be = world.BlockAccessor.GetBlockEntity(blockSel.Position) as BERebuildable;
 
             IServerPlayer serverPlayer = world.Side == EnumAppSide.Server ? (byPlayer as IServerPlayer) : null;
 
@@ -56,28 +56,28 @@ namespace Rustwall.RWBehaviorRebuildable
                 return true;
             }
 
-            if (be.rebuildStage == be.maxStage)
+            if (be.CurentRebuildStage == be.MaxStage)
             {
                 serverPlayer?.SendIngameError("rustwall:interact-fullyrepaired");
                 return true;
             }
 
-            if (be.repairLock)
+            if (be.RepairLock)
             {
                 serverPlayer?.SendIngameError("rustwall:interact-repairlock");
                 return true;
             }
 
             //if the block is not able to be partially repaired, this resets the repair lock on the block on the next interaction once it breaks fully
-            if (be.repairLock && be.rebuildStage == 0 && be.itemsUsedThisStage == 0)
+            if (be.RepairLock && be.CurentRebuildStage == 0 && be.ItemsUsedThisStage == 0)
             {
-                be.repairLock = false;
+                be.RepairLock = false;
             }
 
             //checks if the block needs to be repaired or is repair locked
-            if (be.rebuildStage < numStages && !be.repairLock)
+            if (be.CurentRebuildStage < numStages && !be.RepairLock)
             {
-                AssetLocation assetThisStage = new AssetLocation(itemPerStage[be.rebuildStage]);
+                AssetLocation assetThisStage = new AssetLocation(itemPerStage[be.CurentRebuildStage]);
 
                 if (assetThisStage.Path == "wrench-*")
                 {
@@ -96,7 +96,7 @@ namespace Rustwall.RWBehaviorRebuildable
                     (
                         assetThisStage.Path == "wrench-*" &&
                         allWrenchItemStacks.Any(x => (x.Id == slot.Itemstack.Id)) &&
-                        slot.Itemstack.Item.GetRemainingDurability(slot.Itemstack) >= quantityPerStage[be.rebuildStage]
+                        slot.Itemstack.Item.GetRemainingDurability(slot.Itemstack) >= quantityPerStage[be.CurentRebuildStage]
                     )
                     ||
                     (
@@ -110,7 +110,7 @@ namespace Rustwall.RWBehaviorRebuildable
                         // If we aren't using the admin wrench, subtract durability
                         if (!(slot.Itemstack?.Collectible.Code.Path == "wrench-admin"))
                         {
-                            slot.Itemstack.Item.DamageItem(world, byPlayer.Entity, slot, quantityPerStage[be.rebuildStage]);
+                            slot.Itemstack.Item.DamageItem(world, byPlayer.Entity, slot, quantityPerStage[be.CurentRebuildStage]);
                         }
 
                         bool result = be.RepairByOneStage(world, slot, blockSel, byPlayer);
@@ -125,7 +125,7 @@ namespace Rustwall.RWBehaviorRebuildable
                 }
                 else
                 {
-                    if (slot.Itemstack.Collectible.Code.PathStartsWith("wrench") && slot.Itemstack.Item.GetRemainingDurability(slot.Itemstack) < quantityPerStage[be.rebuildStage])
+                    if (slot.Itemstack.Collectible.Code.PathStartsWith("wrench") && slot.Itemstack.Item.GetRemainingDurability(slot.Itemstack) < quantityPerStage[be.CurentRebuildStage])
                     {
                         serverPlayer?.SendIngameError("rustwall:interact-notenoughdurability");
                     }
@@ -147,13 +147,13 @@ namespace Rustwall.RWBehaviorRebuildable
                 else
                 {
                     string outputText = "";
-                    if (be.rebuildStage == be.maxStage)
+                    if (be.CurentRebuildStage == be.MaxStage)
                     {
                         outputText = "Operational";
                     }
-                    else if (be.rebuildStage > 0)
+                    else if (be.CurentRebuildStage > 0)
                     {
-                        if (be.repairLock)
+                        if (be.RepairLock)
                         {
                             outputText = "Operational";
                         }
@@ -167,16 +167,16 @@ namespace Rustwall.RWBehaviorRebuildable
                         outputText = "Broken";
                     }
 
-                    int curStability = be.curStability;
+                    int curStability = be.CurStability;
 
                     //if (world?.Api.Side == EnumAppSide.Client && (world?.Api as ICoreClientAPI)?.Settings.Bool.Get("extendedDebugInfo") == true)
                     {
-                        string machineType = be.rebuildableBlockType == EnumRebuildableBlockType.Simple ? "Simple" : "Complex";
-                        string graceperiod = be.isGracePeriodActive ? (be.gracePeriodExpirationDate - (world.Api as ICoreServerAPI).World.Calendar.ElapsedDays).ToString("#.##") + " days" : "Inactive";
+                        string machineType = be.RebuildableBlockType == EnumRebuildableBlockType.Simple ? "Simple" : "Complex";
+                        string graceperiod = be.IsGracePeriodActive ? (be.GracePeriodExpirationDate - (world.Api as ICoreServerAPI).World.Calendar.ElapsedDays).ToString("#.##") + " days" : "Inactive";
 
-                        outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + graceperiod);
+                        outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.CurentRebuildStage + "\nMax Rebuild Stage: " + be.MaxStage + "\nItems Used This Stage: " + be.ItemsUsedThisStage + "\nRepair Lock: " + be.RepairLock + "\nGrace Period: " + graceperiod);
 
-                        outputText += ("\nCurrent Global Stability Contribution: " + curStability + "\nMax Global Stability Contribution: " + be.maxStability);
+                        outputText += ("\nCurrent Global Stability Contribution: " + curStability + "\nMax Global Stability Contribution: " + be.MaxStability);
                     }
 
                     Debug.WriteLine(outputText);
@@ -189,7 +189,7 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public override string GetPlacedBlockInfo(IWorldAccessor world, BlockPos pos, IPlayer forPlayer)
         {
-            BlockEntityRebuildable be = world.BlockAccessor.GetBlockEntity(pos) as BlockEntityRebuildable;
+            BERebuildable be = world.BlockAccessor.GetBlockEntity(pos) as BERebuildable;
 
             if (be is null)
             {
@@ -198,13 +198,13 @@ namespace Rustwall.RWBehaviorRebuildable
             else 
             {
                 string outputText = "";
-                if (be.rebuildStage == be.maxStage)
+                if (be.CurentRebuildStage == be.MaxStage)
                 {
                     outputText = "Operational";
                 }
-                else if (be.rebuildStage > 0)
+                else if (be.CurentRebuildStage > 0)
                 {
-                    if (be.repairLock)
+                    if (be.RepairLock)
                     {
                         outputText = "Operational";
                     }
@@ -218,16 +218,16 @@ namespace Rustwall.RWBehaviorRebuildable
                     outputText = "Broken";
                 }
 
-                int curStability = be.curStability;
+                int curStability = be.CurStability;
 
                 if (world?.Api.Side == EnumAppSide.Client && (world?.Api as ICoreClientAPI)?.Settings.Bool.Get("extendedDebugInfo") == true)
                 {
-                    string machineType = be.rebuildableBlockType == EnumRebuildableBlockType.Simple ? "Simple" : "Complex";
-                    string graceperiod = be.isGracePeriodActive ? (be.gracePeriodExpirationDate - (world.Api as ICoreClientAPI).World.Calendar.ElapsedDays).ToString("#.##") + " days" : "Inactive";
+                    string machineType = be.RebuildableBlockType == EnumRebuildableBlockType.Simple ? "Simple" : "Complex";
+                    string graceperiod = be.IsGracePeriodActive ? (be.GracePeriodExpirationDate - (world.Api as ICoreClientAPI).World.Calendar.ElapsedDays).ToString("#.##") + " days" : "Inactive";
 
-                    outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.rebuildStage + "\nMax Rebuild Stage: " + be.maxStage + "\nItems Used This Stage: " + be.itemsUsedThisStage + "\nRepair Lock: " + be.repairLock + "\nGrace Period: " + graceperiod);
+                    outputText += ("\nType: " + machineType + "\nRebuild Stage: " + be.CurentRebuildStage + "\nMax Rebuild Stage: " + be.MaxStage + "\nItems Used This Stage: " + be.ItemsUsedThisStage + "\nRepair Lock: " + be.RepairLock + "\nGrace Period: " + graceperiod);
 
-                    outputText += ("\nCurrent Global Stability Contribution: " + curStability + "\nMax Global Stability Contribution: " + be.maxStability);
+                    outputText += ("\nCurrent Global Stability Contribution: " + curStability + "\nMax Global Stability Contribution: " + be.MaxStability);
                 }
 
                 return outputText; 
@@ -236,13 +236,13 @@ namespace Rustwall.RWBehaviorRebuildable
 
         public override WorldInteraction[] GetPlacedBlockInteractionHelp(IWorldAccessor world, BlockSelection selection, IPlayer forPlayer, ref EnumHandling handling)
         {
-            var be = selection.Block.GetBlockEntity<BlockEntityRebuildable>(selection);
-            if (be == null || be.rebuildStage == be.maxStage || be.repairLock == true)
+            var be = selection.Block.GetBlockEntity<BERebuildable>(selection);
+            if (be == null || be.CurentRebuildStage == be.MaxStage || be.RepairLock == true)
             {
                 return base.GetPlacedBlockInteractionHelp(world, selection, forPlayer, ref handling);
             }
 
-            int index = be.rebuildStage;
+            int index = be.CurentRebuildStage;
             AssetLocation assetThisStage = new AssetLocation(itemPerStage[index]);
             int quantityThisStage = assetThisStage.Path.StartsWith("wrench") ? 1 : quantityPerStage[index];
             
@@ -263,7 +263,7 @@ namespace Rustwall.RWBehaviorRebuildable
                 itemStackThisStage = [new ItemStack
                     (
                     world.GetItem(assetThisStage) != null ? world.GetItem(assetThisStage) : world.GetBlock(assetThisStage),
-                    quantityThisStage - be.itemsUsedThisStage
+                    quantityThisStage - be.ItemsUsedThisStage
                     )];
             }
 
