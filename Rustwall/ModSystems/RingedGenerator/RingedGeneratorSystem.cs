@@ -31,7 +31,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         private int safeZoneSize;
         private double regionMidPoint;
         public int NumberOfRings { get; private set; }
-        GenMaps mapGenerator { get; set; }
+        GenMaps MapGenerator { get; set; }
         /// <summary>
         /// Unused right now, might be useful later if I want to get deeper into the ore or clay generation weeds
         /// </summary>
@@ -53,7 +53,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         protected override void RustwallStartServerSide()
         {
             /// We access the map generator that Vanilla uses for simplicity so that our region maps line up nicely
-            mapGenerator = sapi.ModLoader.GetModSystem<GenMaps>();
+            MapGenerator = sapi.ModLoader.GetModSystem<GenMaps>();
             RegisterChatCommands();
 
             sapi.Event.ServerRunPhase(EnumServerRunPhase.WorldReady, () =>
@@ -109,17 +109,15 @@ namespace Rustwall.ModSystems.RingedGenerator
                 }
                 else
                 {
-                    int ringRing = -1;
-
                     /// because regionX or Z cannot have decimal values and the midpoint always contains 0.5 (because there's an even number)
                     /// regionX and regionZ can never be equal to the midpoint, therefore only evaling greater and less than is okay.
                     var regionXOffset = regionX - regionMidPoint > 0 ? regionX + safezonediff : regionX - safezonediff;
                     var regionZOffset = regionZ - regionMidPoint > 0 ? regionZ + safezonediff : regionZ - safezonediff;
 
                     /// Region offsets are relative to the center of the map and tell us how far we are from the center point.
-                    ringRing = (int)((double.Max(Math.Abs(regionXOffset - regionMidPoint), Math.Abs(regionZOffset - regionMidPoint)) - 0.5) / ringWidth);
+                    int calculatedRing = (int)((double.Max(Math.Abs(regionXOffset - regionMidPoint), Math.Abs(regionZOffset - regionMidPoint)) - 0.5) / ringWidth);
 
-                    return ringRing;
+                    return calculatedRing;
                 }
             }
             else
@@ -151,7 +149,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             int regionZ = posZ / sapi.WorldManager.RegionSize;
             return RingNumberFromRegion(regionX, regionZ);
         }
-        
+
         /// <summary>
         /// Handles the loading of a region and applies the appropriate worldgen parameters based on the ring number that the region belongs to.
         /// </summary>
@@ -183,10 +181,10 @@ namespace Rustwall.ModSystems.RingedGenerator
             else
             {
                 newBeachData = inputParams.GenMaps_beachGen.GenLayer(
-                    regionX * mapGenerator.noiseSizeBeach,
-                    regionZ * mapGenerator.noiseSizeBeach,
-                    mapGenerator.noiseSizeBeach + 1,
-                    mapGenerator.noiseSizeBeach + 1
+                    regionX * MapGenerator.noiseSizeBeach,
+                    regionZ * MapGenerator.noiseSizeBeach,
+                    MapGenerator.noiseSizeBeach + 1,
+                    MapGenerator.noiseSizeBeach + 1
                 );
             }
 
@@ -250,10 +248,10 @@ namespace Rustwall.ModSystems.RingedGenerator
             {
                 int pad = 2;
                 newClimateData = inputParams.GenMaps_climateGen.GenLayer(
-                    regionX * mapGenerator.noiseSizeClimate - pad,
-                    regionZ * mapGenerator.noiseSizeClimate - pad,
-                    mapGenerator.noiseSizeClimate + 2 * pad,
-                    mapGenerator.noiseSizeClimate + 2 * pad
+                    regionX * MapGenerator.noiseSizeClimate - pad,
+                    regionZ * MapGenerator.noiseSizeClimate - pad,
+                    MapGenerator.noiseSizeClimate + 2 * pad,
+                    MapGenerator.noiseSizeClimate + 2 * pad
                 );
             }
 
@@ -268,10 +266,10 @@ namespace Rustwall.ModSystems.RingedGenerator
             {
                 inputParams.GenMaps_forestGen.SetInputMap(region.ClimateMap, region.ForestMap);
                 newForestData = inputParams.GenMaps_forestGen.GenLayer(
-                    regionX * mapGenerator.noiseSizeForest,
-                    regionZ * mapGenerator.noiseSizeForest,
-                    mapGenerator.noiseSizeForest + 1,
-                    mapGenerator.noiseSizeForest + 1
+                    regionX * MapGenerator.noiseSizeForest,
+                    regionZ * MapGenerator.noiseSizeForest,
+                    MapGenerator.noiseSizeForest + 1,
+                    MapGenerator.noiseSizeForest + 1
                 );
             }
 
@@ -314,10 +312,10 @@ namespace Rustwall.ModSystems.RingedGenerator
             {
                 int pad = TerraGenConfig.landformMapPadding;
                 newLandformData = inputParams.GenMaps_landformsGen.GenLayer(
-                    regionX * mapGenerator.noiseSizeLandform - pad,
-                    regionZ * mapGenerator.noiseSizeLandform - pad,
-                    mapGenerator.noiseSizeLandform + 2 * pad,
-                    mapGenerator.noiseSizeLandform + 2 * pad);
+                    regionX * MapGenerator.noiseSizeLandform - pad,
+                    regionZ * MapGenerator.noiseSizeLandform - pad,
+                    MapGenerator.noiseSizeLandform + 2 * pad,
+                    MapGenerator.noiseSizeLandform + 2 * pad);
             }
 
             region.LandformMap.Data = newLandformData;
@@ -334,10 +332,10 @@ namespace Rustwall.ModSystems.RingedGenerator
             {
                 int opad = 5;
                 newOceanData = inputParams.GenMaps_oceanGen.GenLayer(
-                    regionX * mapGenerator.noiseSizeOcean - opad,
-                    regionZ * mapGenerator.noiseSizeOcean - opad,
-                    mapGenerator.noiseSizeOcean + 2 * opad,
-                    mapGenerator.noiseSizeOcean + 2 * opad
+                    regionX * MapGenerator.noiseSizeOcean - opad,
+                    regionZ * MapGenerator.noiseSizeOcean - opad,
+                    MapGenerator.noiseSizeOcean + 2 * opad,
+                    MapGenerator.noiseSizeOcean + 2 * opad
                 );
             }
 
@@ -497,7 +495,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             {
                 templateList[kvp.Key] = kvp.Value.Template;
             }
-            sapi.WorldManager.SaveGame.StoreData("rustwallRingData", SerializerUtil.Serialize(new byte[0]));
+            sapi.WorldManager.SaveGame.StoreData("rustwallRingData", SerializerUtil.Serialize(Array.Empty<byte>()));
             sapi.WorldManager.SaveGame.StoreData("rustwallRingData", SerializerUtil.Serialize(templateList));
         }
 
@@ -528,7 +526,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         /// <param name="ring"></param>
         private void RandomizeParams(int ring)
         {
-            Dictionary<EnumWorldGenParameters, float> newParams = new();
+            Dictionary<EnumWorldGenParameters, float> newParams = [];
 
             //var WorldgenMinParams = new List<float> { 0.5f, 0, 0, -1, 0.1f, 0.1f, 0, 0 };
             //var WorldgenMaxParams = new List<double> { 1.5, 5, 5, 1, 1, 4, 1, 0.4 };
@@ -541,7 +539,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                 newParams.Add(wgparam, natfl.nextFloat());
             }
 
-            Random rand = new Random();
+            Random rand = new();
             int newSeed = sapi.WorldManager.Seed + rand.Next(9999999);
             FinalRingDataForRealThisTime[ring] = new RingData
             (
@@ -601,8 +599,7 @@ namespace Rustwall.ModSystems.RingedGenerator
         /// <param name="toRing"></param>
         private void DeleteRingRange(int fromRing, int toRing)
         {
-            List<Vec2i> regionCoordsToDelete = new List<Vec2i>();
-            int chSize = sapi.WorldManager.ChunkSize;
+            List<Vec2i> regionCoordsToDelete = [];
             int chunksInRegion = (sapi.WorldManager.RegionSize / sapi.WorldManager.ChunkSize);
             int DeletionZoneWidthInRegions = ((toRing - fromRing) + 1) * ringWidth;
 
@@ -822,7 +819,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
                         bool allmax = ((Func<bool>)(() =>
                         {
-                            int[] data = sapi.WorldManager.GetMapRegion((int)args.Caller.Pos.X / regionSize, (int)args.Caller.Pos.Z / regionSize).ForestMap.Data.ToArray();
+                            int[] data = [.. sapi.WorldManager.GetMapRegion((int)args.Caller.Pos.X / regionSize, (int)args.Caller.Pos.Z / regionSize).ForestMap.Data];
                             IMapRegion mapRegion = sapi.WorldManager.GetMapRegion((int)args.Caller.Pos.X / regionSize, (int)args.Caller.Pos.Z / regionSize);
                             foreach (int item in data)
                             {
@@ -905,10 +902,10 @@ namespace Rustwall.ModSystems.RingedGenerator
                         string output = "";
 
                         Vec3d fromPosd = (Vec3d)args[0];
-                        Vec3i fromPos = new Vec3i((int)fromPosd.X, (int)fromPosd.Y, (int)fromPosd.Z);
+                        Vec3i fromPos = new((int)fromPosd.X, (int)fromPosd.Y, (int)fromPosd.Z);
 
                         Vec3d toPosd = (Vec3d)args[1];
-                        Vec3i toPos = new Vec3i((int)toPosd.X, (int)toPosd.Y, (int)toPosd.Z);
+                        Vec3i toPos = new((int)toPosd.X, (int)toPosd.Y, (int)toPosd.Z);
 
                         if (fromPos.X > toPos.X)
                         {
@@ -931,7 +928,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                             {
                                 for (int z = fromPos.Z; z <= toPos.Z; z++)
                                 {
-                                    BlockPos targetpos = new BlockPos(x, y, z);
+                                    BlockPos targetpos = new(x, y, z);
                                     var targetblock = sapi.World.BlockAccessor.GetBlock(targetpos);
 
                                     if (
