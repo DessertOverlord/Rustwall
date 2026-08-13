@@ -2,95 +2,92 @@
 using Rustwall.ModSystems.GlobalStability;
 using Rustwall.RWBehaviorRebuildable;
 using Rustwall.RWEntityBehavior;
-using System;
-using System.Diagnostics;
 using System.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
-using Vintagestory.API.Util;
 using Vintagestory.GameContent;
 
 namespace Rustwall.RWBlockEntity.BERebuildable
 {
-    public abstract class BlockEntityRebuildable : BlockEntity
+    public abstract class BERebuildable : BlockEntity
     {
         /// <summary>
         /// Maximum number of rebuild stages
         /// </summary>
-        public int maxStage { get; private set; }
+        public int MaxStage { get; private set; }
         /// <summary>
         /// Current rebuild stage
         /// </summary>
-        public int rebuildStage;
+        public int CurentRebuildStage { get; protected set; }
         /// <summary>
         /// Number of items used to repair; typically items work towards completing a stage
         /// </summary>
-        public int itemsUsedThisStage;
+        public int ItemsUsedThisStage { get; protected set; }
         /// <summary>
         /// Whether or not repairs are disabled; used for complex machines
         /// </summary>
-        public bool repairLock;
+        public bool RepairLock { get; protected set; }
         /// <summary>
         /// Simple bool for whether or not the machine is fully repaired.
         /// </summary>
-        public bool isFullyRepaired { get { return rebuildStage >= maxStage; } }
+        public bool IsFullyRepaired { get { return CurentRebuildStage >= MaxStage; } }
         /// <summary>
         /// Easy way to access this BE's own behavior
         /// </summary>
-        public BehaviorRebuildable ownBehavior;
-        ///
-        /// 
-        /// 
-        public double gracePeriodAddtlTimeOneStage { get; private set; } = 0;
+        public BehaviorRebuildable OwnBehavior { get; private set; }
+
+        // this was used for troubleshooting, I don't think I need it anymore
+        //public double GracePeriodAddtlTimeOneStage { get; private set; } = 0;
 
         /// <summary>
         /// Simple bool for whether or not the grace period is currently active.
         /// Uses null checks to avoid crashes from server-side or client-side access.
         /// </summary>
-        public bool isGracePeriodActive
+        public bool IsGracePeriodActive
         {
             get
             {
                 if (sapi is not null)
                 {
-                    return gracePeriodExpirationDate > sapi.World.Calendar.ElapsedDays;
+                    return GracePeriodExpirationDate > sapi.World.Calendar.ElapsedDays;
                 }
                 else
                 {
-                    return gracePeriodExpirationDate > capi.World.Calendar.ElapsedDays;
+                    return GracePeriodExpirationDate > capi.World.Calendar.ElapsedDays;
                 }
             }
         }
         /// <summary>
         /// Date in calendar days when the grace period will expire. Easier to calculate with.
         /// </summary>
-        public double gracePeriodExpirationDate { get; set; }
+        public double GracePeriodExpirationDate { get; set; }
         public double GracePeriodDurationRepairOneStage { get; private set; }
         public double GracePeriodDurationRepairFully { get; private set; }
-        public GlobalStabilitySystem globalStabSys;
-        public int curStability { get; private set; } 
-        public int maxStability { get; private set; } 
+        public int CurStability { get; private set; }
+        public int MaxStability { get; private set; }
 
-        public ICoreServerAPI sapi;
-        public ICoreClientAPI capi;
+        private GlobalStabilitySystem globalStabSys;
+
+        protected ICoreServerAPI sapi;
+        protected ICoreClientAPI capi;
         /// <summary>
         /// String for the rebuildable block ID / hash code, used to determine if the
         /// items needed to repair a block have changed.
         /// </summary>
         private string curRebID = "";
-        public abstract EnumRebuildableBlockType rebuildableBlockType { get; }
-        public virtual bool canRepairBeforeBroken { 
-            get 
+        public abstract EnumRebuildableBlockType RebuildableBlockType { get; }
+        public virtual bool CanRepairBeforeBroken
+        {
+            get
             {
-                if (rebuildableBlockType == EnumRebuildableBlockType.Simple)
+                if (RebuildableBlockType == EnumRebuildableBlockType.Simple)
                 {
                     return true;
                 }
                 else return false;
-            } 
-        
+            }
         }
 
         public enum EnumRebuildableBlockType
@@ -104,9 +101,10 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             ActivateAnimations = 1337,
             DeactivateAnimations = 1338
         }
-        
-        public bool animatible { get { return GetBehavior<BEBehaviorAnimatable>() is not null; } }
-        BlockEntityAnimationUtil animUtil
+
+        public bool Animatible { get { return GetBehavior<BEBehaviorAnimatable>() is not null; } }
+
+        BlockEntityAnimationUtil AnimUtil
         {
             get { return GetBehavior<BEBehaviorAnimatable>()?.animUtil; }
         }
@@ -124,25 +122,14 @@ namespace Rustwall.RWBlockEntity.BERebuildable
                 capi = api as ICoreClientAPI;
             }
 
-            //Must be done client-side
-            /// TODO: Correct for complex vs simple machines -- damaged simple machines should still animate!
-            /*if (animatible)
-            {
-                InitAnimations(api);
-                if (Block.Variant["repairstate"] == "repaired")
-                {
-                    ActivateAnimations();
-                }
-            }*/
-
-            ownBehavior = Block.BlockBehaviors.ToList().Find(x => x.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable;
-            maxStability = GetBehavior<BEBehaviorGloballyStable>().properties["value"].AsInt();
-            maxStage = ownBehavior.numStages;
+            OwnBehavior = Block.BlockBehaviors.ToList().Find(x => x.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable;
+            MaxStability = GetBehavior<BEBehaviorGloballyStable>().properties["value"].AsInt();
+            MaxStage = OwnBehavior.numStages;
 
             string rebuildableID = "";
 
             // Takes all of the items and quantities needed to rebuild a given block and makes what is essentially a hash code for it
-            foreach (var (x, y) in ownBehavior.itemPerStage.Zip(ownBehavior.quantityPerStage))
+            foreach (var (x, y) in OwnBehavior.itemPerStage.Zip(OwnBehavior.quantityPerStage))
             {
                 rebuildableID += x.ToString() + y.ToString();
             }
@@ -154,11 +141,10 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             }
 
             //Global Stability section
-
             if (api.Side == EnumAppSide.Server)
             {
                 globalStabSys = sapi.ModLoader.GetModSystem<GlobalStabilitySystem>();
-                globalStabSys.allStableBlockEntities.Add(Pos);
+                globalStabSys.data.StabilityContributors.Add(Pos);
 
                 GracePeriodDurationRepairOneStage = RustwallModSystem.Config.GracePeriodDurationRepairOneStage;
                 GracePeriodDurationRepairFully = RustwallModSystem.Config.GracePeriodDurationRepairFully;
@@ -202,27 +188,27 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             if (Api.Side == EnumAppSide.Server)
             {
-                globalStabSys.stabilityContributors.Remove(Pos);
-                globalStabSys.allStableBlockEntities.Remove(Pos);
+                globalStabSys.data.StabilityContributors.Remove(Pos);
+                globalStabSys.data.AllStableBlockEntities.Remove(Pos);
             }
         }
 
         protected void RemoveContributor()
-        { 
-            curStability = 0;
+        {
+            CurStability = 0;
             if (globalStabSys is not null)
             {
-                globalStabSys.stabilityContributors.Remove(Pos);
+                globalStabSys.data.StabilityContributors.Remove(Pos);
             }
             MarkDirty(true);
         }
 
         protected void AddContributor()
         {
-            curStability = maxStability;
+            CurStability = MaxStability;
             if (globalStabSys is not null)
             {
-                globalStabSys.stabilityContributors.Add(Pos);
+                globalStabSys.data.StabilityContributors.Add(Pos);
             }
             MarkDirty(true);
         }
@@ -243,29 +229,29 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         {
             base.ToTreeAttributes(tree);
 
-            tree.SetInt("rebuildStage", rebuildStage);
-            tree.SetInt("itemsUsedThisStage", itemsUsedThisStage);
-            tree.SetBool("repairLock", repairLock);
+            tree.SetInt("rebuildStage", CurentRebuildStage);
+            tree.SetInt("itemsUsedThisStage", ItemsUsedThisStage);
+            tree.SetBool("repairLock", RepairLock);
 
             string rebuildableID = "";
-            foreach (var (x, y) in ownBehavior.itemPerStage.Zip(ownBehavior.quantityPerStage))
+            foreach (var (x, y) in OwnBehavior.itemPerStage.Zip(OwnBehavior.quantityPerStage))
             {
                 rebuildableID += x.ToString() + y.ToString();
             }
 
             tree.SetString("rebuildableItemsHash", rebuildableID);
-            tree.SetDouble("gracePeriodExpirationDate", gracePeriodExpirationDate);
+            tree.SetDouble("gracePeriodExpirationDate", GracePeriodExpirationDate);
         }
 
         public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldAccessForResolve)
         {
             base.FromTreeAttributes(tree, worldAccessForResolve);
 
-            rebuildStage = tree.GetAsInt("rebuildStage");
-            itemsUsedThisStage = tree.GetAsInt("itemsUsedThisStage");
-            repairLock = tree.GetAsBool("repairLock") || false;
+            CurentRebuildStage = tree.GetAsInt("rebuildStage");
+            ItemsUsedThisStage = tree.GetAsInt("itemsUsedThisStage");
+            RepairLock = tree.GetAsBool("repairLock") || false;
             curRebID = tree.GetString("rebuildableItemsHash");
-            gracePeriodExpirationDate = tree.GetDouble("gracePeriodExpirationDate");
+            GracePeriodExpirationDate = tree.GetDouble("gracePeriodExpirationDate");
         }
     }
 }
