@@ -1,40 +1,54 @@
 ﻿using ProtoBuf;
 using Rustwall.ModSystems.RingedGenerator;
 using Rustwall.ModSystems.TemporalStormHandler;
-using Rustwall.RWBehaviorRebuildable;
 using Rustwall.RWBlockEntity.BERebuildable;
 using Rustwall.RWEntityBehavior;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using Vintagestory.API.Common;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
-using Vintagestory.GameContent;
 
 namespace Rustwall.ModSystems.GlobalStability
 {
+    [ProtoContract(ImplicitFields = ImplicitFields.AllPublic)]
+    public class GlobalStabilityRuntimeData
+    {
+        public double NextScoringDays { get; set; }
+        public double NextGreatDecayDays { get; set; }
+        public List<float> Scores { get; set; } = [];
+        public int GlobalStability { get; set; }
+        public int PossibleGlobalStability { get; set; } = 0;
+        public float GlobalStabilityRatio 
+        { 
+            get 
+            { 
+                if (PossibleGlobalStability <= 0 || GlobalStability <= 0) { return 0; }
+                return GlobalStability / PossibleGlobalStability; 
+            }
+        }
+        public List<BlockPos> StabilityContributors { get; set; } = [];
+        public List<BlockPos> PreviousStabilityContributors { get; set; } = [];
+        public List<BlockPos> AllStableBlockEntities { get; set; } = [];
+        public List<BlockPos> PreviousStableBlockEntities { get; set; } = [];
+
+        /// <summary>
+        /// Checks if a given BlockPos is in the list of StabilityContributors.
+        /// </summary>
+        /// <param name="pos"></param>
+        /// <returns></returns>
+        public bool IsStabilityContributor(BlockPos pos)
+        {
+            return StabilityContributors.Contains(pos);
+        }
+    }
+
     public class GlobalStabilitySystem : RustwallModSystem
     {
-        [ProtoContract(ImplicitFields = ImplicitFields.AllPublic)]
-        private class globalStabilityRuntimeData
-        {
-            public double nextScoringDays;
-            public double nextGreatDecayDays;
-            public List<float> scores = new List<float>();
-        }
+        public GlobalStabilityRuntimeData data;
 
-        globalStabilityRuntimeData data;
-        //We do not need to store this data at runtime because it is re-assessed every time the world loads
-        public int globalStability { get; private set; } = 0;
-        public int possibleGlobalStability { get; private set; } = 0;
-        public float globalStabilityRatio { get; private set; } = 0;
-        public List<BlockPos> stabilityContributors { get; set; } = new List<BlockPos>();
-        private List<BlockPos> previousStabilityContributors { get; set; } = new List<BlockPos>();
-        public List<BlockPos> allStableBlockEntities { get; set; } = new List<BlockPos> { };
-        private List<BlockPos> previousStableBlockEntities { get; set; } = new List<BlockPos>();
         private ICoreAPI api;
 
         public override void Start(ICoreAPI api)
@@ -59,7 +73,7 @@ namespace Rustwall.ModSystems.GlobalStability
             try
             {
                 byte[] serData = sapi.WorldManager.SaveGame.GetData("globalStabilityRuntimeData");
-                data = SerializerUtil.Deserialize<globalStabilityRuntimeData>(serData);
+                data = SerializerUtil.Deserialize<GlobalStabilityRuntimeData>(serData);
             }
             catch (Exception)
             {
@@ -77,10 +91,10 @@ namespace Rustwall.ModSystems.GlobalStability
                 {
                     sapi.World.Logger.Notification("Failed to load global stability data, will initialize new data set. Normal on first world load.");
 
-                    data = new globalStabilityRuntimeData()
+                    data = new GlobalStabilityRuntimeData()
                     {
-                        nextScoringDays = Config.DaysBetweenStormScoring + sapi.World.Calendar.TotalDays,
-                        nextGreatDecayDays = Config.DaysBeforeTheGreatDecay + sapi.World.Calendar.TotalDays,
+                        NextScoringDays = Config.DaysBetweenStormScoring + sapi.World.Calendar.TotalDays,
+                        NextGreatDecayDays = Config.DaysBeforeTheGreatDecay + sapi.World.Calendar.TotalDays,
                     };
                 }
 
@@ -97,16 +111,16 @@ namespace Rustwall.ModSystems.GlobalStability
                 .WithArgs()
                 .HandleWith((args) =>
                 {
-                    return TextCommandResult.Success("Current Stability: " + globalStability + 
-                                                    "\nPossible Stability: " + possibleGlobalStability + 
-                                                    "\nStability ratio: " + globalStabilityRatio);
+                    return TextCommandResult.Success("Current Stability: " + data.GlobalStability +
+                                                    "\nPossible Stability: " + data.PossibleGlobalStability +
+                                                    "\nStability ratio: " + data.GlobalStabilityRatio);
                 });
         }
 
         private void onGlobalStabilityTick(float dt)
         {
             //Run through all of the GlobalStabilityBlockEntities and update them first
-            /*foreach (var item in allStableBlockEntities)
+            /*foreach (var item in data.allStableBlockEntities)
             {
                 var RBitem = sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(item);
 
@@ -126,85 +140,81 @@ namespace Rustwall.ModSystems.GlobalStability
             }*/
 
             //Checks if there have actually been any changes since last time -- if not we don't care
-            if (!allStableBlockEntities.SequenceEqual(previousStableBlockEntities)) {
+            if (!data.AllStableBlockEntities.SequenceEqual(data.PreviousStableBlockEntities))
+            {
                 //reset our amount
-                possibleGlobalStability = 0;
+                data.PossibleGlobalStability = 0;
                 //for everything in the list, add its maximum stability to the global pool
-                foreach (var bePos in allStableBlockEntities)
+                foreach (var bePos in data.AllStableBlockEntities)
                 {
                     //var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
                     //var beb = sapi.World.BlockAccessor.GetBlockEntity(bePos)?.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-                    var be = sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(bePos);
-                    possibleGlobalStability += be?.maxStability != null ? be.maxStability : 0;
+                    var be = sapi.World.BlockAccessor.GetBlockEntity<BERebuildable>(bePos);
+                    data.PossibleGlobalStability += be?.MaxStability != null ? be.MaxStability : 0;
                 }
                 //add our current working list to the previous list, for future checking
-                previousStableBlockEntities = new List<BlockPos> { };
-                previousStableBlockEntities.AddRange(allStableBlockEntities);
+                data.PreviousStableBlockEntities = new List<BlockPos> { };
+                data.PreviousStableBlockEntities.AddRange(data.AllStableBlockEntities);
             }
 
-            if (!stabilityContributors.SequenceEqual(previousStabilityContributors))
+            if (!data.StabilityContributors.SequenceEqual(data.PreviousStabilityContributors))
             {
-                globalStability = 0;
-            
-                foreach (var bePos in stabilityContributors)
+                data.GlobalStability = 0;
+
+                foreach (var bePos in data.StabilityContributors)
                 {
                     //var beb = be.Behaviors.ToList().Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
                     //var beb = sapi.World.BlockAccessor.GetBlockEntity(bePos)?.Behaviors.Find(x => x.GetType() == typeof(BEBehaviorGloballyStable)) as BEBehaviorGloballyStable;
-                    var be = sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(bePos);
-                    globalStability += be?.curStability != null ? be.curStability : 0;
+                    var be = sapi.World.BlockAccessor.GetBlockEntity<BERebuildable>(bePos);
+                    data.GlobalStability += be?.CurStability != null ? be.CurStability : 0;
                 }
-                previousStabilityContributors = new List<BlockPos> { };
-                previousStabilityContributors.AddRange(stabilityContributors);
-            }
+                data.PreviousStabilityContributors = new List<BlockPos> { };
+                data.PreviousStabilityContributors.AddRange(data.StabilityContributors);
+            }            
 
-            if (possibleGlobalStability <= 0) { globalStabilityRatio = 0; return; }
-
-            globalStabilityRatio = ((float)globalStability / possibleGlobalStability);
-            
             //Assess scoring of the global stability and store the result
-            if (data.nextScoringDays - sapi.World.Calendar.TotalDays < 0)
+            if (data.NextScoringDays - sapi.World.Calendar.TotalDays < 0)
             {
                 int numSamples = 1;
-                if (sapi.World.Calendar.TotalDays - data.nextScoringDays > Config.DaysBetweenStormScoring)
+                if (sapi.World.Calendar.TotalDays - data.NextScoringDays > Config.DaysBetweenStormScoring)
                 {
-                    numSamples = (int)(data.nextScoringDays - sapi.World.Calendar.TotalDays / Config.DaysBetweenStormScoring);
+                    numSamples = (int)(data.NextScoringDays - sapi.World.Calendar.TotalDays / Config.DaysBetweenStormScoring);
                 }
 
-                if (numSamples > Config.DaysBeforeTheGreatDecay / Config.DaysBetweenStormScoring ) { numSamples = (int)(Config.DaysBeforeTheGreatDecay / Config.DaysBetweenStormScoring); }
+                if (numSamples > Config.DaysBeforeTheGreatDecay / Config.DaysBetweenStormScoring) { numSamples = (int)(Config.DaysBeforeTheGreatDecay / Config.DaysBetweenStormScoring); }
 
                 for (int i = 0; i < numSamples; i++)
                 {
-                    data.nextScoringDays = data.nextScoringDays + Config.DaysBetweenStormScoring;
-                    data.scores.Add(globalStabilityRatio);
-                    sapi.Logger.Audit("Score of " + globalStabilityRatio + " Added to score list");
+                    data.NextScoringDays = data.NextScoringDays + Config.DaysBetweenStormScoring;
+                    data.Scores.Add(data.GlobalStabilityRatio);
+                    sapi.Logger.Audit("Score of " + data.GlobalStabilityRatio + " Added to score list");
                 }
             }
 
             //Assess great decay
-            if (data.nextGreatDecayDays - sapi.World.Calendar.TotalDays < 0)
+            if (data.NextGreatDecayDays - sapi.World.Calendar.TotalDays < 0)
             {
                 float totalScore = 0;
-                foreach (var item in data.scores) { totalScore += item; }
-                float averageScore = totalScore / data.scores.Count;
-                data.scores.Clear();
+                foreach (var item in data.Scores) { totalScore += item; }
+                float averageScore = totalScore / data.Scores.Count;
+                data.Scores.Clear();
 
-                data.nextGreatDecayDays = sapi.World.Calendar.TotalDays + Config.DaysBeforeTheGreatDecay;
+                data.NextGreatDecayDays = sapi.World.Calendar.TotalDays + Config.DaysBeforeTheGreatDecay;
                 var ringedGenModSys = sapi.ModLoader.GetModSystem<RingedGeneratorSystem>();
                 ringedGenModSys.TriggerGreatDecay(1.0f - averageScore, true);
                 sapi.Logger.Audit("Great decay triggered with average score of: " + averageScore);
             }
 
             //For all contributing blocks, we need to roll the dice on damaging them by a stage.
-            foreach (var item in stabilityContributors.ToList())
+            foreach (var item in data.StabilityContributors.ToList())
             {
                 //Check if the contributor is actually a rebuildable block. Adds functionality for the future for unbreakable stability contributors.
                 // Also check if it's already destroyed -- no reason to run all of this code if it's already broken.
                 // We ALSO want to check if the machine is a complex machine -- if the complex machine is not fully repaired, don't break it.
-                BlockEntityRebuildable RBitem = sapi.World.BlockAccessor.GetBlockEntity(item) as BlockEntityRebuildable;
-                if (RBitem == null || RBitem.rebuildStage == 0 || (!RBitem.canRepairBeforeBroken && RBitem.repairLock == false)) { continue; }
+                if (sapi.World.BlockAccessor.GetBlockEntity(item) is not BERebuildable RBitem || RBitem.CurentRebuildStage == 0 || (!RBitem.CanRepairBeforeBroken && RBitem.RepairLock == false)) { continue; }
 
                 //Check to see if this item is under a grace period. If so, skip it.
-                if (RBitem.isGracePeriodActive)
+                if (RBitem.IsGracePeriodActive)
                 {
                     continue;
                 }
@@ -219,9 +229,9 @@ namespace Rustwall.ModSystems.GlobalStability
                     damageChanceMultiplier = 1;
                 }
 
-                Random rand = new Random();
+                Random rand = new();
                 //If this item is a simple machine (can be repaired at any time), we need to use a different range of random values
-                if (RBitem.canRepairBeforeBroken)
+                if (RBitem.CanRepairBeforeBroken)
                 {
                     //This gives us a 1/288 chance every 10 seconds to damage the block. In theory, this should mean a block gets damage ~once every in-game day.
                     //Diving by damageChanceMultiplier means that it is 5x more likely to hit the random chance.

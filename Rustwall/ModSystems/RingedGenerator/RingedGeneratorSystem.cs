@@ -885,7 +885,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                     {
                         Vec3d pos = (Vec3d)(args[0]);
 
-                        var be = sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(new BlockPos((int)pos.X, (int)pos.Y, (int)pos.Z));
+                        var be = sapi.World.BlockAccessor.GetBlockEntity<BERebuildable>(new BlockPos((int)pos.X, (int)pos.Y, (int)pos.Z));
                         sapi.World.BlockAccessor.RemoveBlockEntity(be.Pos);
                         be.MarkDirty(true);
 
@@ -934,7 +934,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                                     if (
                                         targetblock.Code.Domain == "rustwall" &&
                                         (targetblock.BlockBehaviors.ToList().Find(item => item.GetType() == typeof(BehaviorRebuildable)) as BehaviorRebuildable) is not null &&
-                                        (sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(targetpos) is null)
+                                        (sapi.World.BlockAccessor.GetBlockEntity<BERebuildable>(targetpos) is null)
                                         )
                                     {
                                         output += "Found " + targetblock.Code + " at " + targetpos + "\n";
@@ -942,7 +942,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                                         sapi.World.BlockAccessor.SetBlock(0, targetpos);
                                         sapi.World.BlockAccessor.SetBlock(targetblock.Id, targetpos);
 
-                                        var maybefixedbe = sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(targetpos);
+                                        var maybefixedbe = sapi.World.BlockAccessor.GetBlockEntity<BERebuildable>(targetpos);
 
                                         if (maybefixedbe is not null)
                                         {
