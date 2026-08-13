@@ -1,14 +1,7 @@
-﻿using Cairo;
-using ProtoBuf;
-using Rustwall.Configs;
-using System;
+﻿using Rustwall.Configs;
 using System.Collections.Generic;
-using System.Text;
-using Vintagestory.API.Common;
-using Vintagestory.API.Datastructures;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
-using Vintagestory.GameContent;
 using Vintagestory.ServerMods;
 
 namespace Rustwall.ModSystems.RingedGenerator
@@ -20,21 +13,16 @@ namespace Rustwall.ModSystems.RingedGenerator
     /// <param name="sapi"></param>
     /// <param name="seed"></param>
     /// <param name="template"></param>
-    public class RingData
+    public class RingData(ICoreServerAPI sapi, int seed, RGWorldgenTemplate template)
     {
-        public RingData(ICoreServerAPI sapi, int seed, RGWorldgenTemplate template)
-        {
-            regionMapLayerGenerators = new RegionMapLayerGenerators(sapi, seed, template);
-            this.template = template;
-        }
         /// <summary>
         /// Gets the region map layer generators for this ring.
         /// </summary>
-        public RegionMapLayerGenerators regionMapLayerGenerators { get; set; }
+        public RegionMapLayerGenerators RegionMapLayerGenerators { get; set; } = new RegionMapLayerGenerators(sapi, seed, template);
         /// <summary>
         /// Template used to make this ring. Stored for handy access.
         /// </summary>
-        public RGWorldgenTemplate template { get; set; } 
+        public RGWorldgenTemplate Template { get; set; } = template;
     }
 
     public class RegionMapLayerGenerators
@@ -42,10 +30,11 @@ namespace Rustwall.ModSystems.RingedGenerator
         public RegionMapLayerGenerators(ICoreServerAPI sapi, int seed, RGWorldgenTemplate template)
         {
             var worldConfig = sapi.World.Config;
-            LatitudeData latdata = new LatitudeData();
-            float tempModifier = (float)template.globalTemperature;
-            float rainModifier = (float)template.globalPrecipitation;
-            float upheavelCommonness = (float)template.upheavelCommonness;
+            LatitudeData latdata = new();
+            /// These aren't used in this version... surely they do something useful...?
+            //float tempModifier = (float)template.globalTemperature;
+            //float rainModifier = (float)template.globalPrecipitation;
+            //float upheavelCommonness = (float)template.upheavelCommonness;
             float landcover = (float)template.landcover;
             float oceanscale = (float)template.oceanscale;
             float landformScale = (float)template.landformScale;
@@ -108,7 +97,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             /// because otherwise HandleRegionLoading is registered too late.
             ///
             /// REVIEW: This is probably not true any more because I am loading later in the process
-            List<XZ> requireLandAt = new() { new XZ(0, 0) };
+            List<XZ> requireLandAt = [new XZ(0, 0)];
 
             GenMaps_oceanGen = GenMaps.GetOceanMapGen(seed + 1873, landcover, TerraGenConfig.oceanMapScale, oceanscale, requireLandAt, false);
             GenMaps_forestGen = GenMaps.GetForestMapGen(seed + 2, TerraGenConfig.forestMapScale);

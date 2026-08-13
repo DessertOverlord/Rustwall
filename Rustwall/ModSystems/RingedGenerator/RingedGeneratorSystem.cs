@@ -171,8 +171,8 @@ namespace Rustwall.ModSystems.RingedGenerator
                 return;
             }
 
-            var template = ringData.template;
-            var inputParams = ringData.regionMapLayerGenerators;
+            var template = ringData.Template;
+            var inputParams = ringData.RegionMapLayerGenerators;
 
             int[] newBeachData = new int[region.BeachMap.Size * region.BeachMap.Size];
 
@@ -495,7 +495,7 @@ namespace Rustwall.ModSystems.RingedGenerator
             var templateList = new Dictionary<int, RGWorldgenTemplate>();
             foreach (var kvp in FinalRingDataForRealThisTime)
             {
-                templateList[kvp.Key] = kvp.Value.template;
+                templateList[kvp.Key] = kvp.Value.Template;
             }
             sapi.WorldManager.SaveGame.StoreData("rustwallRingData", SerializerUtil.Serialize(new byte[0]));
             sapi.WorldManager.SaveGame.StoreData("rustwallRingData", SerializerUtil.Serialize(templateList));
