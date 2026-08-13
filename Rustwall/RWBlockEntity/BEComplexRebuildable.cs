@@ -26,9 +26,9 @@ using Vintagestory.GameContent;
 
 namespace Rustwall.RWBlockEntity.BERebuildable
 {
-    public class BlockEntityComplexRebuildable : BlockEntityRebuildable
+    public class BlockEntityComplexRebuildable : BERebuildable
     {
-        public override EnumRebuildableBlockType rebuildableBlockType { get { return EnumRebuildableBlockType.Complex; } }
+        public override EnumRebuildableBlockType RebuildableBlockType { get { return EnumRebuildableBlockType.Complex; } }
 
         public override void Initialize(ICoreAPI api)
         {
@@ -36,19 +36,19 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             
             if (Block.Variant["repairstate"] == "repaired")
             {
-                rebuildStage = maxStage;
+                CurentRebuildStage = MaxStage;
             }
 
-            if (isFullyRepaired)
+            if (IsFullyRepaired)
             {
                 AddContributor(); 
-                repairLock = true;
+                RepairLock = true;
             }
 
-            if (animatible)
+            if (Animatible)
             {
                 InitAnimations(api);
-                if (isFullyRepaired)
+                if (IsFullyRepaired)
                 {
                     ActivateAnimations();
                 }
@@ -57,18 +57,18 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
         public override bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
         {
-            if (rebuildStage < 0) { return false; }
+            if (CurentRebuildStage < 0) { return false; }
 
-            if (rebuildStage > 0)
+            if (CurentRebuildStage > 0)
             {
                 world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), Pos, -0.25, null, true, 16);
 
-                rebuildStage--;
-                itemsUsedThisStage = 0;
+                CurentRebuildStage--;
+                ItemsUsedThisStage = 0;
 
                 //We only want to make it appear broken if it is fully broken, not partially damaged.
                 //We want to remove a contributor only if it is fully destroyed.
-                if (rebuildStage == 0)
+                if (CurentRebuildStage == 0)
                 {
                     DamageFully(world, byPlayer, blockSel);
                 }
@@ -88,17 +88,17 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             world.BlockAccessor.ExchangeBlock(newBlockID, Pos);
 
             RemoveContributor();
-            repairLock = false;
+            RepairLock = false;
 
-            if (animatible)
+            if (Animatible)
             {
                 (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.DeactivateAnimations);
             }
 
             MarkDirty(true);
 
-            rebuildStage = 0;
-            itemsUsedThisStage = 0;
+            CurentRebuildStage = 0;
+            ItemsUsedThisStage = 0;
         }
 
         public override bool RepairByOneItem(IWorldAccessor world, ItemSlot slot, BlockSelection blockSel, IPlayer byPlayer)
@@ -106,11 +106,11 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             slot.TakeOut(1);
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
             slot.MarkDirty();
-            itemsUsedThisStage++;
+            ItemsUsedThisStage++;
 
             MarkDirty(true);
 
-            if (itemsUsedThisStage >= ownBehavior.quantityPerStage[rebuildStage])
+            if (ItemsUsedThisStage >= OwnBehavior.quantityPerStage[CurentRebuildStage])
             {
                 RepairByOneStage(world, slot, blockSel, byPlayer);
             }
@@ -121,16 +121,16 @@ namespace Rustwall.RWBlockEntity.BERebuildable
         public override bool RepairByOneStage(IWorldAccessor world, ItemSlot slot, BlockSelection blockSel, IPlayer byPlayer)
         {
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
-            itemsUsedThisStage = 0;
-            rebuildStage++;
+            ItemsUsedThisStage = 0;
+            CurentRebuildStage++;
 
-            if (rebuildStage == maxStage)
+            if (CurentRebuildStage == MaxStage)
             {
                 RepairFully(world);
             }
             else
             {
-                gracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairOneStage;
+                GracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairOneStage;
             }
 
             MarkDirty(true);
@@ -144,14 +144,14 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             world.BlockAccessor.ExchangeBlock(newBlockID, Pos);
 
             AddContributor();
-            repairLock = true;
-            if (animatible)
+            RepairLock = true;
+            if (Animatible)
             {
                 (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.ActivateAnimations);
             }
             MarkDirty(true);
                 
-            gracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairFully;
+            GracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairFully;
         }
     }
 }

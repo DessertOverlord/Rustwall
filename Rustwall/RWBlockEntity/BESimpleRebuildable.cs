@@ -1,34 +1,13 @@
-﻿using Microsoft.Win32.SafeHandles;
-using Rustwall.ModSystems.GlobalStability;
-using Rustwall.ModSystems.RebuildableBlock;
-using Rustwall.RWBehaviorRebuildable;
-using Rustwall.RWEntityBehavior;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Runtime.ConstrainedExecution;
-using System.Runtime.InteropServices.Marshalling;
-using System.Text;
-using System.Threading.Tasks;
-using Vintagestory;
-using Vintagestory.API.Client;
-
-
-//using Rustwall.RWBlockBehavior;
+﻿//using Rustwall.RWBlockBehavior;
 using Vintagestory.API.Common;
-using Vintagestory.API.Datastructures;
-using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
-using Vintagestory.API.Util;
-using Vintagestory.GameContent;
 
 
 namespace Rustwall.RWBlockEntity.BERebuildable
 {
-    public class BlockEntitySimpleRebuildable : BlockEntityRebuildable
+    public class BlockEntitySimpleRebuildable : BERebuildable
     {
-        public override EnumRebuildableBlockType rebuildableBlockType { get { return EnumRebuildableBlockType.Simple; } }
+        public override EnumRebuildableBlockType RebuildableBlockType { get { return EnumRebuildableBlockType.Simple; } }
 
         public override void Initialize(ICoreAPI api)
         {
@@ -36,18 +15,18 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             if (Block.Variant["repairstate"] == "repaired")
             {
-                rebuildStage = maxStage;
+                CurentRebuildStage = MaxStage;
             }
 
-            if (rebuildStage > 0)
+            if (CurentRebuildStage > 0)
             {
                 AddContributor();
             }
 
-            if (animatible)
+            if (Animatible)
             {
                 InitAnimations(api);
-                if (rebuildStage > 0)
+                if (CurentRebuildStage > 0)
                 {
                     ActivateAnimations();
                 }
@@ -56,18 +35,18 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
         public override bool DamageOneStage(IWorldAccessor world, IPlayer byPlayer, BlockSelection blockSel)
         {
-            if (rebuildStage < 0) { return false; }
+            if (CurentRebuildStage < 0) { return false; }
 
-            if (rebuildStage > 0)
+            if (CurentRebuildStage > 0)
             {
                 world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), Pos, -0.25, null, true, 16);
 
-                rebuildStage--;
-                itemsUsedThisStage = 0;
+                CurentRebuildStage--;
+                ItemsUsedThisStage = 0;
 
                 //We only want to make it appear broken if it is fully broken, not partially damaged.
                 //We want to remove a contributor only if it is fully destroyed.
-                if (rebuildStage == 0)
+                if (CurentRebuildStage == 0)
                 {
                     DamageFully(world, byPlayer, blockSel);
                 }
@@ -88,7 +67,7 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             RemoveContributor();
 
-            if (animatible)
+            if (Animatible)
             {
                 /// We have to use packet broadcasts so that when the ModSystem (running only server-side) calls to damage the block,
                 /// the animation change gets synchronized to the client.
@@ -97,8 +76,8 @@ namespace Rustwall.RWBlockEntity.BERebuildable
 
             MarkDirty(true);
 
-            rebuildStage = 0;
-            itemsUsedThisStage = 0;
+            CurentRebuildStage = 0;
+            ItemsUsedThisStage = 0;
         }
 
         public override bool RepairByOneItem(IWorldAccessor world, ItemSlot slot, BlockSelection blockSel, IPlayer byPlayer)
@@ -106,11 +85,11 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             slot.TakeOut(1);
             world.PlaySoundAt(new AssetLocation("sounds/effect/latch"), blockSel.Position, -0.25, byPlayer, true, 16);
             slot.MarkDirty();
-            itemsUsedThisStage++;
+            ItemsUsedThisStage++;
 
             MarkDirty(true);
 
-            if (itemsUsedThisStage >= ownBehavior.quantityPerStage[rebuildStage])
+            if (ItemsUsedThisStage >= OwnBehavior.quantityPerStage[CurentRebuildStage])
             {
                 RepairByOneStage(world, slot, blockSel, byPlayer);
             }
@@ -125,23 +104,23 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             world.Api.Logger.Event("RepairByOneStage executed on " + world.Api.Side);
 
             slot.MarkDirty();
-            itemsUsedThisStage = 0;
-            rebuildStage++;
+            ItemsUsedThisStage = 0;
+            CurentRebuildStage++;
 
-            if (rebuildStage == maxStage)
+            if (CurentRebuildStage == MaxStage)
             {
                 RepairFully(world);
             }
             else
             {
-                gracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairOneStage;
+                GracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairOneStage;
             }
 
             //Simple machines should contribute and be animated even if they aren't fully repaired.
-            if (rebuildStage > 0)
+            if (CurentRebuildStage > 0)
             {
                 AddContributor();
-                if (animatible)
+                if (Animatible)
                 {
                     (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.ActivateAnimations);
                 }
@@ -156,14 +135,14 @@ namespace Rustwall.RWBlockEntity.BERebuildable
             int newBlockID = world.GetBlock(Block.CodeWithVariant("repairstate", "repaired")).Id;
             world.BlockAccessor.ExchangeBlock(newBlockID, Pos);
             AddContributor();
-            if (animatible)
+            if (Animatible)
             {
                 //ActivateAnimations();
                 (world.Api as ICoreServerAPI)?.Network.BroadcastBlockEntityPacket(Pos, (int)EnumRebuildableBlockPacket.ActivateAnimations);
             }
             MarkDirty(true);
 
-            gracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairFully;
+            GracePeriodExpirationDate = world.Calendar.ElapsedDays + GracePeriodDurationRepairFully;
         }
     }
 }
