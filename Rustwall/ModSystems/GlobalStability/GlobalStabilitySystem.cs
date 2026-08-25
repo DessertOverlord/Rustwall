@@ -119,26 +119,6 @@ namespace Rustwall.ModSystems.GlobalStability
 
         private void onGlobalStabilityTick(float dt)
         {
-            //Run through all of the GlobalStabilityBlockEntities and update them first
-            /*foreach (var item in data.allStableBlockEntities)
-            {
-                var RBitem = sapi.World.BlockAccessor.GetBlockEntity<BlockEntityRebuildable>(item);
-
-                if (RBitem is not null)
-                {
-                    var globalStabBehav = RBitem.GetBehavior<BEBehaviorGloballyStable>();
-
-                    if (globalStabBehav is not null)
-                    {
-                        globalStabBehav.QueryAndUpdateCurrentStability(0);
-                    }
-
-
-                }
-
-
-            }*/
-
             //Checks if there have actually been any changes since last time -- if not we don't care
             if (!data.AllStableBlockEntities.SequenceEqual(data.PreviousStableBlockEntities))
             {
@@ -153,8 +133,7 @@ namespace Rustwall.ModSystems.GlobalStability
                     data.PossibleGlobalStability += be?.MaxStability != null ? be.MaxStability : 0;
                 }
                 //add our current working list to the previous list, for future checking
-                data.PreviousStableBlockEntities = new List<BlockPos> { };
-                data.PreviousStableBlockEntities.AddRange(data.AllStableBlockEntities);
+                data.PreviousStableBlockEntities = [.. data.AllStableBlockEntities];
             }
 
             if (!data.StabilityContributors.SequenceEqual(data.PreviousStabilityContributors))
@@ -168,8 +147,7 @@ namespace Rustwall.ModSystems.GlobalStability
                     var be = sapi.World.BlockAccessor.GetBlockEntity<BERebuildable>(bePos);
                     data.GlobalStability += be?.CurStability != null ? be.CurStability : 0;
                 }
-                data.PreviousStabilityContributors = new List<BlockPos> { };
-                data.PreviousStabilityContributors.AddRange(data.StabilityContributors);
+                data.PreviousStabilityContributors = [.. data.StabilityContributors];
             }            
 
             //Assess scoring of the global stability and store the result
