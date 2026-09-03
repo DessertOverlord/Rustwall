@@ -4,6 +4,7 @@ using Rustwall.RWBlockEntity.BERebuildable;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
@@ -694,6 +695,8 @@ namespace Rustwall.ModSystems.RingedGenerator
         /// <param name="fromRing"></param>
         /// <param name="toRing"></param>
         /// <param name="flushCache"></param>
+        /// 
+        /// Should become async if I ever fix the chunkdbthread thingy
         public void TriggerGreatDecay(int fromRing, int toRing, bool flushCache)
         {
             //We are not allowed to regen ring 0 (the innermost safe zone). This hardcodes that in even if players let the stability get to 0
@@ -734,12 +737,15 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
 
             StopChunkGeneration();
-            /* int chunksGenerating = sapi.WorldManager.CurrentGeneratingChunkCount;
 
-             while (sapi.WorldManager.CurrentGeneratingChunkCount > 0)
-             {
-                 sapi.Logger.Event($"Waiting for chunk queue to clear. Current count: {sapi.WorldManager.CurrentGeneratingChunkCount}");
-             }*/
+            /// chunkDBThread pausing needs time in the oven, not yet tested very well
+            /*var haltResult = await HaltChunkDBThread();
+
+            if (!haltResult)
+            {
+                sapi.Logger.Error($"Great Decay failed to halt ChunkDBThread to regenerate from ring {fromRing} to {toRing} with flushCache set to {flushCache}. Will not regenerate any terrain. Please re-run manually.");
+                return;
+            }*/
 
             if (flushCache)
             {
@@ -747,6 +753,28 @@ namespace Rustwall.ModSystems.RingedGenerator
             }
             DeleteRingRange(fromRing, toRing);
             StartChunkGeneration();
+        }
+
+        public async Task<bool> HaltChunkDBThread()
+        {
+            //sapi.Logger.Event("Halting chunk DB thread...");
+            int iter = 0;
+            do
+            {
+                sapi.Logger.Notification("Attempting to halt ChunkDBThread, attempt " + ++iter);
+            }
+            while (!sapi.Server.PauseThread("chunkdbthread"));
+            {
+                await Task.Delay(5500);
+                if (iter++ > 10)
+                {
+                    sapi.Logger.Error($"Failed to halt ChunkDBThread after {iter} attempts.");
+                    return false;
+                }
+            }
+
+            sapi.Logger.Event("Chunk DB thread successfully halted.");
+            return true;
         }
 
         /// <summary>
@@ -957,7 +985,9 @@ namespace Rustwall.ModSystems.RingedGenerator
                     })
                     .EndSubCommand()
                 .EndSubCommand()
-                .BeginSubCommand("reload")
+                /// Config reloading doesn't really work well right now. Currently enforcing server restarts to ensure that client and server state updates correctly
+                /// ex. filters, shaders, soil coloration, and other oddities.
+                /*.BeginSubCommand("reload")
                     .BeginSubCommand("config")
                     .WithArgs()
                     .HandleWith(
@@ -970,7 +1000,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                         return TextCommandResult.Success("Reloaded Rustwall configuration");
                     }))
                     .EndSubCommand()
-                .EndSubCommand();
+                .EndSubCommand()*/;
         }
     }
 }
