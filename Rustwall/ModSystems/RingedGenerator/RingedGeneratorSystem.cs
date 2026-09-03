@@ -414,7 +414,7 @@ namespace Rustwall.ModSystems.RingedGenerator
                             continue;
                         }
 
-                        if (item.FromRing < 0 || item.ToRing >= NumberOfRings - 1)
+                        if (item.FromRing < 0 || item.ToRing > NumberOfRings - 1)
                         {
                             sapi.Logger.Error($"Ring range is out of bounds for template: {item.Name}. Template will be ignored.");
                             continue;
@@ -517,7 +517,8 @@ namespace Rustwall.ModSystems.RingedGenerator
             else
             {
                 sapi.Logger.Error($"Ring data was not found in savegame. Initializing new dataset from current configuration.");
-                BackfillRandomWorldgenValues();
+                InitRingedWorldGenerator(true);
+                //BackfillRandomWorldgenValues();
             }
         }
 
