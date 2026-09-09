@@ -902,7 +902,7 @@ namespace Rustwall.ModSystems.RingedGenerator
 
                         string flushed = (bool)args[1] ? " and flushed the saved ring generator" : "";
 
-                        string output = $"Deleted rings using a ratio of {(int)args[1]}%" + flushed;
+                        string output = $"Deleted rings using a ratio of {(int)args[0] * 100}%" + flushed;
 
                         return TextCommandResult.Success(output);
                     })
