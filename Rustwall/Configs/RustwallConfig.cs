@@ -85,14 +85,22 @@ namespace Rustwall.Configs
                 Name = "Warm Fertile Plains",
                 FromRing = 1,
                 ToRing = 2,
-                seed = 1234578978,
+                rainfallData = 120,
+                temperatureData = 200,
+                forestData = 0,
+                landformData = "realisticflatlands",
+                oceanData = 0,
             },
             new RGWorldgenTemplate
             {
                 Name = "Dense Forest",
                 FromRing = 3,
                 ToRing = 4,
-                seed = 163264859,
+                rainfallData = 100,
+                temperatureData = 100,
+                forestData = 255,
+                landformData = "realisticflatlands",
+                oceanData = 0,
             },
             new RGWorldgenTemplate
             {
