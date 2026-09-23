@@ -4,6 +4,7 @@ using Rustwall.RWBlockEntity.BERebuildable;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
@@ -319,7 +320,53 @@ namespace Rustwall.ModSystems.RingedGenerator
                     MapGenerator.noiseSizeLandform + 2 * pad);
             }
 
+            /// It's KEY that this get set before calling the forceLandform and forceClimate methods, 
+            /// otherwise the landform map will just get our alterations and the forced landforms and climates will not be applied.
             region.LandformMap.Data = newLandformData;
+
+            /// Here we define some ways to grasp at GenMaps' list of forced landforms and climates and insert them into our newly-modified maps.
+            /// We also grab the private methods used to modify regions with the appropriate forced landforms and climates.
+            /// The purpose is to allow generated structures to generate correctly.
+
+            [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "forceLandforms")]
+            static extern ref List<ForceLandform> AccessForceLandforms(GenMaps genMaps);
+
+            [UnsafeAccessor(UnsafeAccessorKind.Field, Name = "forceClimate")]
+            static extern ref List<ForceClimate> AccessForceClimate(GenMaps genMaps);
+
+            [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "forceLandform")]
+            static extern void CallForceLandform(GenMaps genMaps, IMapRegion mapRegion, int regionX, int regionZ, int pad, int regionsize, ForceLandform fl);
+
+            [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "forceNoUpheavel")]
+            static extern void CallForceNoUpheavel(GenMaps genMaps, IMapRegion mapRegion, int regionX, int regionZ, int pad, int regionsize, ForceLandform fl);
+
+            [UnsafeAccessor(UnsafeAccessorKind.Method, Name = "ForceClimate")]
+            static extern void CallForceClimate(GenMaps genMaps, IMapRegion mapRegion, int regionX, int regionZ, int pad, int regionsize, ForceClimate fc);
+
+            if (chunkGenParams?.HasAttribute("forceLandform") == true)
+            {
+                var index = chunkGenParams.GetInt("forceLandform");
+                for (int i = 0; i < region.LandformMap.Data.Length; i++)
+                {
+                    region.LandformMap.Data[i] = index;
+                }
+            }
+
+            int regionsize = sapi.WorldManager.RegionSize;
+            foreach (var fl in AccessForceLandforms(MapGenerator))
+            {
+                int pad = TerraGenConfig.landformMapPadding;
+                /// Magic number from GenMaps
+                int upPad = 3;
+                CallForceLandform(MapGenerator, region, regionX, regionZ, pad, regionsize, fl);
+                CallForceNoUpheavel(MapGenerator, region, regionX, regionZ, upPad, regionsize, fl);
+            }
+
+            foreach (var climate in AccessForceClimate(MapGenerator))
+            {
+                /// 2 here is a magic number from GenMaps. It is the padding used for the climate map.
+                CallForceClimate(MapGenerator, region, regionX, regionZ, 2, regionsize, climate);
+            }
 
             /// -1 is the default value, which means "don't change it"
 
