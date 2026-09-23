@@ -97,9 +97,11 @@ namespace Rustwall.ModSystems.RingedGenerator
             /// because otherwise HandleRegionLoading is registered too late.
             ///
             /// REVIEW: This is probably not true any more because I am loading later in the process
-            List<XZ> requireLandAt = [new XZ(0, 0)];
+            //List<XZ> requireLandAt = [new XZ(0, 0)];
 
-            GenMaps_oceanGen = GenMaps.GetOceanMapGen(seed + 1873, landcover, TerraGenConfig.oceanMapScale, oceanscale, requireLandAt, false);
+            GenMaps genMaps = sapi.ModLoader.GetModSystem<GenMaps>();
+
+            GenMaps_oceanGen = GenMaps.GetOceanMapGen(seed + 1873, landcover, TerraGenConfig.oceanMapScale, oceanscale, genMaps.requireLandAt, false);
             GenMaps_forestGen = GenMaps.GetForestMapGen(seed + 2, TerraGenConfig.forestMapScale);
             GenMaps_bushGen = GenMaps.GetForestMapGen(seed + 109, TerraGenConfig.shrubMapScale);
             GenMaps_flowerGen = GenMaps.GetForestMapGen(seed + 223, TerraGenConfig.forestMapScale);
