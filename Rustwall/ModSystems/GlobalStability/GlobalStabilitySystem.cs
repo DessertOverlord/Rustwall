@@ -84,7 +84,14 @@ namespace Rustwall.ModSystems.GlobalStability
                     };
                 }
 
-                sapi.Event.RegisterGameTickListener(onGlobalStabilityTick, 2000);
+                if (Config.EnableGlobalStability)
+                {
+                    sapi.Event.RegisterGameTickListener(onGlobalStabilityTick, 2000);
+                } 
+                else
+                {
+                    sapi.Logger.Debug("Global stability system is disabled in config, skipping registration of game tick listener.");
+                }
             };
         }
 

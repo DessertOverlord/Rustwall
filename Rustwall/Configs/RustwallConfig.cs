@@ -16,6 +16,7 @@ namespace Rustwall.Configs
         public double TemporalStormDaysRemovedPerKill = 0.0417;
 
         //GlobalStability options
+        public bool EnableGlobalStability = true;
         public double DaysBetweenStormScoring = 30.0;
         public double DaysBeforeTheGreatDecay = 180.0;
         public double TemporalStormDamageMultiplier = 5.0;
