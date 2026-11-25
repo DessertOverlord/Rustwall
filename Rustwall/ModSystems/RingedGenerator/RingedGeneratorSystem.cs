@@ -3,6 +3,7 @@ using Rustwall.RWBehaviorRebuildable;
 using Rustwall.RWBlockEntity.BERebuildable;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
@@ -11,6 +12,7 @@ using Vintagestory.API.Datastructures;
 using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.API.Util;
+using Vintagestory.Common;
 using Vintagestory.ServerMods;
 
 namespace Rustwall.ModSystems.RingedGenerator
@@ -733,6 +735,73 @@ namespace Rustwall.ModSystems.RingedGenerator
                     }
                 }
             }
+
+            //var claims = sapi.World.Claims.All;
+            List<LandClaim> claims = sapi.World.Claims.All.ToList();
+
+            int DeletionAreaZ1;
+            int DeletionAreaZ2;
+            int DeletionAreaX1;
+            int DeletionAreaX2;
+
+            int PreservationAreaZ1;
+            int PreservationAreaZ2;
+            int PreservationAreaX1;
+            int PreservationAreaX2;
+
+            // Preservation area = inner horizontal rectangle (from ring boundary outward)
+            PreservationAreaZ1 = PreservationAreaX1 = FromInsideRegionXorZ * sapi.WorldManager.RegionSize;
+            PreservationAreaZ2 = PreservationAreaX2 = ToInsideRegionXorZ * sapi.WorldManager.RegionSize - 1;
+
+            // Deletion area = outer horizontal rectangle (from preservation boundary to world edge)
+            DeletionAreaZ1 = DeletionAreaX1 = FromOutsideRegionXorZ * sapi.WorldManager.RegionSize;
+            DeletionAreaZ2 = DeletionAreaX2 = sapi.WorldManager.MapSizeX - 1;
+
+
+            HorRectanglei DeletionArea = new HorRectanglei(DeletionAreaX1, DeletionAreaZ1, DeletionAreaX2, DeletionAreaZ2);
+            //Cuboidi DeletionArea = new Cuboidi(DeletionAreaX1, DeletionAreaY1, DeletionAreaZ1, DeletionAreaX2, DeletionAreaY2, DeletionAreaZ2);
+            HorRectanglei PreservationArea = new HorRectanglei(PreservationAreaX1, PreservationAreaZ1, PreservationAreaX2, PreservationAreaZ2);
+            //Cuboidi PreservationArea = new Cuboidi(PreservationAreaX1, PreservationAreaY1, PreservationAreaZ1, PreservationAreaX2, PreservationAreaY2, PreservationAreaZ2);
+
+            foreach (var claim in claims) {
+                /// If a claim is entirely inside the area being deleted (not in preservation), delete the entire claim.
+                if (claim.Intersects2d(DeletionArea) && !claim.Intersects2d(PreservationArea))
+                {
+                    sapi.World.Claims.Remove(claim);
+                }
+                /// If a claim is entirely inside the preservation area, keep it (no action needed).
+                else if (!claim.Intersects2d(DeletionArea))
+                {
+                    // Claim is fully preserved - no changes needed
+                }
+                /// If a claim intersects both areas, we need to trim out the portions in the deletion area.
+                else if (claim.Intersects2d(DeletionArea) && claim.Intersects2d(PreservationArea))
+                {
+                    // Calculate the preservation area boundaries for filtering claim sub-areas
+                    int keepMinX = PreservationArea.X1;
+                    int keepMaxX = PreservationArea.X2;
+                    int keepMinZ = PreservationArea.Z1;
+                    int keepMaxZ = PreservationArea.Z2;
+
+                    // Filter out areas that are entirely outside the preservation area (i.e., entirely in deletion)
+                    claim.Areas.RemoveAll(area => {
+                        /// Check if this area is entirely outside the preservation bounds
+                        /// Cuboidi uses X1/X2/Z1/Z2 for horizontal 2D projection
+                        bool isEntirelyOutsidePreservation =
+                            area.X1 < keepMinX || area.X2 > keepMaxX ||
+                            area.Z1 < keepMinZ || area.Z2 > keepMaxZ;
+
+                        return isEntirelyOutsidePreservation;
+                    });
+
+                    /// If the claim has no areas remaining after trimming, delete the entire claim
+                    if (claim.Areas.Count == 0)
+                    {
+                        sapi.World.Claims.Remove(claim);
+                    }
+                }
+            }
+
             return;
         }
 
