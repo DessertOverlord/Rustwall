@@ -7,6 +7,9 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# Claude Files
+.claude/
+
 # User-specific files
 *.rsuser
 *.suo
@@ -673,3 +676,4 @@ fabric.properties
 # Additional files built by Visual Studio
 
 # End of https://www.toptal.com/developers/gitignore/api/csharp,visualstudio,visualstudiocode,rider
+/.mcp.json
